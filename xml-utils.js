@@ -1,4 +1,4 @@
-var xmlSchemaString =`
+var SvgSchema = new DOMParser().parseFromString(`
 <xs:schema xmlns="http://www.w3.org/2000/svg" 
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
     xmlns:xml="http://www.w3.org/XML/1998/namespace"
@@ -3210,20 +3210,4 @@ var xmlSchemaString =`
         <xs:attribute name="content" type="xs:string" fixed="structured text"/>
     </xs:complexType>
 </xs:schema>
-`.replace(/xs\:/g, ''); // remove 'xs:' prefix for easier navigation later
-
-function stringToXml(text) {
-    var xmlDoc;
-    if (window.DOMParser) {
-        var parser = new DOMParser();
-        xmlDoc = parser.parseFromString(text, 'text/xml');
-    }
-    else {
-        xmlDoc = new ActiveXObject('Microsoft.XMLDOM');
-        xmlDoc.async = false;
-        xmlDoc.loadXML(text);
-    }
-    return xmlDoc;
-}
-
-var schemaNode = stringToXml(xmlSchemaString).childNodes[0];
+`, 'text/xml'); // remove 'xs:' prefix for easier navigation later

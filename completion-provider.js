@@ -59,12 +59,6 @@ function getLastOpenedTag(text) {
   }
 }
 
-function shouldSkipLevel(tagName) {
-  // if we look at the XSD schema, these nodes are containers for elements,
-  // so we can skip that level
-  return tagName === 'complexType' || tagName === 'all' || tagName === 'sequence';
-}
-
 function getElementAttributes(element) {
   var attrs = {};
   for (var i = 0; i < element.attributes.length; i++) {
@@ -72,34 +66,6 @@ function getElementAttributes(element) {
   }
   // return all attributes as an object
   return attrs;
-}
-
-function findElements(elements, elementName) {
-  for (var i = 0; i < elements.length; i++) {
-      // we are looking for elements, so we don't need to process annotations and attributes
-      if (elements[i].tagName !== 'annotation' && elements[i].tagName !== 'attribute') {
-          // if it is one of the nodes that do not have the info we need, skip it
-          // and process that node's child items
-          if (shouldSkipLevel(elements[i].tagName)) {
-              var child = findElements(elements[i].children, elementName);
-              // if child exists, return it
-              if (child) {
-                  return child;
-              }
-          }
-          // if there is no elementName, return all elements (we'll need this later)
-          // this is for the case when we want elements, but we need to remove the
-    // 'complexType', 'sequence' and 'all' tags
-          else if (!elementName) {
-              return elements;
-          }
-          // find all the element attributes, and if it's name is the same
-          // as the element we're looking for, return the element.
-          else if (getElementAttributes(elements[i]).name === elementName) {
-              return elements[i];
-          }
-      }
-  }
 }
 
 function isItemAvailable(itemName, maxOccurs, items) {
@@ -189,37 +155,35 @@ function getAvailableAttribute(monaco, elements, usedChildTags) {
   return availableItems;
 }
 
-function getAvailableElements(monaco, elements, usedItems) {
+function resolver(prefix) {
+  if (prefix === 'xs')
+    return 'http://www.w3.org/2001/XMLSchema';
+  else
+    return null;
+}
+
+function getAvailableElements(monaco, lastOpenedTag, usedItems) {
   var availableItems = [];
-  var children;
-  for (var i = 0; i < elements.length; i++) {
-      // annotation element only contains documentation,
-      // so no need to process it here
-      if (elements[i].tagName !== 'annotation') {
-          // get all child elements that have 'element' tag
-          children = findElements([elements[i]])
-      }
-  }
+
+  var children = SvgSchema.evaluate(`//xs:complexType[@name='${lastOpenedTag.tagName}Type']//xs:choice//xs:element`, 
+    SvgSchema, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
   // if there are no such elements, then there are no suggestions
-  if (!children) {
+  if (!children.snapshotLength) {
       return [];
   }
-  for (var i = 0; i < children.length; i++) {
-      // get all element attributes
-      let elementAttrs = getElementAttributes(children[i]);
-      // the element is a suggestion if it's available
-      if (isItemAvailable(elementAttrs.name, elementAttrs.maxOccurs, usedItems)) {
-          // mark it as a 'field', and get the documentation
-          availableItems.push({
-              label: elementAttrs.name,
-              insertText: `${elementAttrs.name}>$\{1\}</${elementAttrs.name}`,
-              kind: monaco.languages.CompletionItemKind.Property,
-              detail: elementAttrs.type,
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              documentation: getItemDocumentation(children[i])
-          });
-      }
+  for (var i = 0; i < children.snapshotLength; i++) {
+    var child = children.snapshotItem(i);
+    var ref = child.getAttribute('ref')
+    availableItems.push({
+        label: ref,
+        insertText: `${ref}>$\{1\}</${ref}`,
+        kind: monaco.languages.CompletionItemKind.Property,
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        documentation: getItemDocumentation(child)
+    });
   }
+
   // return the suggestions we found
   return availableItems;
 }
@@ -241,7 +205,8 @@ function getXmlCompletionProvider(monaco) {
       // if we want suggestions, inside of which tag are we?
       var lastOpenedTag = getLastOpenedTag(info.clearedText);
       // parse the content (not cleared text) into an xml document
-      var xmlDoc = stringToXml(textUntilPosition);
+      var parser = new DOMParser();
+      var xmlDoc = parser.parseFromString(textUntilPosition, 'text/xml');
       // get opened tags to see what tag we should look for in the XSD schema
       var openedTags = [];
       // get the elements/attributes that are already mentioned in the element we're in
@@ -280,23 +245,12 @@ function getXmlCompletionProvider(monaco) {
         }
       }
 
-      // find the last opened tag in the schema to see what elements/attributes it can have
-      var currentItem = schemaNode;
-      for (var i = 0; i < openedTags.length; i++) {
-        if (currentItem) {
-          currentItem = findElements(currentItem.children, openedTags[i]);
-        }
-      }
+      const suggestions = lastOpenedTag
+        ? isAttributeSearch
+          ? [] // getAvailableAttribute(monaco, currentItem.children, usedItems)
+          : getAvailableElements(monaco, lastOpenedTag, usedItems)
+        : [];
       
-      // return available elements/attributes if the tag exists in the schema or an empty
-      // array if it doesn't
-
-      const suggestions = currentItem ?
-      isAttributeSearch
-      ?  getAvailableAttribute(monaco, currentItem.children, usedItems)
-      : getAvailableElements(monaco, currentItem.children, usedItems)
-      : [];
-
       console.log(suggestions);
 
       return {
