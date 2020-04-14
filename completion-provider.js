@@ -59,15 +59,6 @@ function getLastOpenedTag(text) {
   }
 }
 
-function getElementAttributes(element) {
-  var attrs = {};
-  for (var i = 0; i < element.attributes.length; i++) {
-      attrs[element.attributes[i].name] = element.attributes[i].value;
-  }
-  // return all attributes as an object
-  return attrs;
-}
-
 function isItemAvailable(itemName, maxOccurs, items) {
   // the default for 'maxOccurs' is 1
   maxOccurs = maxOccurs || '1';
@@ -85,20 +76,6 @@ function isItemAvailable(itemName, maxOccurs, items) {
   // if it didn't appear yet, or it can appear again, then it
   // is available, otherwise it't not
   return count === 0 || parseInt(maxOccurs) > count;
-}
-
-function getItemDocumentation(element) {
-  for (var i = 0; i < element.children.length; i++) {
-      // annotation contains documentation, so calculate the
-      // documentation from it's child elements
-      if (element.children[i].tagName === 'annotation') {
-          return getItemDocumentation(element.children[0]);
-      }
-      // if it's the documentation element, just get the value
-      else if (element.children[i].tagName === 'documentation') {
-          return element.children[i].textContent;
-      }
-  }
 }
 
 function findAttributes(elements) {
@@ -120,34 +97,29 @@ function findAttributes(elements) {
   return attrs;
 }
 
-function getAvailableAttribute(monaco, elements, usedChildTags) {
+function getAvailableAttribute(monaco, lastOpenedTag, usedChildTags) {
   var availableItems = [];
-  var children;
-  for (var i = 0; i < elements.length; i++) {
-      // annotation element only contains documentation,
-      // so no need to process it here
-      if (elements[i].tagName !== 'annotation') {
-          // get all child elements that have 'attribute' tag
-          children = findAttributes([elements[i]])
-      }
-  }
+
+  var info = SvgSchema[lastOpenedTag.tagName];
+
   // if there are no attributes, then there are no
   // suggestions available
-  if (!children) {
+  if (!info.attributes) {
       return [];
   }
-  for (var i = 0; i < children.length; i++) {
+  for (var i = 0; i < info.attributes.length; i++) {
       // get all attributes for the element
-      var attrs = getElementAttributes(children[i]);
+      var attrs = info.attributes[i];
       // accept it in a suggestion list only if it is available
       if (isItemAvailable(attrs.name, attrs.maxOccurs, usedChildTags)) {
           // mark it as a 'property', and get the documentation
           availableItems.push({
               label: attrs.name,
-              insertText: new monaco.SnippetString(`${attrs.name}=""`),
+              insertText: `${attrs.name}="$\{1\}"`,
               kind: monaco.languages.CompletionItemKind.Property,
-              detail: attrs.type,
-              documentation: getItemDocumentation(children[i])
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              // detail: attrs.type,
+              // documentation: getItemDocumentation(children[i])
           });
       }
   }
@@ -155,32 +127,24 @@ function getAvailableAttribute(monaco, elements, usedChildTags) {
   return availableItems;
 }
 
-function resolver(prefix) {
-  if (prefix === 'xs')
-    return 'http://www.w3.org/2001/XMLSchema';
-  else
-    return null;
-}
-
 function getAvailableElements(monaco, lastOpenedTag, usedItems) {
   var availableItems = [];
 
-  var children = SvgSchema.evaluate(`//xs:complexType[@name='${lastOpenedTag.tagName}Type']//xs:choice//xs:element`, 
-    SvgSchema, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+  var info = SvgSchema[lastOpenedTag.tagName];
 
   // if there are no such elements, then there are no suggestions
-  if (!children.snapshotLength) {
+  if (!info || !info.elements) {
       return [];
   }
-  for (var i = 0; i < children.snapshotLength; i++) {
-    var child = children.snapshotItem(i);
-    var ref = child.getAttribute('ref')
+
+  for (var i = 0; i < info.elements.length; i++) {
+    var element = info.elements[i];
     availableItems.push({
-        label: ref,
-        insertText: `${ref}>$\{1\}</${ref}`,
-        kind: monaco.languages.CompletionItemKind.Property,
+        label: element.name,
+        insertText: `${element.name}>$\{1\}</${element.name}`,
+        kind: monaco.languages.CompletionItemKind.Class,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        documentation: getItemDocumentation(child)
+        // documentation: getItemDocumentation(child)
     });
   }
 
@@ -247,7 +211,7 @@ function getXmlCompletionProvider(monaco) {
 
       const suggestions = lastOpenedTag
         ? isAttributeSearch
-          ? [] // getAvailableAttribute(monaco, currentItem.children, usedItems)
+          ? getAvailableAttribute(monaco, lastOpenedTag, usedItems)
           : getAvailableElements(monaco, lastOpenedTag, usedItems)
         : [];
       

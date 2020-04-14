@@ -1,82 +1,111 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Xml.Linq;
 using System.Xml.XPath;
-using System.Text.Json;
 using System.Xml;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace convert_schema
 {
     class Program
     {
-        class CompletionItem
+        class ElementCompletionItem
         {
             public string name { get; set; }
-            public bool unique { get; set; }
-            public bool required { get; set; }
         }
 
-        class CompletionMatch
+        class AttributeCompletionItem
         {
             public string name { get; set; }
-            public List<CompletionItem> elements { get; set; }
-            public List<CompletionItem> attributes { get; set; }
+        }
+
+        class Completion
+        {
+            public List<ElementCompletionItem> elements { get; set; }
+            public List<AttributeCompletionItem> attributes { get; set; }
+        }
+
+        static readonly XmlNamespaceManager ns;
+
+        static Program()
+        {
+            ns = new XmlNamespaceManager(new NameTable());
+            ns.AddNamespace("xs", "http://www.w3.org/2001/XMLSchema");
         }
 
         static void Main(string[] args)
         {
             var doc = XDocument.Load(@"svg.xsd");
 
-            XNamespace xs = "http://www.w3.org/2001/XMLSchema";
+            var items = GetCompletions(doc).ToDictionary(kvp => kvp.Item1, kvp => kvp.Item2);
+            File.WriteAllText(@"svg-schema.js", "var SvgSchema = " + JsonConvert.SerializeObject(items, Newtonsoft.Json.Formatting.Indented));
+        }
 
-            var ns = new XmlNamespaceManager(new NameTable());
-            ns.AddNamespace("xs", "http://www.w3.org/2001/XMLSchema");
-
-            var json = doc.XPathSelectElements("/xs:element").Select(e => 
+        private static IEnumerable< (string, Completion) > GetCompletions(XDocument doc)
+        {
+            foreach (var e in doc.Root.XPathSelectElements("xs:element", ns))
             {
                 var name = e.Attribute("name").Value;
+
                 var type = doc.XPathSelectElement($"//xs:complexType[@name='{name}Type']", ns);
-                if (type == null)
-                    return null;
-
-                var elements = type.XPathSelectElements($"xs:sequence", ns)
-                    .SelectMany(seq =>
-                    {
-                        var groupElements = seq.XPathSelectElements("xs:group")
-                            .SelectMany(g =>
-                            {
-                                var name = g.Attribute("ref").Value;
-                                return doc.XPathSelectElements($"/xs:group[@name='{name}//xs:element'");
-                            });
-
-                        var directElements = seq.XPathSelectElements($"xs:choice/xs:element", ns);
-
-                        var allEelements = new List<XElement>()
-                            .Concat(groupElements)
-                            .Concat(directElements);
-                            
-                        return allEelements.Select(e => new CompletionItem
-                        {
-                            name = e.Attribute("ref").Value
-                        }).ToList();
-
-                    })
-                    .ToList();
-
-                return new CompletionMatch
+                if (type != null)
                 {
-                    name = name,
-                    elements = elements
-                };
-            })
-            .Where(e => e != null)
-            .ToList();
+                    yield return (name, new Completion
+                    {
+                        elements = GetElements(type).ToList(),
+                        attributes = GetAttributes(type).ToList()
+                    });
+                }
+            }
 
-            var data = JsonSerializer.Serialize(json, new JsonSerializerOptions 
-            { 
-                WriteIndented = true
-            });
         }
+
+        private static IEnumerable<ElementCompletionItem> GetElements(XElement type)
+        {
+            foreach (var g in type.XPathSelectElements($".//xs:group[@ref]", ns))
+            {
+                var gref = g.Attribute("ref").Value;
+                foreach (var e in type.Document.XPathSelectElements($"//xs:group[@name='{gref}']//xs:element[@name]", ns))
+                {
+                    yield return new ElementCompletionItem
+                    {
+                        name = e.Attribute("name").Value
+                    };
+                }
+            }
+
+            foreach (var e in type.XPathSelectElements($".//xs:element[@ref]", ns))
+            {
+                yield return new ElementCompletionItem
+                {
+                    name = e.Attribute("ref").Value
+                };
+            }
+        }
+
+        private static IEnumerable<AttributeCompletionItem> GetAttributes(XElement type)
+        {
+            foreach (var g in type.XPathSelectElements($".//xs:attributeGroup[@ref]", ns))
+            {
+                var gref = g.Attribute("ref").Value;
+                foreach (var e in type.Document.XPathSelectElements($"//xs:attributeGroup[@name='{gref}']//xs:attribute[@name]", ns))
+                {
+                    yield return new AttributeCompletionItem
+                    {
+                        name = e.Attribute("name").Value
+                    };
+                }
+            }
+
+            foreach (var a in type.XPathSelectElements($".//xs:attribute[@name]", ns))
+            {
+                yield return new AttributeCompletionItem
+                {
+                    name = a.Attribute("name").Value
+                };
+            };
+        }
+
     }
 }
