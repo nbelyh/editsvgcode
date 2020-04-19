@@ -27,6 +27,7 @@ namespace convert_schema
     class Completion
     {
         public string name { get; set; }
+        public string detail { get; set; }
         public string description { get; set; }
         public List<string> elements { get; set; }
         public List<AttributeCompletionItem> attributes { get; set; }
@@ -51,7 +52,7 @@ namespace convert_schema
             FetchDocumentation(items);
 
             var dict = items.ToDictionary(v => v.name, v => v);
-            File.WriteAllText(@"svg-schema.js", "var SvgSchema = " + JsonConvert.SerializeObject(dict, Newtonsoft.Json.Formatting.Indented));
+            File.WriteAllText(@"../svg-schema.js", "var SvgSchema = " + JsonConvert.SerializeObject(dict, Newtonsoft.Json.Formatting.Indented));
         }
 
         private static string GetItemUrl(string name)
@@ -78,6 +79,8 @@ namespace convert_schema
                     var doc = GetItemDoc(url);
 
                     item.description = GetElementDescription(doc, item.name, GetItemUrl(item.name));
+                    item.detail = $"svg element";
+
                     foreach (var attr in item.attributes)
                     {
                         if (SetAttributeDocumentation(attr, doc, "item", GetItemUrl(item.name)))
@@ -131,7 +134,7 @@ namespace convert_schema
             var index = dt.IndexOf(dtFound);
             var html = dd[index].InnerHtml;
 
-            item.detail = $"{type} attribute";
+            item.detail = $"svg {type} attribute";
             item.description = FormatDescription(html, url);
             return true;
         }
