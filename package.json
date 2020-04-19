@@ -9,6 +9,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "monaco-editor": "^0.20.0"
+    "bootstrap": "^4.4.1",
+    "monaco-editor": "^0.20.0",
+    "split.js": "^1.5.11"
   }
 }

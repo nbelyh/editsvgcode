@@ -1,22 +1,93 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
+
 <head>
-	<title>browser-amd-editor</title>
+	<title>browser-svg-editor</title>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<script src="https://unpkg.com/split.js/dist/split.min.js"></script>
+	<link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+	<style>
+		body {
+			margin: 0;
+		}
+		.gutter {
+			background-color: #777;
+			background-repeat: no-repeat;
+			background-position: 50%;
+			cursor:ew-resize;
+		}
+		.gutter.gutter-vertical {
+			background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+		}
+		.gutter.gutter-horizontal {
+			background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+		}
+		#output {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#output > svg {
+			border: 1px solid lightgray;
+		}
+	</style>
 </head>
-<body>
 
-<h2>SVG Code Editor</h2>
-<div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+<body style="margin:0">
 
-<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
-<script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+	<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+		<a class="navbar-brand" href="#">SVG code editor</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
 
-<script src="convert_schema/svg-schema.js"></script>
-<script src="xml-utils.js"></script>
-<script src="completion-provider.js"></script>
-<script src="editor.js"></script>
+		<div class="collapse navbar-collapse" id="navbarsExampleDefault">
+			<button class="btn btn-sm btn-outline-primary my-2 my-sm-0">
+				<!--<svg style="display: inline-block;" class="bi bi-link" width="1.2em" height="1.2em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+					<path d="M6.354 5.5H4a3 3 0 000 6h3a3 3 0 002.83-4H9c-.086 0-.17.01-.25.031A2 2 0 017 10.5H4a2 2 0 110-4h1.535c.218-.376.495-.714.82-1z" />
+					<path d="M6.764 6.5H7c.364 0 .706.097 1 .268A1.99 1.99 0 019 6.5h.236A3.004 3.004 0 008 5.67a3 3 0 00-1.236.83z" />
+					<path d="M9 5.5a3 3 0 00-2.83 4h1.098A2 2 0 019 6.5h3a2 2 0 110 4h-1.535a4.02 4.02 0 01-.82 1H12a3 3 0 100-6H9z" />
+					<path d="M8 11.33a3.01 3.01 0 001.236-.83H9a1.99 1.99 0 01-1-.268 1.99 1.99 0 01-1 .268h-.236c.332.371.756.66 1.236.83z" />
+				</svg>-->
+				Save
+			</button>
+			<ul class="navbar-nav mr-auto">
+				<!-- <li class="nav-item">
+			<a class="nav-link" href="#">Save</span></a>
+		</li> -->
+				<!-- <li class="nav-item">
+			<a class="nav-link" href="#">Link</a>
+		</li> -->
+				<!-- <li class="nav-item dropdown">
+			<a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Dropdown</a>
+			<div class="dropdown-menu" aria-labelledby="dropdown01">
+				<a class="dropdown-item" href="#">Action</a>
+				<a class="dropdown-item" href="#">Another action</a>
+				<a class="dropdown-item" href="#">Something else here</a>
+			</div>
+		</li> -->
+			</ul>
+			<!-- <form class="form-inline my-2 my-lg-0">
+		<input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
+		<button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+	</form> -->
+		</div>
+	</nav>
+
+	<div style="position: absolute; top: 56px; bottom: 0; left: 0; right: 0; display: flex; overflow: hidden;">
+		<div id="editor"></div>
+		<div id="output"></div>
+	</div>
+
+	<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
+	<script src="node_modules/monaco-editor/min/vs/loader.js"></script>
+
+	<script src="convert_schema/svg-schema.js"></script>
+	<script src="xml-utils.js"></script>
+	<script src="completion-provider.js"></script>
+	<script src="editor.js"></script>
 
 </body>
+
 </html>

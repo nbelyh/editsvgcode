@@ -15,6 +15,10 @@ function getAreaInfo(text) {
       isCompletionAvailable = false;
     }
   }
+
+  // if text is at the end of th tag, drop it
+  text = text.replace(/<\/*[a-zA-Z-]+$/, '');
+
   return {
     isCompletionAvailable: isCompletionAvailable,
     clearedText: text
@@ -104,22 +108,25 @@ function getAvailableAttribute(monaco, lastOpenedTag, usedChildTags) {
 
   // if there are no attributes, then there are no
   // suggestions available
-  if (!info.attributes) {
+  if (!info || !info.attributes) {
       return [];
   }
   for (var i = 0; i < info.attributes.length; i++) {
       // get all attributes for the element
-      var attrs = info.attributes[i];
+      var attribute = info.attributes[i];
       // accept it in a suggestion list only if it is available
-      if (isItemAvailable(attrs.name, attrs.maxOccurs, usedChildTags)) {
+      if (isItemAvailable(attribute.name, attribute.maxOccurs, usedChildTags)) {
           // mark it as a 'property', and get the documentation
           availableItems.push({
-              label: attrs.name,
-              insertText: `${attrs.name}="$\{1\}"`,
+              label: attribute.name,
+              insertText: `${attribute.name}="$\{1\}"`,
               kind: monaco.languages.CompletionItemKind.Property,
               insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              // detail: attrs.type,
-              // documentation: getItemDocumentation(children[i])
+              detail: attribute.detail,
+              documentation: {
+                  value: attribute.description || "",
+                  isTrusted: true
+              }
           });
       }
   }
@@ -139,17 +146,26 @@ function getAvailableElements(monaco, lastOpenedTag, usedItems) {
 
   for (var i = 0; i < info.elements.length; i++) {
     var element = info.elements[i];
+    var elementInfo = SvgSchema[element];
     availableItems.push({
-        label: element.name,
-        insertText: `${element.name}>$\{1\}</${element.name}`,
+        label: element,
+        insertText: `${element}>$\{1\}</${element}`,
         kind: monaco.languages.CompletionItemKind.Class,
+        detail: elementInfo.detail,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        // documentation: getItemDocumentation(child)
+        documentation: {
+            value: elementInfo.description || "",
+            isTrusted: true
+        }
     });
   }
 
   // return the suggestions we found
   return availableItems;
+}
+
+function isAtTheEndOfTag(text) {
+  return 0;
 }
 
 function getXmlCompletionProvider(monaco) {
