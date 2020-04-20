@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+}
+.gutter {
+  background-color: #1E1E1E;
+  background-repeat: no-repeat;
+  background-position: 50%;
+  cursor:ew-resize;
+}
+.gutter-vertical {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+}
+.gutter-horizontal {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+}
+#output {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#output > svg {
+  border: 1px solid lightgray;
+}
+
+#main {
+  position: absolute;
+  top: 56px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  overflow: hidden
+}
