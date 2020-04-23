@@ -6,7 +6,7 @@ require(['vs/editor/editor.main'], function () {
     gutterSize: 5
   });
 
-  var editor = monaco.editor.create(document.getElementById('editor'), {
+    window.editor = monaco.editor.create(document.getElementById('editor'), {
     theme: 'vs-dark', // dark theme
     language: 'xml',
       automaticLayout: true,
@@ -18,10 +18,10 @@ require(['vs/editor/editor.main'], function () {
   monaco.languages.registerCompletionItemProvider('xml', getXmlCompletionProvider(monaco));
 
   function render() {
-    document.getElementById('output').innerHTML = editor.getValue()
+    document.getElementById('output').innerHTML = window.editor.getValue()
   }
 
-  editor.onDidChangeModelContent((event) => {
+  window.editor.onDidChangeModelContent((event) => {
     render();
   });
 
