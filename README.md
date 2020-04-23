@@ -2,7 +2,7 @@
 
 The editor is based on monaco editor, and implements completion provider for SVG.
 
-![](https://editsvgcode.com/readme-picture.png)
+[![](https://editsvgcode.com/readme-picture.png)](https://editsvgcode.com)
 
 The information for the completion is taken from the SVG schema: 
 https://github.com/dumistoklus/svg-xsd-schema
