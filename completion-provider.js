@@ -177,13 +177,13 @@ function getXmlCompletionProvider(monaco) {
       let textUntilPosition = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column })
       // get content info - are we inside of the area where we don't want suggestions,
       // what is the content without those areas
-      let info = getAreaInfo(textUntilPosition); // isCompletionAvailable, clearedText
+      let areaInfo = getAreaInfo(textUntilPosition); // isCompletionAvailable, clearedText
       // if we don't want any suggestions, return empty array
-      if (!info.isCompletionAvailable) {
+      if (!areaInfo.isCompletionAvailable) {
         return [];
       }
       // if we want suggestions, inside of which tag are we?
-      var lastOpenedTag = getLastOpenedTag(info.clearedText);
+      var lastOpenedTag = getLastOpenedTag(areaInfo.clearedText);
       // parse the content (not cleared text) into an xml document
       var parser = new DOMParser();
       var xmlDoc = parser.parseFromString(textUntilPosition, 'text/xml');
@@ -237,4 +237,50 @@ function getXmlCompletionProvider(monaco) {
         suggestions: suggestions };
     }
   };
+}
+
+function getXmlHoverProvider(monaco) {
+  return {
+    provideHover: function(model, position, token) {
+      let wordInfo = model.getWordAtPosition(position);
+      if (!wordInfo)
+        return;
+        
+      let line = model.getLineContent(position.lineNumber);
+      if (line.substr(wordInfo.startColumn-2, 1) == '<') {
+        let info = SvgSchema[wordInfo.word];
+        if (info) {
+          return {
+            contents: [ 
+              { value: `**${wordInfo.word}**` },
+              { value: info.description }
+            ],
+            range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
+          }
+        }
+      } else {
+        let textUntilPosition = model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column })
+        let areaInfo = getAreaInfo(textUntilPosition); // isCompletionAvailable, clearedText
+        if (areaInfo.isCompletionAvailable) {
+          var lastOpenedTag = getLastOpenedTag(areaInfo.clearedText);
+          let info = SvgSchema[lastOpenedTag.tagName];
+          if (info && info.attributes) {
+          for (var i = 0; i < info.attributes.length; i++) {
+              // get all attributes for the element
+              var attribute = info.attributes[i];
+              if (attribute.name === wordInfo.word) {
+                return {
+                  contents: [ 
+                    { value: `**${wordInfo.word}**` },
+                    { value: attribute.description }
+                  ],
+                  range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
+                }                
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

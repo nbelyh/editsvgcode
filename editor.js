@@ -18,6 +18,7 @@ require(['vs/editor/editor.main'], function () {
 
   // register a completion item provider for xml language
   monaco.languages.registerCompletionItemProvider('xml', getXmlCompletionProvider(monaco));
+  monaco.languages.registerHoverProvider('xml', getXmlHoverProvider(monaco));
 
   function render() {
     document.getElementById('output').innerHTML = editor.getValue()
