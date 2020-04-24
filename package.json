@@ -9,8 +9,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@popperjs/core": "^2.3.3",
     "bootstrap": "^4.4.1",
+    "jquery": "^3.5.0",
     "monaco-editor": "^0.20.0",
-    "split.js": "^1.5.11"
+    "split.js": "^1.5.11",
+    "tippy.js": "^6.2.0"
   }
 }

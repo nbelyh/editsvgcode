@@ -9,3 +9,6 @@ https://github.com/dumistoklus/svg-xsd-schema
 
 And mozilla SVG documentation:
 https://developer.mozilla.org/en-US/docs/Web/SVG/
+
+The part with XSD auto-completion is based on:
+https://mono.software/2017/04/11/custom-intellisense-with-monaco-editor/

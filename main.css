@@ -31,3 +31,27 @@ body {
   display: flex;
   overflow: hidden
 }
+
+.navbar .navbar-collapse button {
+  margin-left: 0.5em;
+}
+
+/* tippy */
+
+.tippy-box[data-theme~='editsvgcode'] {
+  background-color: whitesmoke;
+  color: #333;
+}
+
+.tippy-box[data-theme~='editsvgcode'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: whitesmoke;
+}
+.tippy-box[data-theme~='editsvgcode'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: whitesmoke;
+}
+.tippy-box[data-theme~='editsvgcode'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: whitesmoke;
+}
+.tippy-box[data-theme~='editsvgcode'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: whitesmoke;
+}

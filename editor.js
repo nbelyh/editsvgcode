@@ -1,30 +1,50 @@
-require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' } });
+(function () {
 
-require(['vs/editor/editor.main'], function () {
 
-  Split(['#editor', '#output'], {
-    gutterSize: 5
-  });
+  require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' } });
+
+  require(['vs/editor/editor.main'], function () {
+
+    Split(['#editor', '#output'], {
+      gutterSize: 5
+    });
 
     window.editor = monaco.editor.create(document.getElementById('editor'), {
-    theme: 'vs-dark', // dark theme
-    language: 'xml',
+      theme: 'vs-dark', // dark theme
+      language: 'xml',
       automaticLayout: true,
+      tabSize: 2,
       // suggestOnTriggerCharacters: true,
-      value: `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">\n  <rect width="100" height="100" x="50" y="50" />\n</svg>`
-  })
+    })
 
-  // register a completion item provider for xml language
-  monaco.languages.registerCompletionItemProvider('xml', getXmlCompletionProvider(monaco));
+    // register a completion item provider for xml language
+    monaco.languages.registerCompletionItemProvider('xml', getXmlCompletionProvider(monaco));
 
-  function render() {
-    document.getElementById('output').innerHTML = window.editor.getValue()
-  }
+    function render() {
+      document.getElementById('output').innerHTML = window.editor.getValue()
+    }
 
-  window.editor.onDidChangeModelContent((event) => {
+    window.editor.onDidChangeModelContent((event) => {
+      render();
+    });
+
     render();
+
   });
 
-  render();
+  tippy('#upload', {
+    content: 'Upload a SVG file from local computer to edit',
+    theme: 'editsvgcode'
+  });
 
-});
+  tippy('#download', {
+    content: 'Download the file to the local computer',
+    theme: 'editsvgcode'
+  });
+
+  tippy('#save', {
+    content: 'Save the contents of the file in the cloud',
+    theme: 'editsvgcode'
+  })
+
+})();
