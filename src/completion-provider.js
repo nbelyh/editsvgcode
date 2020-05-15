@@ -1,4 +1,6 @@
 
+import { SvgSchema } from './svg-schema'
+
 function getAreaInfo(text) {
   // opening for strings, comments and CDATA
   var items = ['"', '\'', '<!--', '<![CDATA['];
@@ -168,7 +170,7 @@ function isAtTheEndOfTag(text) {
   return 0;
 }
 
-function getXmlCompletionProvider(monaco) {
+export function getXmlCompletionProvider(monaco) {
 
   return {
     triggerCharacters: ['<'],
@@ -239,7 +241,7 @@ function getXmlCompletionProvider(monaco) {
   };
 }
 
-function getXmlHoverProvider(monaco) {
+export function getXmlHoverProvider(monaco) {
   return {
     provideHover: function(model, position, token) {
       let wordInfo = model.getWordAtPosition(position);

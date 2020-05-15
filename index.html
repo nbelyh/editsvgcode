@@ -6,24 +6,8 @@
 	<base href="/" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-	<script src="https://unpkg.com/split.js/dist/split.min.js"></script>
-	<link href="main.css" rel="stylesheet" />
-	<link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-	<script src="node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
-	<script src="node_modules/tippy.js/dist/tippy-bundle.umd.min.js"></script>
-	<link href="node_modules/tippy.js/dist/tippy.css" rel="stylesheet" />
-	
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-10432335-7"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-10432335-7');
-</script>
-
+	<link href='main.css' rel='stylesheet'>
 </head>
 
 <body>
@@ -39,30 +23,9 @@
 		</button>
 
 		<div class="collapse navbar-collapse" id="navbarsExampleDefault">
-			<button id="upload" class="btn btn-outline-secondary"  >Upload...</button>
-			<button id="download" class="btn btn-outline-secondary"  >Download</button>
+			<button id="upload" class="btn btn-outline-secondary">Upload...</button>
+			<button id="download" class="btn btn-outline-secondary">Download</button>
 			<button id="save" class="btn btn-outline-secondary">Save</button>
-			<!-- <ul class="navbar-nav mr-auto">
-				<li class="nav-item">
-					<a class="nav-link" href="#">Save</span></a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" href="#">Link</a>
-				</li>
-				<li class="nav-item dropdown">
-					<a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown"
-						aria-haspopup="true" aria-expanded="false">Dropdown</a>
-					<div class="dropdown-menu" aria-labelledby="dropdown01">
-						<a class="dropdown-item" href="#">Action</a>
-						<a class="dropdown-item" href="#">Another action</a>
-						<a class="dropdown-item" href="#">Something else here</a>
-					</div>
-				</li>
-			</ul> -->
-			<!-- <form class="form-inline my-2 my-lg-0">
-		<input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-		<button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-	</form> -->
 		</div>
 	</nav>
 
@@ -73,25 +36,16 @@
 		<div id="output"></div>
 	</div>
 
-	<!-- The core Firebase JS SDK is always required and must be listed first -->
-	<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-firestore.js"></script>
+	<script src='app.js'></script>
 
-	<!-- TODO: Add SDKs for Firebase products that you want to use
-		 https://firebase.google.com/docs/web/setup#available-libraries -->
-	<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-auth.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-analytics.js"></script>
-	<!-- <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-storage.js"></script> -->
-
-	<script src="firebase.js"></script>
-
-	<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
-	<script src="node_modules/monaco-editor/min/vs/loader.js"></script>
-
-	<script src="svg-schema.js"></script>
-	<script src="completion-provider.js"></script>
-	<script src="editor.js"></script>
-
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-10432335-7"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() { dataLayer.push(arguments); }
+		gtag('js', new Date());
+		gtag('config', 'UA-10432335-7');
+	</script>
 </body>
 
 </html>

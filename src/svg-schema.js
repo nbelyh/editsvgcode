@@ -1,4 +1,4 @@
-var SvgSchema = {
+export var SvgSchema = {
   "svg": {
     "name": "svg",
     "detail": "svg element",

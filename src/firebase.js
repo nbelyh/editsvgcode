@@ -1,4 +1,9 @@
-function EditSvgCodeDb() {
+import * as firebase from 'firebase/app';
+import 'firebase/firestore';
+import 'firebase/analytics';
+import 'firebase/auth';
+
+export function EditSvgCodeDb() {
 
   var firebaseConfig = {
     apiKey: "AIzaSyDFV9DY9TO1wKlKa4JNlG-J3XPh162X6tk",
