@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack --mode=development",
+    "ship": "webpack --mode=production && firebase deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
