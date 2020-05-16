@@ -1,5 +1,6 @@
 
 require('file-loader?name=[name].[ext]!../index.html');
+require('file-loader?name=[name].[ext]!../readme-picture.png');
 
 import * as monaco from 'monaco-editor';
 
