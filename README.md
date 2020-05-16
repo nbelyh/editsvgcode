@@ -12,3 +12,9 @@ https://developer.mozilla.org/en-US/docs/Web/SVG/
 
 The part with XSD auto-completion is based on:
 https://mono.software/2017/04/11/custom-intellisense-with-monaco-editor/
+
+
+### update
+
+After creating the project found out a better tool here that provides everything this does and more, in VS Code:
+https://github.com/lishu/vscode-svg2
