@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Html2Markdown" Version="3.3.1.407" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.23" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
 </Project>
