@@ -115,7 +115,7 @@ namespace convert_schema
 
         private static string GetElementDescription(HtmlDocument doc, string elemName, string url)
         {
-            var html = doc.DocumentNode.SelectSingleNode("//article/p")?.InnerHtml;
+            var html = doc.DocumentNode.SelectSingleNode("//article/div")?.InnerHtml;
             if (html == null)
                 return null;
 
@@ -124,8 +124,8 @@ namespace convert_schema
 
         private static bool SetAttributeDocumentation(AttributeCompletionItem item, HtmlDocument doc, string type, string url)
         {
-            var dt = doc.DocumentNode.SelectNodes("//article/dl//dt/code/a");
-            var dd = doc.DocumentNode.SelectNodes("//article/dl//dd");
+            var dt = doc.DocumentNode.SelectNodes("//article//dl//dt/code/a");
+            var dd = doc.DocumentNode.SelectNodes("//article//dl//dd");
 
             var dtFound = dt?.FirstOrDefault(n => n.InnerText == item.name);
             if (dtFound == null)
