@@ -955,7 +955,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -985,7 +985,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1005,7 +1005,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1035,7 +1035,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -1425,7 +1425,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -1455,13 +1455,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1477,7 +1477,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1489,7 +1489,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1525,7 +1525,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1545,7 +1545,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1575,7 +1575,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -1629,7 +1629,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-start",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -1638,7 +1638,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-mid",
-        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -1647,7 +1647,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-end",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -1793,7 +1793,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -1823,13 +1823,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1845,7 +1845,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1857,7 +1857,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -1893,7 +1893,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1913,7 +1913,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -1943,7 +1943,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -2158,7 +2158,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -2188,13 +2188,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2210,7 +2210,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2222,7 +2222,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2258,7 +2258,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -2278,7 +2278,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -2308,7 +2308,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -2446,19 +2446,19 @@ export var SvgSchema = {
       },
       {
         "name": "cx",
-        "description": "The x-axis coordinate of the center of the circle. *Value type*: **[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
+        "description": "The x-axis coordinate of the center of the circle. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
         "detail": "svg item attribute",
         "options": null
       },
       {
         "name": "cy",
-        "description": "The y-axis coordinate of the center of the circle. *Value type*: **[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
+        "description": "The y-axis coordinate of the center of the circle. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
         "detail": "svg item attribute",
         "options": null
       },
       {
         "name": "r",
-        "description": "The radius of the circle. A value lower or equal to zero disables rendering of the circle. *Value type*: **[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
+        "description": "The radius of the circle. A value lower or equal to zero disables rendering of the circle. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
         "detail": "svg item attribute",
         "options": null
       }
@@ -2505,7 +2505,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -2535,13 +2535,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2557,7 +2557,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2569,7 +2569,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2605,7 +2605,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -2625,7 +2625,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -2655,7 +2655,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -2858,7 +2858,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -2888,13 +2888,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2910,7 +2910,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2922,7 +2922,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -2958,7 +2958,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -2978,7 +2978,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -3008,7 +3008,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3062,7 +3062,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-start",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3071,7 +3071,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-mid",
-        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3080,7 +3080,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-end",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3238,7 +3238,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -3268,13 +3268,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3290,7 +3290,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3302,7 +3302,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3338,7 +3338,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -3358,7 +3358,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -3388,7 +3388,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3442,7 +3442,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-start",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3451,7 +3451,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-mid",
-        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3460,7 +3460,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-end",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3600,7 +3600,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -3630,13 +3630,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3652,7 +3652,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3664,7 +3664,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -3700,7 +3700,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -3720,7 +3720,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -3750,7 +3750,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3804,7 +3804,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-start",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the first vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3813,7 +3813,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-mid",
-        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at every vertex other than the first and last vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3822,7 +3822,7 @@ export var SvgSchema = {
       },
       {
         "name": "marker-end",
-        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the arrowhead or polymarker that will be drawn at the final vertex of the given [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shape. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -3967,7 +3967,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -3997,13 +3997,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4019,7 +4019,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4031,7 +4031,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4126,7 +4126,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4146,7 +4146,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4176,7 +4176,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -4236,7 +4236,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -4259,7 +4259,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -4267,7 +4267,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -4276,7 +4276,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4474,7 +4474,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -4504,13 +4504,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4526,7 +4526,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4538,7 +4538,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -4633,7 +4633,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4653,7 +4653,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4683,7 +4683,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -4743,7 +4743,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -4766,7 +4766,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -4774,7 +4774,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -4783,7 +4783,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -4983,7 +4983,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -5013,13 +5013,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5035,7 +5035,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5047,7 +5047,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5142,7 +5142,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5162,7 +5162,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5192,7 +5192,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -5252,7 +5252,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -5275,7 +5275,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -5283,7 +5283,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -5292,7 +5292,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5496,13 +5496,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5518,7 +5518,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5530,7 +5530,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -5625,7 +5625,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5645,7 +5645,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5675,7 +5675,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -5735,7 +5735,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -5758,7 +5758,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -5766,7 +5766,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -5775,7 +5775,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -5956,7 +5956,7 @@ export var SvgSchema = {
       },
       {
         "name": "color",
-        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It provides a potential indirect value (`currentcolor`) for the `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color` presentation attributes. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -5986,13 +5986,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -6008,7 +6008,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -6020,7 +6020,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -6115,7 +6115,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -6135,7 +6135,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -6165,7 +6165,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -6225,7 +6225,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -6248,7 +6248,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -6256,7 +6256,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -6265,7 +6265,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -6664,13 +6664,13 @@ export var SvgSchema = {
       },
       {
         "name": "refX",
-        "description": "This attribute defines the x coordinate for the reference point of the marker. *Value type*: `left`|`center`|`right`|**[<coordinate>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#coordinate)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
+        "description": "This attribute defines the x coordinate for the reference point of the marker. *Value type*: `left`|`center`|`right`|**[`<coordinate>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#coordinate)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
         "options": null
       },
       {
         "name": "refY",
-        "description": "This attribute defines the y coordinate for the reference point of the marker. *Value type*: `top`|`center`|`bottom`|**[<coordinate>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#coordinate)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
+        "description": "This attribute defines the y coordinate for the reference point of the marker. *Value type*: `top`|`center`|`bottom`|**[`<coordinate>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#coordinate)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
         "options": null
       },
@@ -6682,19 +6682,19 @@ export var SvgSchema = {
       },
       {
         "name": "markerWidth",
-        "description": "This attribute defines the width of the marker viewport. *Value type*: **[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)** ; *Default value*: `3`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
+        "description": "This attribute defines the width of the marker viewport. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)** ; *Default value*: `3`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
         "options": null
       },
       {
         "name": "markerHeight",
-        "description": "This attribute defines the height of the marker viewport. *Value type*: **[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)** ; *Default value*: `3`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
+        "description": "This attribute defines the height of the marker viewport. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)** ; *Default value*: `3`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
         "options": null
       },
       {
         "name": "orient",
-        "description": "This attribute defines the orientation of the marker relative to the shape it is attached to. *Value type*: `auto`|`auto-start-reverse`|**[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
+        "description": "This attribute defines the orientation of the marker relative to the shape it is attached to. *Value type*: `auto`|`auto-start-reverse`|**[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
         "options": null
       }
@@ -7130,13 +7130,13 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "fill-opacity",
-        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the opacity of the color or the content the current object is filled with. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -7152,7 +7152,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke",
-        "description": "Defines the color used to paint the outline of the shape. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -7164,7 +7164,7 @@ export var SvgSchema = {
       },
       {
         "name": "stroke-dashoffset",
-        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "Defines an offset on the rendering of the associated dash array. *Value*: [`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -7259,7 +7259,7 @@ export var SvgSchema = {
       },
       {
         "name": "clip-path",
-        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It binds the element it is applied to with a given [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) element. *Value*: **`none`**|[`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -7279,7 +7279,7 @@ export var SvgSchema = {
       },
       {
         "name": "cursor",
-        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[<keywords>](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It specifies the mouse cursor displayed when the mouse pointer is over an element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|[`<keywords>`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#values)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -7309,7 +7309,7 @@ export var SvgSchema = {
       },
       {
         "name": "filter",
-        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [<FuncIRI>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the filter effects defined by the [`<filter>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/filter) element that shall be applied to its element. *Value*: [`<FuncIRI>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#funciri)|**`none`**|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "none",
@@ -7369,7 +7369,7 @@ export var SvgSchema = {
       },
       {
         "name": "baseline-shift",
-        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It allows repositioning of the dominant-baseline relative to the dominant-baseline of the parent text content element. *Value*: **`auto`**|`baseline`|`super`|`sub`|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "baseline",
@@ -7392,7 +7392,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-horizontal",
-        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is horizontal. *Value*: [`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
@@ -7400,7 +7400,7 @@ export var SvgSchema = {
       },
       {
         "name": "glyph-orientation-vertical",
-        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[<angle>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls glyph orientation when the inline-progression-direction is vertical. *Value*: **`auto`**|[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)|`inherit`; *Animatable*: **No** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "inherit",
@@ -7409,7 +7409,7 @@ export var SvgSchema = {
       },
       {
         "name": "letter-spacing",
-        "description": "It controls spacing between text characters. *Value*: **`normal`**|[<length>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It controls spacing between text characters. *Value*: **`normal`**|[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
           "auto",
@@ -8343,7 +8343,7 @@ export var SvgSchema = {
       },
       {
         "name": "lighting-color",
-        "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -8444,13 +8444,13 @@ export var SvgSchema = {
       },
       {
         "name": "flood-color",
-        "description": "It indicates what color to use to flood the current filter primitive subregion defined through the [`<feFlood>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feFlood) or [`<feDropShadow>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow) element. *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It indicates what color to use to flood the current filter primitive subregion defined through the [`<feFlood>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feFlood) or [`<feDropShadow>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow) element. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
       {
         "name": "flood-opacity",
-        "description": "It indicates the opacity value to use across the current filter primitive subregion defined through the [`<feFlood>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feFlood) or [`<feDropShadow>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow) element. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[<percentage>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It indicates the opacity value to use across the current filter primitive subregion defined through the [`<feFlood>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feFlood) or [`<feDropShadow>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow) element. *Value*: [`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -8735,7 +8735,7 @@ export var SvgSchema = {
       },
       {
         "name": "lighting-color",
-        "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [<color>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -9087,7 +9087,7 @@ export var SvgSchema = {
       },
       {
         "name": "target",
-        "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) or URL fragment the hyperlink points to. *Value type*: **[<URL>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/a)",
+        "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) or URL fragment the hyperlink points to. *Value type*: **[`<URL>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/a)",
         "detail": "svg item attribute",
         "options": null
       }
@@ -9161,7 +9161,7 @@ export var SvgSchema = {
       },
       {
         "name": "type",
-        "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) to the script to load. *Value type*: **[<URL>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/script)",
+        "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) to the script to load. *Value type*: **[`<URL>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/script)",
         "detail": "svg item attribute",
         "options": null
       }
@@ -9269,7 +9269,7 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -9437,7 +9437,7 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -9558,7 +9558,7 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -9774,7 +9774,7 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
@@ -9942,7 +9942,7 @@ export var SvgSchema = {
       },
       {
         "name": "fill",
-        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [<paint>](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
+        "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": null
       },
