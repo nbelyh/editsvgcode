@@ -15,7 +15,7 @@ module.exports = {
         use: [MiniCssExtractPlugin.loader, 'css-loader']
       }, {
         test: /\.ttf$/,
-        use: ['file-loader']
+        type: 'asset/resource'
       }]
   },
   plugins: [
