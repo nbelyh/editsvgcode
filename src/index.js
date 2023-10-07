@@ -1,4 +1,5 @@
 
+require('file-loader?name=[name].[ext]!../privacy-policy.md');
 require('file-loader?name=[name].[ext]!../index.html');
 require('file-loader?name=[name].[ext]!../readme-picture.png');
 

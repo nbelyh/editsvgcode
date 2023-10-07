@@ -25,11 +25,25 @@ body {
 #main {
   position: absolute;
   top: 56px;
-  bottom: 0;
+  bottom: 2.5rem;
   left: 0;
   right: 0;
   display: flex;
   overflow: hidden
+}
+
+#footer {
+  position: fixed;
+  height: 2.5rem;
+  display: flex;
+  bottom: 0;
+  width: 100%;
+  align-items: center;
+  padding-left: 1rem;
+}
+
+#footer a {
+  color: #999;
 }
 
 .navbar .navbar-collapse button {
