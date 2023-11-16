@@ -9,16 +9,18 @@ import tippy from 'tippy.js';
 
 import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'tippy.js/dist/tippy.css'
-import './main.css'
+import 'tippy.js/dist/tippy.css';
+import './main.css';
 
 import Split from 'split.js';
 
 import { getXmlCompletionProvider, getXmlHoverProvider } from './completion-provider';
 import { EditSvgCodeDb }  from './firebase';
 
-Split(['#editor', '#output'], {
-  gutterSize: 5
+Split(['#editor', '#output', '#sidebar'], {
+  gutterSize: 5,
+  sizes: [45, 45, 10],
+  minSize: [0, 0, 150],
 });
 
 const editor = monaco.editor.create(document.getElementById('editor'), {
@@ -143,7 +145,7 @@ document.addEventListener('dbinit', function () {
         editor.updateOptions({ readOnly: false })
       })
   } else {
-    editor.setValue(`<!-- sample rectangle -->\n<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">\n  <rect width="100" height="100" x="50" y="50" />\n</svg>`);
+    editor.setValue(`<!-- sample rectangle -->\n<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">\n  <rect width="100" height="100" x="50" y="50" fill="red" />\n</svg>`);
     editor.updateOptions({ readOnly: false })
   }
 })

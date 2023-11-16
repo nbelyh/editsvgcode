@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode=development",
+    "dev": "webpack --mode=development --watch",
     "ship": "webpack --mode=production && firebase deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
