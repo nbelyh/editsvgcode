@@ -35,53 +35,53 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ---
 
-## Phase 0: Rewrite to React + Vite + Mantine
+## Phase 0: Rewrite to React + Vite + Mantine ✅ COMPLETE
 
 **Goal:** Modernize the stack without changing any user-facing behavior.
 
-### 0.1 Scaffold new project
+### 0.1 Scaffold new project ✅
 
 - `npm create vite@latest -- --template react-ts`
 - Install: `@mantine/core`, `@mantine/hooks`, `@mantine/notifications`, `@tabler/icons-react`, `@monaco-editor/react`, `allotment`
 - Configure Vite, Mantine (`MantineProvider`, `createTheme`, `ColorSchemeScript`)
 - Set up Firebase 11 (modular SDK, tree-shakeable)
 
-### 0.2 Port the layout
+### 0.2 Port the layout ✅
 
 - App.tsx: Mantine `AppShell` + main area (3 panes via allotment) + footer
 - Dark theme via Mantine `colorScheme: 'dark'` in `createTheme()`
 - Match current look & feel (dark bg, split panes)
 
-### 0.3 Port the editor
+### 0.3 Port the editor ✅
 
 - Editor.tsx: Monaco editor with XML language, vs-dark theme
 - Port XML formatting provider
 - Port SVG completion provider + hover provider (svg-schema.js)
 - Port SVG schema data (svg-schema.js → TypeScript)
 
-### 0.4 Port the preview
+### 0.4 Port the preview ✅
 
 - Preview.tsx: Renders editor content as innerHTML
 - Re-render on editor content change
 
-### 0.5 Port Firebase integration
+### 0.5 Port Firebase integration ✅
 
 - firebase.ts: Modular SDK (initializeApp, getFirestore, getAuth)
 - Anonymous auth → load/save documents
 - Cloud save + URL-based document loading
 - Emulator detection for localhost
 
-### 0.6 Port toolbar actions
+### 0.6 Port toolbar actions ✅
 
 - Upload SVG file, Download SVG, Save to cloud
 - Tooltips (Mantine `Tooltip` instead of Tippy.js)
 
-### 0.7 Port sidebar
+### 0.7 Port sidebar ✅
 
 - Info tab with current help text
 - Carbon Ads script inclusion
 
-### 0.8 Modernize SVG schema
+### 0.8 Modernize SVG schema ✅
 
 **Approach:** Use existing `svg-schema.js` as the base (produced from SVG 1.1 XSD + MDN scraping by C# `convert_schema`). Write a Node.js enhancement script that patches it with SVG2 additions and curated improvements. No XSD needed — SVG 2 deliberately dropped formal DTD/XSD. BCD (`@mdn/browser-compat-data`) evaluated and rejected — it's a browser-support database, not documentation (no descriptions, no child elements, no value enumerations).
 
@@ -101,7 +101,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Fill in null descriptions for attributes currently missing documentation
 - Consider switching editor language from 'xml' to 'html' (auto-close tags, CSS-in-SVG) + keep custom SVG providers on top
 
-### 0.9 Update build/deploy
+### 0.9 Update build/deploy ✅
 
 - Update firebase.json if needed (still serves from dist/)
 - Verify `npm run build` produces working output
@@ -113,16 +113,23 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ---
 
-## Phase 1: Enhanced UX Features
+## Phase 1: Enhanced UX Features ← CURRENT
 
 **Goal:** Make the editor best-in-class for free users, increase engagement. Reference: [vscode-svg2](https://github.com/lishu/vscode-svg2) (MIT) for feature inspiration and code patterns.
 
-### 1.1 Preview enhancements
+### 1.1 Preview enhancements ✅
 
-- Zoom: scroll wheel to zoom in/out, zoom-to-fit button, zoom percentage display
-- Background toggle: checkerboard (current) / white / black / transparent (no bg)
-- Toolbar buttons or dropdown for background selection
-- *Ref: vscode-svg2 preview panel has zoom + background switching*
+- ✅ Zoom: Ctrl+scroll, zoom-in/out/reset/fit buttons, preset levels (1%-5000%+), no hard cap
+- ✅ Background toggle: checkerboard / white / black / none (SegmentedControl)
+- ✅ Auto-fit on load: large SVGs scale to fit viewport
+- ✅ Scroll-center preservation during zoom
+- ✅ Robust viewBox handling: percentage dimensions, missing viewBox, getBBox fallback
+- ✅ Toolbar with zoom controls + background switcher
+
+### 1.1b Bugfixes & polish ✅
+
+- ✅ Fix: strip BOM from loaded SVG files (use readAsText instead of base64 roundtrip)
+- ✅ Rename toolbar buttons: Open / Download / Share (was Upload / Download / Save)
 
 ### 1.2 Click-to-select in preview
 
