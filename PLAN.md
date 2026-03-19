@@ -1,0 +1,342 @@
+# editsvgcode — AI Monetization Implementation Plan
+
+## Overview
+
+Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI-powered SVG editing platform ($500-2,000/month subscriptions).
+
+- **Current:** 30K visits/month, Carbon Ads revenue ~$15/month
+- **Target:** $500-2,000/month via Pro subscriptions at $9/month
+
+## Target Stack
+
+- **Frontend:** React 19 + Vite + TypeScript + Mantine
+- **AI Chat UI:** VS Code-style sidebar (CopilotKit or custom Mantine — TBD, needs VS Code Copilot Chat look & feel)
+- **Editor:** @monaco-editor/react (includes diff editor for AI proposals)
+- **Split panes:** allotment
+- **Backend:** Azure Function (AI proxy, rate limiting, PayProGlobal webhooks)
+- **AI Model:** GPT-4o on Azure OpenAI (primary), GPT-4o-mini (simple edits)
+- **BYOL:** Bring Your Own LLM — users pick provider (OpenAI, Anthropic, Google, etc.) + enter their key
+- **Payments:** PayProGlobal (subscription)
+- **Auth:** Firebase Auth (email + Google sign-in, upgrade from anonymous)
+- **DB:** Firebase Firestore (existing, add user/subscription collections)
+
+## Pricing
+
+| Tier | Price | Features |
+|------|-------|----------|
+| Free | $0 | 5 AI edits/day, ads shown, basic exports, full editor |
+| Pro | $9/month or $79/year | Unlimited AI, no ads, all exports, priority model |
+| BYOL | Free or $3/month | Bring your own LLM provider + API key |
+
+## Open Decisions
+
+- [ ] AI Chat UI library: assistant-ui vs CopilotKit vs custom Mantine (want VS Code Copilot Chat look)
+- [ ] BYOL: direct client-to-provider calls (skip proxy) vs proxy all through Azure Function
+- [ ] Color picker implementation approach in Monaco
+
+---
+
+## Phase 0: Rewrite to React + Vite + Mantine
+
+**Goal:** Modernize the stack without changing any user-facing behavior.
+
+### 0.1 Scaffold new project
+
+- `npm create vite@latest -- --template react-ts`
+- Install: `@mantine/core`, `@mantine/hooks`, `@mantine/notifications`, `@tabler/icons-react`, `@monaco-editor/react`, `allotment`
+- Configure Vite, Mantine (`MantineProvider`, `createTheme`, `ColorSchemeScript`)
+- Set up Firebase 11 (modular SDK, tree-shakeable)
+
+### 0.2 Port the layout
+
+- App.tsx: Mantine `AppShell` + main area (3 panes via allotment) + footer
+- Dark theme via Mantine `colorScheme: 'dark'` in `createTheme()`
+- Match current look & feel (dark bg, split panes)
+
+### 0.3 Port the editor
+
+- Editor.tsx: Monaco editor with XML language, vs-dark theme
+- Port XML formatting provider
+- Port SVG completion provider + hover provider (svg-schema.js)
+- Port SVG schema data (svg-schema.js → TypeScript)
+
+### 0.4 Port the preview
+
+- Preview.tsx: Renders editor content as innerHTML
+- Re-render on editor content change
+
+### 0.5 Port Firebase integration
+
+- firebase.ts: Modular SDK (initializeApp, getFirestore, getAuth)
+- Anonymous auth → load/save documents
+- Cloud save + URL-based document loading
+- Emulator detection for localhost
+
+### 0.6 Port toolbar actions
+
+- Upload SVG file, Download SVG, Save to cloud
+- Tooltips (Mantine `Tooltip` instead of Tippy.js)
+
+### 0.7 Port sidebar
+
+- Info tab with current help text
+- Carbon Ads script inclusion
+
+### 0.8 Modernize SVG schema
+
+- Replace XSD-based schema with @mdn/browser-compat-data + MDN content
+- Write Node.js schema generator script (replace C# convert_schema)
+- Remove deprecated SVG 1.1 elements (altGlyph, font-face, glyph, tref, cursor, animateColor, etc.)
+- Add SVG2 attributes (href replacing xlink:href, pathLength on shapes, tabindex, vector-effect)
+- Add comprehensive attribute value enumerations (stroke-linecap, fill-rule, text-anchor, etc.)
+- Add path command data (M/L/C/S/Q/T/A/Z descriptions, parameter formats)
+- Add color name completions + functional color syntax (rgb, hsl)
+- Switch editor language from 'xml' to 'html' (get auto-close tags, CSS-in-SVG) + keep custom SVG providers on top
+
+### 0.9 Update build/deploy
+
+- Update firebase.json if needed (still serves from dist/)
+- Verify `npm run build` produces working output
+- Test full flow: edit, preview, save, load, upload, download
+
+**Deliverable:** Identical app, new stack, modernized SVG schema. Deploy to Firebase Hosting.
+
+**Claude prompt:** "Rewrite the editsvgcode project from vanilla JS + Webpack + Bootstrap to React 19 + Vite + TypeScript + Mantine. Preserve all existing functionality: Monaco SVG editor with autocomplete, live preview, Firebase anonymous auth, save/load documents, upload/download files. Use @mantine/core + @mantine/hooks for UI, @tabler/icons-react for icons, @monaco-editor/react and allotment for split panes. Configure MantineProvider with dark colorScheme. Also modernize the SVG schema: replace the XSD-based C# generator with a Node.js script using @mdn/browser-compat-data, remove deprecated SVG 1.1 elements, add SVG2 attributes, add comprehensive attribute value enumerations, add path command data, and switch to HTML language mode with custom SVG providers on top."
+
+---
+
+## Phase 1: AI Sidebar MVP
+
+**Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day limit via localStorage counter.
+
+### 1.1 Azure Function setup
+
+- Create Azure Function App (Node.js, consumption plan)
+- POST /api/chat endpoint
+- Accepts: messages array, current SVG, selected element
+- Calls Azure OpenAI (GPT-4o) with SVG-specific system prompt
+- Returns: streaming response with tool calls
+- Rate limiting: check X-Forwarded-For or anonymous UID, 5/day
+- CORS configuration for editsvgcode.com
+
+### 1.2 Define AI tools/functions
+
+- `replace_svg(svg_code)` — full SVG replacement
+- `edit_element(selector, attributes, action)` — targeted edit
+- `insert_element(parent_selector, position, svg_fragment)` — add new
+- `get_svg_structure()` — model calls this to understand document
+- System prompt: SVG editing assistant, rules, output format
+
+### 1.3 AI sidebar UI (VS Code style)
+
+- VS Code Copilot Chat-like panel in sidebar
+- Message list, input, streaming display
+- Model selector dropdown
+- Wire to Azure Function endpoint
+- Show tool call results (what the AI is doing)
+- Client-side rate limit display ("3 of 5 free edits used today")
+
+### 1.4 Apply AI edits to editor
+
+- When AI calls replace_svg → switch Monaco to diff mode
+- Show original vs proposed (inline diff)
+- Preview pane shows the proposed SVG rendered
+- Accept button: commit new SVG, switch back to normal editor
+- Reject button: discard, revert preview
+
+### 1.5 Streaming UX
+
+- Stream AI text responses in the chat
+- Show "thinking..." indicator
+- Abort button to cancel mid-stream
+
+### 1.6 Test & iterate on prompt quality
+
+- Test: "make the rectangle blue"
+- Test: "add a drop shadow"
+- Test: "create a 200x200 circle"
+- Test: "animate the element"
+- Tune system prompt based on results
+
+**Deliverable:** Working AI SVG editor with chat, diff preview, 5/day free limit.
+
+**Claude prompt:** "Add a VS Code Copilot Chat-style AI sidebar to the editsvgcode React app. Create an Azure Function that proxies to Azure OpenAI GPT-4o with tool-calling for SVG edits. When AI proposes changes, show Monaco diff editor with accept/reject. Rate limit to 5 requests/day per user (localStorage counter for now). Include model selector dropdown."
+
+---
+
+## ⏸️ MEASUREMENT PAUSE (2-3 weeks)
+
+Deploy Phase 1, monitor:
+
+- How many users try the AI feature?
+- How many hit the 5/day limit?
+- What do they ask for? (Log prompts, anonymized)
+- Is AI output quality good enough?
+
+**If signals are good (>10% try, >1% hit limit) → proceed to Phase 2.**
+
+---
+
+## Phase 2: Enhanced UX Features
+
+**Goal:** Make the editor best-in-class for free users, increase engagement.
+
+### 2.1 Click-to-select in preview
+
+- Click SVG element in preview → highlight with dashed outline
+- Extract clicked element's XML from editor
+- Scroll editor to the selected element
+- Pass selection context to AI automatically
+- Deselect on click outside
+
+### 2.2 SVG Element Tree
+
+- TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
+- Click tree node → highlight in preview + scroll in editor
+- Show element type + id + key attributes
+- Bidirectional sync: preview ↔ tree ↔ editor
+
+### 2.3 Color Picker
+
+- Monaco decoration provider: detect color values in SVG
+- Inline color swatch next to fill=, stroke=, stop-color=, etc.
+- Click swatch → color picker popover
+- Pick color → update attribute value in editor
+
+### 2.4 SVG Optimization (SVGO)
+
+- Install svgo (runs client-side)
+- Button in toolbar: "Optimize"
+- Show before/after file size
+- Use Monaco diff to preview optimization changes
+
+### 2.5 Export options
+
+- SVG → PNG (render to canvas, resolution picker)
+- SVG → React JSX component
+- SVG → Data URI / Base64
+- SVG → Copy to clipboard
+- Export dropdown in toolbar
+
+### 2.6 Path data intelligence
+
+- Path command completion inside d="..." (M, L, C, S, Q, T, A, Z with parameter snippets)
+- Hover tooltips explaining path commands + expected parameters
+- Path segment highlighting in preview as cursor moves through d="..." data
+- (Future/Phase 4) Visual path point dragging in preview — edit control points visually
+
+### 2.7 Enhanced color intelligence
+
+- Named SVG color completions (aliceblue, coral, etc.)
+- Functional color syntax (rgb(), hsl())
+- url(#id) completions — suggest IDs of gradients, patterns, clip-paths defined in the document
+- `currentColor`, `inherit`, `none`, `transparent` suggestions
+
+**Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
+
+**Claude prompt:** "Add these features to editsvgcode: (1) click-to-select SVG elements in preview with highlight, synced to editor cursor, (2) collapsible SVG element tree in sidebar, (3) inline color picker for SVG color attributes in Monaco, (4) SVGO optimization with diff preview, (5) export to PNG/React JSX/Data URI."
+
+---
+
+## Phase 3: Payments & User Management
+
+**Goal:** Monetize with subscriptions via PayProGlobal.
+
+### 3.1 Firebase Auth upgrade
+
+- Add Google sign-in + email/password (keep anonymous as fallback)
+- User avatar/menu in navbar (Mantine `Menu`)
+- Login/signup dialog (Mantine `Modal`)
+- Link anonymous account to real account (preserve saved documents)
+
+### 3.2 User profile & settings
+
+- Settings dialog: account info, subscription status
+- BYOL configuration: user picks provider (OpenAI / Anthropic / Google) + enters API key
+- BYOL keys stored in localStorage (never sent to your server)
+- BYOL requests go direct from browser to AI provider (skip Azure Function)
+- Model selector in AI sidebar reflects available models per provider
+
+### 3.3 PayProGlobal integration
+
+- Create subscription products: Pro Monthly ($9/mo), Pro Annual ($79/yr)
+- "Upgrade to Pro" button → redirects to PayProGlobal checkout (pass Firebase UID)
+- Azure Function: POST /api/webhook/payproglobal
+  - Verify IPN signature
+  - On payment: write to Firestore users/{uid}/subscription
+  - On cancellation: update subscription status
+- Client reads subscription status from Firestore on load
+
+### 3.4 Enforce tiers
+
+- Azure Function: check subscription before processing AI request
+- Free: 5/day (server-enforced)
+- Pro: unlimited (soft cap 500/day for abuse)
+- BYOL: client-side calls, no server enforcement needed
+- Remove ads for Pro users
+
+### 3.5 Usage dashboard
+
+- Counter in AI sidebar: "3/5 free edits today" or "Pro ∞"
+- Settings page: monthly usage stats
+
+**Deliverable:** Working subscription system with BYOL support.
+
+**Claude prompt:** "Add user authentication (Firebase Auth with Google + email), PayProGlobal subscription integration (webhook to Azure Function, subscription status in Firestore), BYOL support (user picks LLM provider + enters API key, stored in localStorage, calls go direct to provider), and tier enforcement to editsvgcode."
+
+---
+
+## Phase 4: Growth Features
+
+**Goal:** Drive more traffic and increase retention.
+
+### 4.1 SVG search & import
+
+- Azure Function: GET /api/search?q=shopping+cart
+- Aggregates: SVG Repo API, Lucide GitHub, Material Icons API
+- Returns: thumbnails, license info, SVG content URLs
+- Chat UI: grid of results, license badges, "Use" button
+- Import: loads SVG into editor with license comment
+- License filter: only show MIT/CC0/Apache/CC-BY results
+
+### 4.2 AI SVG generation
+
+- "Create a pie chart showing 40% blue, 35% green, 25% red"
+- Uses same Azure Function + AI, different system prompt
+- Result appears in editor
+
+### 4.3 SEO & marketing pages
+
+- /tools/svg-to-react — landing page for React conversion
+- /tools/svg-optimizer — landing page for SVGO
+- /tools/svg-icons — landing page for icon search
+- Meta tags, Open Graph, structured data
+
+### 4.4 PWA support
+
+- Service worker for offline basic editing
+- Install prompt
+
+**Deliverable:** Full-featured SVG platform with multiple traffic entry points.
+
+---
+
+## Timeline
+
+```text
+Phase 0: React rewrite              ~1-2 weekends
+Phase 1: AI sidebar MVP             ~1-2 weekends
+  → DEPLOY & MEASURE 2-3 WEEKS
+Phase 2: Enhanced UX                ~1-2 weekends
+Phase 3: Payments                   ~1-2 weekends
+Phase 4: Growth                     ongoing
+```
+
+## Manual Steps (Not Claude's Job)
+
+- [ ] Create Azure OpenAI resource + deploy GPT-4o model
+- [ ] Create Azure Function App in Azure Portal
+- [ ] Create PayProGlobal account + subscription products
+- [ ] Enable Firebase Auth providers (Google) in Firebase Console
+- [ ] Monitor analytics after Phase 1 launch
+- [ ] Product Hunt / Hacker News launch post
