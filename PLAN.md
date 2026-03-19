@@ -113,11 +113,86 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ---
 
-## Phase 1: AI Sidebar MVP
+## Phase 1: Enhanced UX Features
 
-**Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day limit via localStorage counter.
+**Goal:** Make the editor best-in-class for free users, increase engagement. Reference: [vscode-svg2](https://github.com/lishu/vscode-svg2) (MIT) for feature inspiration and code patterns.
 
-### 1.1 Azure Function setup
+### 1.1 Preview enhancements
+
+- Zoom: scroll wheel to zoom in/out, zoom-to-fit button, zoom percentage display
+- Background toggle: checkerboard (current) / white / black / transparent (no bg)
+- Toolbar buttons or dropdown for background selection
+- *Ref: vscode-svg2 preview panel has zoom + background switching*
+
+### 1.2 Click-to-select in preview
+
+- Click SVG element in preview → highlight with dashed outline
+- Extract clicked element's XML from editor
+- Scroll editor to the selected element
+- Pass selection context to AI (Phase 2) automatically
+- Deselect on click outside
+
+### 1.3 SVG Element Tree
+
+- TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
+- Click tree node → highlight in preview + scroll in editor
+- Show element type + id + key attributes
+- Bidirectional sync: preview ↔ tree ↔ editor
+- *Note: Monaco already provides code folding for XML; this adds visual overview + preview integration*
+- *Ref: vscode-svg2 DocumentSymbol tree in outline panel*
+
+### 1.4 SVG Optimization (SVGO)
+
+- Install svgo (runs client-side)
+- Button in toolbar: "Optimize"
+- Show before/after file size
+- Use Monaco diff to preview optimization changes
+- *Ref: vscode-svg2 "Minify SVG" command (note: they warn SVGO can break SVGs — add undo/diff review)*
+
+### 1.5 Export options
+
+- SVG → PNG (render to canvas, resolution picker)
+- SVG → React JSX component
+- SVG → Data URI / Base64
+- SVG → Copy to clipboard
+- Export dropdown in toolbar
+- *Ref: vscode-svg2 "Export PNG" feature*
+
+### 1.6 Go to id definition / references
+
+- Ctrl+click on `url(#id)` → jump to the element with that `id`
+- Ctrl+click on `href="#id"` or `xlink:href="#id"` → same
+- Hover on `url(#id)` → show target element preview
+- *Ref: vscode-svg2 "In Id Reference Click Goto id="" element"*
+
+### 1.7 Rename id references
+
+- Place cursor on `id="foo"` → F2 → rename `id` and all `url(#foo)`, `href="#foo"` references
+- *Ref: vscode-svg2 "Rename Tag Name or Id Reference"*
+
+### 1.8 Path data intelligence
+
+- Path command completion inside d="..." (M, L, C, S, Q, T, A, Z with parameter snippets)
+- Hover tooltips explaining path commands + expected parameters
+- Path segment highlighting in preview as cursor moves through d="..." data
+- (Future) Visual path point dragging in preview — edit control points visually
+
+### 1.9 Enhanced color intelligence
+
+- Named SVG color completions (aliceblue, coral, etc.)
+- Functional color syntax (rgb(), hsl())
+- url(#id) completions — suggest IDs of gradients, patterns, clip-paths defined in the document
+- `currentColor`, `inherit`, `none`, `transparent` suggestions
+
+**Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
+
+---
+
+## Phase 2: AI Sidebar MVP
+
+**Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day limit via localStorage counter. Builds on Phase 1's click-to-select for contextual editing.
+
+### 2.1 Azure Function setup
 
 - Create Azure Function App (Node.js, consumption plan)
 - POST /api/chat endpoint
@@ -127,7 +202,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Rate limiting: check X-Forwarded-For or anonymous UID, 5/day
 - CORS configuration for editsvgcode.com
 
-### 1.2 Define AI tools/functions
+### 2.2 Define AI tools/functions
 
 - `replace_svg(svg_code)` — full SVG replacement
 - `edit_element(selector, attributes, action)` — targeted edit
@@ -135,7 +210,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - `get_svg_structure()` — model calls this to understand document
 - System prompt: SVG editing assistant, rules, output format
 
-### 1.3 AI sidebar UI (VS Code style)
+### 2.3 AI sidebar UI (VS Code style)
 
 - VS Code Copilot Chat-like panel in sidebar
 - Message list, input, streaming display
@@ -144,7 +219,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Show tool call results (what the AI is doing)
 - Client-side rate limit display ("3 of 5 free edits used today")
 
-### 1.4 Apply AI edits to editor
+### 2.4 Apply AI edits to editor
 
 - When AI calls replace_svg → switch Monaco to diff mode
 - Show original vs proposed (inline diff)
@@ -152,13 +227,13 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Accept button: commit new SVG, switch back to normal editor
 - Reject button: discard, revert preview
 
-### 1.5 Streaming UX
+### 2.5 Streaming UX
 
 - Stream AI text responses in the chat
 - Show "thinking..." indicator
 - Abort button to cancel mid-stream
 
-### 1.6 Test & iterate on prompt quality
+### 2.6 Test & iterate on prompt quality
 
 - Test: "make the rectangle blue"
 - Test: "add a drop shadow"
@@ -174,68 +249,14 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ## ⏸️ MEASUREMENT PAUSE (2-3 weeks)
 
-Deploy Phase 1, monitor:
+Deploy Phase 2, monitor:
 
 - How many users try the AI feature?
 - How many hit the 5/day limit?
 - What do they ask for? (Log prompts, anonymized)
 - Is AI output quality good enough?
 
-**If signals are good (>10% try, >1% hit limit) → proceed to Phase 2.**
-
----
-
-## Phase 2: Enhanced UX Features
-
-**Goal:** Make the editor best-in-class for free users, increase engagement.
-
-### 2.1 Click-to-select in preview
-
-- Click SVG element in preview → highlight with dashed outline
-- Extract clicked element's XML from editor
-- Scroll editor to the selected element
-- Pass selection context to AI automatically
-- Deselect on click outside
-
-### 2.2 SVG Element Tree
-
-- TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
-- Click tree node → highlight in preview + scroll in editor
-- Show element type + id + key attributes
-- Bidirectional sync: preview ↔ tree ↔ editor
-
-### 2.3 SVG Optimization (SVGO)
-
-- Install svgo (runs client-side)
-- Button in toolbar: "Optimize"
-- Show before/after file size
-- Use Monaco diff to preview optimization changes
-
-### 2.4 Export options
-
-- SVG → PNG (render to canvas, resolution picker)
-- SVG → React JSX component
-- SVG → Data URI / Base64
-- SVG → Copy to clipboard
-- Export dropdown in toolbar
-
-### 2.5 Path data intelligence
-
-- Path command completion inside d="..." (M, L, C, S, Q, T, A, Z with parameter snippets)
-- Hover tooltips explaining path commands + expected parameters
-- Path segment highlighting in preview as cursor moves through d="..." data
-- (Future/Phase 4) Visual path point dragging in preview — edit control points visually
-
-### 2.6 Enhanced color intelligence
-
-- Named SVG color completions (aliceblue, coral, etc.)
-- Functional color syntax (rgb(), hsl())
-- url(#id) completions — suggest IDs of gradients, patterns, clip-paths defined in the document
-- `currentColor`, `inherit`, `none`, `transparent` suggestions
-
-**Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
-
-**Claude prompt:** "Add these features to editsvgcode: (1) click-to-select SVG elements in preview with highlight, synced to editor cursor, (2) collapsible SVG element tree in sidebar, (3) inline color picker for SVG color attributes in Monaco, (4) SVGO optimization with diff preview, (5) export to PNG/React JSX/Data URI."
+**If signals are good (>10% try, >1% hit limit) → proceed to Phase 3.**
 
 ---
 
