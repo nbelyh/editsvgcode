@@ -9,7 +9,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth",
-    "ship": "tsc && vite build && firebase deploy"
+    "ship": "tsc && vite build && firebase deploy",
+    "preview:deploy": "tsc && vite build && firebase hosting:channel:deploy preview --expires 7d"
   },
   "dependencies": {
     "@mantine/core": "^7.17.0",
@@ -29,6 +30,7 @@
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.2.1",
     "firebase-tools": "^13.29.1",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^5.8.2",
     "vite": "^6.2.2"
   }
