@@ -84,14 +84,23 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ### 0.8 Modernize SVG schema
 
-- Replace XSD-based schema with @mdn/browser-compat-data + MDN content
-- Write Node.js schema generator script (replace C# convert_schema)
-- Remove deprecated SVG 1.1 elements (altGlyph, font-face, glyph, tref, cursor, animateColor, etc.)
-- Add SVG2 attributes (href replacing xlink:href, pathLength on shapes, tabindex, vector-effect)
-- Add comprehensive attribute value enumerations (stroke-linecap, fill-rule, text-anchor, etc.)
-- Add path command data (M/L/C/S/Q/T/A/Z descriptions, parameter formats)
-- Add color name completions + functional color syntax (rgb, hsl)
-- Switch editor language from 'xml' to 'html' (get auto-close tags, CSS-in-SVG) + keep custom SVG providers on top
+**Approach:** Use existing `svg-schema.js` as the base (produced from SVG 1.1 XSD + MDN scraping by C# `convert_schema`). Write a Node.js enhancement script that patches it with SVG2 additions and curated improvements. No XSD needed — SVG 2 deliberately dropped formal DTD/XSD. BCD (`@mdn/browser-compat-data`) evaluated and rejected — it's a browser-support database, not documentation (no descriptions, no child elements, no value enumerations).
+
+**Script:** `scripts/generate-schema.cjs` — Node.js script that:
+1. Loads current `svg-schema.js` as structural base
+2. Re-scrapes MDN for fresh element/attribute descriptions (URLs changed to `/docs/Web/SVG/Reference/Element/`)
+3. Patches in the enhancements below
+4. Outputs updated `src/svg-schema.js`
+
+**Enhancements:**
+- Mark deprecated elements (altGlyph, altGlyphDef, altGlyphItem, glyphRef, tref, cursor, animateColor, font, glyph, missing-glyph, hkern, vkern, font-face, font-face-src, font-face-uri, font-face-format, font-face-name, definition-src, color-profile) — keep them in schema but flag as deprecated
+- Add SVG2 elements: `feDropShadow`, `foreignObject` (already present)
+- Add SVG2 attributes: `href` (on a, image, use, linearGradient, radialGradient, pattern, feImage, mpath, script, set, animate, animateMotion, animateTransform, textPath), `pathLength` (on rect, circle, ellipse, line, polyline, polygon, path), `tabindex` + `autofocus` (global), `vector-effect` + `transform-origin` (global presentation), `fr` (on radialGradient)
+- Add attribute value enumerations: stroke-linecap (butt/round/square), stroke-linejoin (miter/round/bevel), fill-rule (nonzero/evenodd), clip-rule, text-anchor (start/middle/end), dominant-baseline, text-decoration, font-style, font-weight, font-stretch, visibility, overflow, display, pointer-events, shape-rendering, text-rendering, image-rendering, color-interpolation, preserveAspectRatio values, spreadMethod, gradientUnits, clipPathUnits, maskUnits/maskContentUnits, patternUnits/patternContentUnits, marker orient, lengthAdjust, etc.
+- Add path command data: M/m, L/l, H/h, V/v, C/c, S/s, Q/q, T/t, A/a, Z/z — descriptions + parameter formats (shown in `d` attribute hover/completion)
+- Add CSS named color completions (148 named colors) + functional syntax hints (rgb, hsl, oklch)
+- Fill in null descriptions for attributes currently missing documentation
+- Consider switching editor language from 'xml' to 'html' (auto-close tags, CSS-in-SVG) + keep custom SVG providers on top
 
 ### 0.9 Update build/deploy
 
