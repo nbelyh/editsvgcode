@@ -32,7 +32,6 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 - [ ] AI Chat UI library: assistant-ui vs CopilotKit vs custom Mantine (want VS Code Copilot Chat look)
 - [ ] BYOL: direct client-to-provider calls (skip proxy) vs proxy all through Azure Function
-- [ ] Color picker implementation approach in Monaco
 
 ---
 
@@ -205,21 +204,14 @@ Deploy Phase 1, monitor:
 - Show element type + id + key attributes
 - Bidirectional sync: preview ↔ tree ↔ editor
 
-### 2.3 Color Picker
-
-- Monaco decoration provider: detect color values in SVG
-- Inline color swatch next to fill=, stroke=, stop-color=, etc.
-- Click swatch → color picker popover
-- Pick color → update attribute value in editor
-
-### 2.4 SVG Optimization (SVGO)
+### 2.3 SVG Optimization (SVGO)
 
 - Install svgo (runs client-side)
 - Button in toolbar: "Optimize"
 - Show before/after file size
 - Use Monaco diff to preview optimization changes
 
-### 2.5 Export options
+### 2.4 Export options
 
 - SVG → PNG (render to canvas, resolution picker)
 - SVG → React JSX component
@@ -227,14 +219,14 @@ Deploy Phase 1, monitor:
 - SVG → Copy to clipboard
 - Export dropdown in toolbar
 
-### 2.6 Path data intelligence
+### 2.5 Path data intelligence
 
 - Path command completion inside d="..." (M, L, C, S, Q, T, A, Z with parameter snippets)
 - Hover tooltips explaining path commands + expected parameters
 - Path segment highlighting in preview as cursor moves through d="..." data
 - (Future/Phase 4) Visual path point dragging in preview — edit control points visually
 
-### 2.7 Enhanced color intelligence
+### 2.6 Enhanced color intelligence
 
 - Named SVG color completions (aliceblue, coral, etc.)
 - Functional color syntax (rgb(), hsl())
