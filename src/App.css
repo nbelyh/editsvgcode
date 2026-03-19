@@ -6,7 +6,7 @@
 
 /* Make AppShell.Main fill remaining vertical space */
 .mantine-AppShell-main {
-  height: calc(100vh - 56px - 40px) !important;
+  height: 100vh !important;
   min-height: 0 !important;
   overflow: hidden;
 }
