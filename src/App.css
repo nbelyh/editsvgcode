@@ -10,3 +10,11 @@
   min-height: 0 !important;
   overflow: hidden;
 }
+
+/* Let suggest details panel size to content, scroll after ~10 lines */
+.monaco-editor .suggest-details-container,
+.monaco-editor .suggest-details,
+.monaco-editor .suggest-details > .monaco-scrollable-element {
+  height: auto !important;
+  max-height: 200px !important;
+}

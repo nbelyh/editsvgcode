@@ -40,6 +40,7 @@ export function Editor({ value, onChange, readOnly }: EditorProps) {
         tabSize: 2,
         readOnly,
         minimap: { enabled: false },
+        fixedOverflowWidgets: true,
       }}
     />
   );
