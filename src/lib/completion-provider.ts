@@ -73,6 +73,19 @@ function getAvailableAttributes(monaco: Monaco, lastOpenedTag: { tagName: string
   return availableItems;
 }
 
+// Elements that are typically self-closing (no children in practice)
+const VOID_ELEMENTS = new Set([
+  'animate', 'animateMotion', 'animateTransform', 'circle', 'ellipse',
+  'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite',
+  'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap',
+  'feDistantLight', 'feDropShadow', 'feFlood', 'feFuncA', 'feFuncB',
+  'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMergeNode',
+  'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting',
+  'feSpotLight', 'feTile', 'feTurbulence', 'hatchpath', 'image',
+  'line', 'mpath', 'path', 'polygon', 'polyline', 'rect', 'set',
+  'stop', 'use',
+]);
+
 function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }, _usedItems: string[]) {
   const info = (SvgSchema as Record<string, any>)[lastOpenedTag.tagName];
   if (!info?.elements) return [];
@@ -81,9 +94,12 @@ function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }
     const element = info.elements[i];
     const elementInfo = (SvgSchema as Record<string, any>)[element];
     if (!elementInfo) continue;
+    const selfClosing = VOID_ELEMENTS.has(element);
     availableItems.push({
       label: element,
-      insertText: `${element}>\${1}</${element}`,
+      insertText: selfClosing
+        ? `${element} \${1}/`
+        : `${element}>\${1}</${element}`,
       kind: monaco.languages.CompletionItemKind.Class,
       detail: elementInfo.detail,
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
