@@ -1,32 +1,33 @@
 {
   "name": "editsvgcode",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "webpack --mode=development --watch",
-    "ship": "webpack --mode=production && firebase deploy",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "emulators": "firebase emulators:start --only firestore,auth",
+    "ship": "tsc && vite build && firebase deploy"
   },
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "@popperjs/core": "^2.11.6",
-    "bootstrap": "^5.2.3",
-    "firebase": "^9.14.0",
-    "jquery": "^3.6.1",
-    "monaco-editor": "^0.34.1",
-    "monaco-editor-webpack-plugin": "^7.0.1",
-    "popper.js": "^1.16.1",
-    "split.js": "^1.6.5",
-    "tippy.js": "^6.3.7"
+    "@mantine/core": "^7.17.0",
+    "@mantine/hooks": "^7.17.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@tabler/icons-react": "^3.28.1",
+    "allotment": "^1.20.2",
+    "dompurify": "^3.2.4",
+    "firebase": "^11.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "css-loader": "^6.7.2",
-    "file-loader": "^6.2.0",
-    "firebase-tools": "^11.17.0",
-    "mini-css-extract-plugin": "^2.7.2",
-    "webpack": "^5.75.0",
-    "webpack-cli": "^5.0.1"
+    "@types/dompurify": "^3.2.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "firebase-tools": "^13.29.1",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2"
   }
 }

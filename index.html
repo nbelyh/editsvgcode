@@ -1,72 +1,13 @@
 ﻿<!DOCTYPE html>
-<html>
-
-<head>
-  <title>Online SVG Code Editor</title>
-  <base href="/" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-
-  <link href='main.css' rel='stylesheet'>
-</head>
-
-<body>
-
-  <a target="_blank" href="https://github.com/nbelyh/editsvgcode"><img width="149" height="149"
-      src="https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png?resize=149%2C149"
-      style="position: absolute; right: 0; top:0; z-index: 10000;" alt="Fork me on GitHub" data-recalc-dims="1"></a>
-
-  <nav class="navbar navbar-expand-sm navbar-dark bg-dark fixed-top">`
-    <a class="navbar-brand" href="#">Online SVG code editor</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
-      <button id="upload" class="btn btn-outline-secondary">Upload...</button>
-      <button id="download" class="btn btn-outline-secondary">Download</button>
-      <button id="save" class="btn btn-outline-secondary">Save</button>
-    </div>
-  </nav>
-
-  <input type="file" id="file_upload" accept="image/svg+xml" style="display: none;" />
-
-  <div id="main">
-    <div id="editor" style="width: 45%"></div>
-    <div id="output" style="width: 45%"></div>
-    <div id="sidebar" style="width: 10%">
-      <div>
-        <h4>SVG Code Sandbox</h4>
-        <p>Upload or paste SVG code for editing.</p>
-        <p>Autocomplete assists with tags and attributes, with real-time preview.</p>
-        <p>Save your work by copying, downloading, or sharing via a public link.</p>
-      </div>
-      <hr />
-      <div id="carbonads">
-        <script async type="text/javascript" src="//cdn.carbonads.com/carbon.js?serve=CWYICK37&placement=editsvgcodecom"
-    id="_carbonads_js"></script>
-      </div>
-    </div>
-  </div>
-
-  <div id="footer" class="bg-dark">
-    <div class="text-muted">Built by Nikolay Belykh @
-      <a href="https://unmanagedvisio.com" target="_blank">Unmanaged Visio</a>
-      check out the website privacy policy
-      <a class="navbar-link" href="privacy-policy.md" target="_blank">here</a>
-    </div>
-  </div>
-
-  <script src='app.js'></script>
-
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-10432335-7"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'UA-10432335-7');
-  </script>
-</body>
-
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Online SVG Code Editor</title>
+    <base href="/" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
