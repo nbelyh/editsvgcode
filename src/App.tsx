@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppShell, Group, Button, Text, Tooltip } from '@mantine/core';
-import { IconUpload, IconDownload, IconDeviceFloppy } from '@tabler/icons-react';
+import { IconFolderOpen, IconDownload, IconCloudUpload } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -102,19 +102,19 @@ export default function App() {
         <Group h="100%" px="md">
           <Text fw={700} size="lg" c="white">Online SVG code editor</Text>
           <Group gap="xs">
-            <Tooltip label="Upload a SVG file from local computer to edit">
-              <Button variant="outline" color="gray" size="sm" leftSection={<IconUpload size={16} />} onClick={handleUpload}>
-                Upload...
+            <Tooltip label="Open an SVG file from your computer">
+              <Button variant="outline" color="gray" size="sm" leftSection={<IconFolderOpen size={16} />} onClick={handleUpload}>
+                Open...
               </Button>
             </Tooltip>
-            <Tooltip label="Download the file to the local computer">
+            <Tooltip label="Download the file to your computer">
               <Button variant="outline" color="gray" size="sm" leftSection={<IconDownload size={16} />} onClick={handleDownload}>
                 Download
               </Button>
             </Tooltip>
-            <Tooltip label="Save the contents of the file in the cloud">
-              <Button variant="outline" color="gray" size="sm" leftSection={<IconDeviceFloppy size={16} />} onClick={handleSave} loading={saving}>
-                Save
+            <Tooltip label="Share: save to the cloud and get a link">
+              <Button variant="outline" color="gray" size="sm" leftSection={<IconCloudUpload size={16} />} onClick={handleSave} loading={saving}>
+                Share
               </Button>
             </Tooltip>
           </Group>
