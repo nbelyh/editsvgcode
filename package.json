@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n vite,firebase -c cyan,yellow \"vite\" \"firebase emulators:start --only firestore,auth\"",
+    "dev:vite": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth",
@@ -26,6 +27,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.2.1",
     "firebase-tools": "^13.29.1",
     "typescript": "^5.8.2",
     "vite": "^6.2.2"
