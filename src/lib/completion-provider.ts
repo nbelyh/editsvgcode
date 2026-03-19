@@ -143,7 +143,7 @@ export function registerSvgProviders(monaco: Monaco) {
 
   // Completion provider
   monaco.languages.registerCompletionItemProvider('xml', {
-    triggerCharacters: ['<'],
+    triggerCharacters: ['<', ' '],
     provideCompletionItems(model: editor.ITextModel, position: Position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: 1,
@@ -159,25 +159,34 @@ export function registerSvgProviders(monaco: Monaco) {
       const isAttributeSearch = lastOpenedTag?.isAttributeSearch;
 
       if (lastOpenedTag) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(textUntilPosition, 'text/xml');
-        let lastChild = xmlDoc.lastElementChild;
-        while (lastChild) {
-          if (lastChild.tagName === lastOpenedTag.tagName) {
-            if (lastOpenedTag.isAttributeSearch) {
-              const attrs = lastChild.attributes;
-              for (let i = 0; i < attrs.length; i++) {
-                usedItems.push(attrs[i].nodeName);
-              }
-            } else {
+        if (isAttributeSearch) {
+          // For attributes: extract already-used attribute names from the current
+          // (possibly incomplete) tag text, instead of DOMParser which finds the
+          // wrong element when there are multiple same-name tags.
+          const tagMatch = textUntilPosition.match(
+            new RegExp('<' + lastOpenedTag.tagName + '\\s([^>]*)$'),
+          );
+          if (tagMatch) {
+            const attrMatches = tagMatch[1].matchAll(/([a-zA-Z][\w-:]*)\s*=/g);
+            for (const m of attrMatches) {
+              usedItems.push(m[1]);
+            }
+          }
+        } else {
+          // For child elements: use DOMParser to find existing children
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(textUntilPosition, 'text/xml');
+          let lastChild = xmlDoc.lastElementChild;
+          while (lastChild) {
+            if (lastChild.tagName === lastOpenedTag.tagName) {
               const children = lastChild.children;
               for (let i = 0; i < children.length; i++) {
                 usedItems.push(children[i].tagName);
               }
+              break;
             }
-            break;
+            lastChild = lastChild.lastElementChild;
           }
-          lastChild = lastChild.lastElementChild;
         }
       }
 
