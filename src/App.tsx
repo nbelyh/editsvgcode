@@ -70,11 +70,11 @@ export default function App() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const data = ev.target?.result as string;
-      const base64 = data.replace('data:image/svg+xml;base64,', '');
-      setSvgCode(window.atob(base64));
+      let text = ev.target?.result as string;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      setSvgCode(text);
     };
-    reader.readAsDataURL(file);
+    reader.readAsText(file);
     // Reset so the same file can be uploaded again
     e.target.value = '';
   }, []);
