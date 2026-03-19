@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "convert_schema": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Projects\\editsvgcode\\convert_schema"
+    }
+  }
+}
