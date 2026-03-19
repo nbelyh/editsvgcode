@@ -2,6 +2,8 @@ import type { Monaco } from '@monaco-editor/react';
 import type { editor, Position, CancellationToken, languages } from 'monaco-editor';
 import { SvgSchema } from '../svg-schema';
 
+const schema = SvgSchema as Record<string, any>;
+
 function getAreaInfo(text: string) {
   const items = ['"', "'", '<!--', '<![CDATA['];
   let isCompletionAvailable = true;
@@ -54,19 +56,22 @@ function isItemAvailable(itemName: string, maxOccurs: string | undefined, items:
 }
 
 function getAvailableAttributes(monaco: Monaco, lastOpenedTag: { tagName: string }, usedChildTags: string[]) {
-  const info = (SvgSchema as Record<string, any>)[lastOpenedTag.tagName];
+  const info = schema[lastOpenedTag.tagName];
   if (!info?.attributes) return [];
   const availableItems: any[] = [];
-  for (let i = 0; i < info.attributes.length; i++) {
-    const attribute = info.attributes[i];
+  for (const attribute of info.attributes) {
     if (isItemAvailable(attribute.name, attribute.maxOccurs, usedChildTags)) {
+      const deprecated = attribute.deprecated === true;
+      const label = deprecated ? `${attribute.name}` : attribute.name;
       availableItems.push({
-        label: attribute.name,
+        label,
         insertText: `${attribute.name}="\${1}"`,
         kind: monaco.languages.CompletionItemKind.Property,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        detail: attribute.detail,
+        detail: attribute.detail || (deprecated ? '(deprecated)' : undefined),
         documentation: { value: attribute.description || '', isTrusted: true },
+        tags: deprecated ? [monaco.languages.CompletionItemTag.Deprecated] : undefined,
+        sortText: deprecated ? `zzz_${attribute.name}` : attribute.name,
       });
     }
   }
@@ -87,14 +92,14 @@ const VOID_ELEMENTS = new Set([
 ]);
 
 function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }, _usedItems: string[]) {
-  const info = (SvgSchema as Record<string, any>)[lastOpenedTag.tagName];
+  const info = schema[lastOpenedTag.tagName];
   if (!info?.elements) return [];
   const availableItems: any[] = [];
-  for (let i = 0; i < info.elements.length; i++) {
-    const element = info.elements[i];
-    const elementInfo = (SvgSchema as Record<string, any>)[element];
+  for (const element of info.elements) {
+    const elementInfo = schema[element];
     if (!elementInfo) continue;
     const selfClosing = VOID_ELEMENTS.has(element);
+    const deprecated = elementInfo.deprecated === true;
     availableItems.push({
       label: element,
       insertText: selfClosing
@@ -104,9 +109,85 @@ function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }
       detail: elementInfo.detail,
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
       documentation: { value: elementInfo.description || '', isTrusted: true },
+      tags: deprecated ? [monaco.languages.CompletionItemTag.Deprecated] : undefined,
+      sortText: deprecated ? `zzz_${element}` : element,
     });
   }
   return availableItems;
+}
+
+// Detect if cursor is inside an attribute value and return context
+function getAttributeValueContext(textUntilPosition: string) {
+  // Match pattern: attrName="partialValue  (cursor is after the opening quote)
+  const match = textUntilPosition.match(/([a-zA-Z][\w-:]*)\s*=\s*"([^"]*)$/);
+  if (!match) return null;
+  return { attrName: match[1], partialValue: match[2] };
+}
+
+function getAttributeValueCompletions(
+  monaco: Monaco,
+  tagName: string,
+  attrName: string,
+  partialValue: string,
+) {
+  const suggestions: any[] = [];
+
+  // Path commands for d attribute
+  if (attrName === 'd' && schema.__pathCommands) {
+    for (const cmd of schema.__pathCommands) {
+      suggestions.push({
+        label: cmd.name,
+        insertText: cmd.insert,
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        detail: 'path command',
+        documentation: { value: cmd.description, isTrusted: true },
+        sortText: cmd.name.toLowerCase() + (cmd.name === cmd.name.toUpperCase() ? '0' : '1'),
+      });
+    }
+    return suggestions;
+  }
+
+  // Color names for color attributes
+  const info = schema[tagName];
+  const attrInfo = info?.attributes?.find((a: any) => a.name === attrName);
+  if (attrInfo?.colorAttribute && schema.__colorNames) {
+    for (const color of schema.__colorNames) {
+      suggestions.push({
+        label: color,
+        insertText: color,
+        kind: monaco.languages.CompletionItemKind.Color,
+        detail: 'color',
+      });
+    }
+    // Also add functional color hints
+    for (const fn of ['rgb(${1:r}, ${2:g}, ${3:b})', 'rgba(${1:r}, ${2:g}, ${3:b}, ${4:a})', 'hsl(${1:h}, ${2:s}%, ${3:l}%)', 'url(#${1:id})']) {
+      const label = fn.replace(/\$\{\d+:?[^}]*\}/g, '').replace(/[()]/g, m => m);
+      suggestions.push({
+        label: fn.split('(')[0] + '(…)',
+        insertText: fn,
+        kind: monaco.languages.CompletionItemKind.Function,
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        detail: 'color function',
+      });
+    }
+    return suggestions;
+  }
+
+  // Enumerated attribute values
+  if (attrInfo?.options) {
+    for (const option of attrInfo.options) {
+      suggestions.push({
+        label: option,
+        insertText: option,
+        kind: monaco.languages.CompletionItemKind.EnumMember,
+        detail: `${attrName} value`,
+      });
+    }
+    return suggestions;
+  }
+
+  return suggestions;
 }
 
 function formatXml(xml: string): string {
@@ -143,7 +224,7 @@ export function registerSvgProviders(monaco: Monaco) {
 
   // Completion provider
   monaco.languages.registerCompletionItemProvider('xml', {
-    triggerCharacters: ['<', ' '],
+    triggerCharacters: ['<', ' ', '"'],
     provideCompletionItems(model: editor.ITextModel, position: Position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: 1,
@@ -151,6 +232,28 @@ export function registerSvgProviders(monaco: Monaco) {
         endLineNumber: position.lineNumber,
         endColumn: position.column,
       });
+
+      // Check if we're inside an attribute value (between quotes)
+      const attrValueCtx = getAttributeValueContext(textUntilPosition);
+      if (attrValueCtx) {
+        // Find the tag name for context
+        const beforeAttr = textUntilPosition.substring(0, textUntilPosition.lastIndexOf(attrValueCtx.attrName));
+        const areaInfo = getAreaInfo(beforeAttr);
+        const lastOpenedTag = getLastOpenedTag(areaInfo.clearedText);
+        if (lastOpenedTag) {
+          const suggestions = getAttributeValueCompletions(
+            monaco,
+            lastOpenedTag.tagName,
+            attrValueCtx.attrName,
+            attrValueCtx.partialValue,
+          );
+          if (suggestions.length > 0) {
+            return { suggestions };
+          }
+        }
+        return { suggestions: [] };
+      }
+
       const areaInfo = getAreaInfo(textUntilPosition);
       if (!areaInfo.isCompletionAvailable) return { suggestions: [] };
 
@@ -160,9 +263,6 @@ export function registerSvgProviders(monaco: Monaco) {
 
       if (lastOpenedTag) {
         if (isAttributeSearch) {
-          // For attributes: extract already-used attribute names from the current
-          // (possibly incomplete) tag text, instead of DOMParser which finds the
-          // wrong element when there are multiple same-name tags.
           const tagMatch = textUntilPosition.match(
             new RegExp('<' + lastOpenedTag.tagName + '\\s([^>]*)$'),
           );
@@ -173,7 +273,6 @@ export function registerSvgProviders(monaco: Monaco) {
             }
           }
         } else {
-          // For child elements: use DOMParser to find existing children
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(textUntilPosition, 'text/xml');
           let lastChild = xmlDoc.lastElementChild;
@@ -208,10 +307,11 @@ export function registerSvgProviders(monaco: Monaco) {
 
       const line = model.getLineContent(position.lineNumber);
       if (line.substr(wordInfo.startColumn - 2, 1) === '<') {
-        const info = (SvgSchema as Record<string, any>)[wordInfo.word];
+        const info = schema[wordInfo.word];
         if (info) {
+          const prefix = info.deprecated ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*' : `**${wordInfo.word}**`;
           return {
-            contents: [{ value: `**${wordInfo.word}**` }, { value: info.description }],
+            contents: [{ value: prefix }, { value: info.description }],
             range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
           };
         }
@@ -226,13 +326,20 @@ export function registerSvgProviders(monaco: Monaco) {
         if (areaInfo.isCompletionAvailable) {
           const lastOpenedTag = getLastOpenedTag(areaInfo.clearedText);
           if (!lastOpenedTag) return;
-          const info = (SvgSchema as Record<string, any>)[lastOpenedTag.tagName];
+          const info = schema[lastOpenedTag.tagName];
           if (info?.attributes) {
-            for (let i = 0; i < info.attributes.length; i++) {
-              const attribute = info.attributes[i];
+            for (const attribute of info.attributes) {
               if (attribute.name === wordInfo.word) {
+                const prefix = attribute.deprecated
+                  ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*'
+                  : `**${wordInfo.word}**`;
+                const parts = [{ value: prefix }];
+                if (attribute.description) parts.push({ value: attribute.description });
+                if (attribute.options) {
+                  parts.push({ value: 'Values: `' + attribute.options.join('` | `') + '`' });
+                }
                 return {
-                  contents: [{ value: `**${wordInfo.word}**` }, { value: attribute.description }],
+                  contents: parts,
                   range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
                 };
               }

@@ -55,7 +55,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -169,7 +170,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -193,13 +195,27 @@ export var SvgSchema = {
         "name": "preserveAspectRatio",
         "description": "How the `svg` fragment must be deformed if it is displayed with a different aspect ratio. *Value type*: (`none`| `xMinYMin`| `xMidYMin`| `xMaxYMin`| `xMinYMid`| `xMidYMid`| `xMaxYMid`| `xMinYMax`| `xMidYMax`| `xMaxYMax`) (`meet`|`slice`)? ; *Default value*: `xMidYMid meet`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "none",
+          "xMinYMin",
+          "xMidYMin",
+          "xMaxYMin",
+          "xMinYMid",
+          "xMidYMid",
+          "xMaxYMid",
+          "xMinYMax",
+          "xMidYMax",
+          "xMaxYMax",
+          "meet",
+          "slice"
+        ]
       },
       {
         "name": "zoomAndPan",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "x",
@@ -229,21 +245,46 @@ export var SvgSchema = {
         "name": "contentScriptType",
         "description": "The default scripting language used by the SVG fragment. *Value type*: **`<string>`** ; *Default value*: `application/ecmascript`; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg)",
         "detail": "svg item attribute",
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "contentStyleType",
         "description": "The default style sheet language used by the SVG fragment. *Value type*: **`<string>`** ; *Default value*: `text/css`; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg)",
         "detail": "svg item attribute",
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "version",
         "description": "Which version of SVG is used for the inner content of the element. *Value type*: **[`<number>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)** ; *Default value*: none; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg)",
         "detail": "svg item attribute",
+        "options": null,
+        "deprecated": true
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "g": {
     "name": "g",
@@ -301,7 +342,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -379,7 +421,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -398,8 +441,30 @@ export var SvgSchema = {
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "defs": {
     "name": "defs",
@@ -457,7 +522,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -535,7 +601,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -555,7 +622,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "desc": {
     "name": "desc",
@@ -587,7 +655,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "title": {
     "name": "title",
@@ -619,7 +688,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "symbol": {
     "name": "symbol",
@@ -737,7 +807,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -761,9 +832,29 @@ export var SvgSchema = {
         "name": "preserveAspectRatio",
         "description": "This attribute defines how the svg fragment must be deformed if it is embedded in a container with a different aspect ratio. *Value type*: (`none`| `xMinYMin`| `xMidYMin`| `xMaxYMin`| `xMinYMid`| `xMidYMid`| `xMaxYMid`| `xMinYMax`| `xMidYMax`| `xMaxYMax`) (`meet`|`slice`)? ; *Default value*: `xMidYMid meet`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/symbol)",
         "detail": "svg item attribute",
+        "options": [
+          "none",
+          "xMinYMin",
+          "xMidYMin",
+          "xMaxYMin",
+          "xMinYMid",
+          "xMidYMid",
+          "xMaxYMid",
+          "xMinYMax",
+          "xMidYMax",
+          "xMaxYMax",
+          "meet",
+          "slice"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "use": {
     "name": "use",
@@ -790,7 +881,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -868,7 +960,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -911,8 +1004,48 @@ export var SvgSchema = {
         "description": "The height of the use element. *Value type*: [**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length) ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "image": {
     "name": "image",
@@ -939,7 +1072,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -969,13 +1103,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -998,9 +1137,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -1013,25 +1151,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -1046,7 +1187,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -1067,25 +1214,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "clip",
@@ -1094,13 +1265,19 @@ export var SvgSchema = {
         "options": [
           "auto",
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "overflow",
         "description": "Specifies whether the content of a block-level element is clipped when it overflows the element's box. *Value*: **`visible`**|`hidden|scroll`|`auto`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "scroll",
+          "auto"
+        ]
       },
       {
         "name": "onfocusin",
@@ -1166,7 +1343,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -1209,8 +1387,48 @@ export var SvgSchema = {
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "switch": {
     "name": "switch",
@@ -1252,7 +1470,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -1330,7 +1549,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -1349,8 +1569,30 @@ export var SvgSchema = {
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "style": {
     "name": "style",
@@ -1368,7 +1610,24 @@ export var SvgSchema = {
         "name": "type",
         "description": "This attribute defines type of the style sheet language to use as a media type string. *Value type*: [**`<string>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#string); *Default value*: `text/css`; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/style)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "media",
@@ -1382,7 +1641,8 @@ export var SvgSchema = {
         "detail": "svg item attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "path": {
     "name": "path",
@@ -1409,7 +1669,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -1439,13 +1700,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -1457,7 +1723,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -1470,16 +1737,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -1497,13 +1764,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -1538,9 +1815,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -1553,25 +1829,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -1586,7 +1865,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -1607,25 +1892,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "marker-start",
@@ -1718,7 +2027,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -1749,8 +2059,42 @@ export var SvgSchema = {
         "description": "This attribute lets authors specify the total length for the path, in user units. *Value type*: [**`<number>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number) ; *Default value*: *none*; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "rect": {
     "name": "rect",
@@ -1777,7 +2121,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -1807,13 +2152,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -1825,7 +2175,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -1838,16 +2189,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -1865,13 +2216,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -1906,9 +2267,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -1921,25 +2281,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -1954,7 +2317,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -1975,25 +2344,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "onfocusin",
@@ -2059,7 +2452,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -2114,8 +2508,48 @@ export var SvgSchema = {
         "description": "The vertical corner radius of the rect. Defaults to `rx` if it is specified. *Value type*: `auto`|[**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|[**`<percentage>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage) ; *Default value*: `auto`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "circle": {
     "name": "circle",
@@ -2142,7 +2576,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -2172,13 +2607,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -2190,7 +2630,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -2203,16 +2644,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -2230,13 +2671,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -2271,9 +2722,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -2286,25 +2736,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -2319,7 +2772,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -2340,25 +2799,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "onfocusin",
@@ -2424,7 +2907,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -2461,8 +2945,48 @@ export var SvgSchema = {
         "description": "The radius of the circle. A value lower or equal to zero disables rendering of the circle. *Value type*: **[`<length>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)**|**[`<percentage>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "ellipse": {
     "name": "ellipse",
@@ -2489,7 +3013,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -2519,13 +3044,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -2537,7 +3067,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -2550,16 +3081,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -2577,13 +3108,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -2618,9 +3159,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -2633,25 +3173,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -2666,7 +3209,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -2687,25 +3236,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "onfocusin",
@@ -2771,7 +3344,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -2814,8 +3388,48 @@ export var SvgSchema = {
         "description": "The radius of the ellipse on the y axis. *Value type*: `auto`|[**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|[**`<percentage>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage) ; *Default value*: `auto`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/ellipse)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "line": {
     "name": "line",
@@ -2842,7 +3456,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -2872,13 +3487,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -2890,7 +3510,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -2903,16 +3524,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -2930,13 +3551,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -2971,9 +3602,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -2986,25 +3616,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -3019,7 +3652,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -3040,25 +3679,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "marker-start",
@@ -3151,7 +3814,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -3194,8 +3858,48 @@ export var SvgSchema = {
         "description": "Defines the y-axis coordinate of the line ending point. *Value type*: [**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|[**`<percentage>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage)|[**`<number>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number) ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/line)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "polyline": {
     "name": "polyline",
@@ -3222,7 +3926,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -3252,13 +3957,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -3270,7 +3980,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -3283,16 +3994,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -3310,13 +4021,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -3351,9 +4072,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -3366,25 +4086,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -3399,7 +4122,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -3420,25 +4149,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "marker-start",
@@ -3531,7 +4284,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -3556,8 +4310,48 @@ export var SvgSchema = {
         "description": "This attribute defines the list of points (pairs of x,y absolute coordinates) required to draw the polyline *Value type*: [**`<number>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)+ ; *Default value*: `\"\"`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "polygon": {
     "name": "polygon",
@@ -3584,7 +4378,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -3614,13 +4409,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -3632,7 +4432,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -3645,16 +4446,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -3672,13 +4473,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -3713,9 +4524,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -3728,25 +4538,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -3761,7 +4574,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -3782,25 +4601,49 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "marker-start",
@@ -3893,7 +4736,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -3918,8 +4762,48 @@ export var SvgSchema = {
         "description": "This attribute defines the list of points (pairs of `x,y` absolute coordinates) required to draw the polygon. *Value type*: [**`<number>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)+ ; *Default value*: `\"\"`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polygon)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "pathLength",
+        "description": "Lets authors specify the total length for the path, in user units. Used to calibrate `stroke-dasharray` and `stroke-dashoffset`.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "text": {
     "name": "text",
@@ -3951,7 +4835,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -3981,13 +4866,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -3999,7 +4889,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -4012,16 +4903,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -4039,13 +4930,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -4094,23 +4995,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -4122,7 +5025,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -4139,9 +5056,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -4154,25 +5070,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -4187,7 +5106,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -4208,31 +5133,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -4249,13 +5211,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -4263,7 +5238,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -4272,7 +5248,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -4287,7 +5264,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -4304,7 +5285,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -4319,7 +5307,17 @@ export var SvgSchema = {
         "name": "writing-mode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "horizontal-tb",
+          "vertical-rl",
+          "vertical-lr",
+          "lr",
+          "lr-tb",
+          "rl",
+          "rl-tb",
+          "tb",
+          "tb-rl"
+        ]
       },
       {
         "name": "onfocusin",
@@ -4385,7 +5383,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -4427,9 +5426,46 @@ export var SvgSchema = {
         "name": "lengthAdjust",
         "description": "How the text is stretched or compressed to fit the width defined by the `textLength` attribute. *Value type*: `spacing`|`spacingAndGlyphs`; *Default value*: `spacing`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text)",
         "detail": "svg item attribute",
+        "options": [
+          "spacing",
+          "spacingAndGlyphs"
+        ]
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
         "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "tspan": {
     "name": "tspan",
@@ -4458,7 +5494,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -4488,13 +5525,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -4506,7 +5548,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -4519,16 +5562,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -4546,13 +5589,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -4601,23 +5654,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -4629,7 +5684,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -4646,9 +5715,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -4661,25 +5729,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -4694,7 +5765,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -4715,31 +5792,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -4756,13 +5870,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -4770,7 +5897,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -4779,7 +5907,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -4794,7 +5923,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -4811,7 +5944,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -4886,7 +6026,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -4928,7 +6069,10 @@ export var SvgSchema = {
         "name": "rotate",
         "description": "Rotates orientation of each individual glyph. Can rotate glyphs individually. *Value type*: [**<list-of-number>**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#list-of-ts) ; *Default value*: none; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/tspan)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "auto",
+          "auto-reverse"
+        ]
       },
       {
         "name": "textLength",
@@ -4940,13 +6084,50 @@ export var SvgSchema = {
         "name": "lengthAdjust",
         "description": "How the text is stretched or compressed to fit the width defined by the `textLength` attribute. *Value type*: `spacing`|`spacingAndGlyphs`; *Default value*: `spacing`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/tspan)",
         "detail": "svg item attribute",
+        "options": [
+          "spacing",
+          "spacingAndGlyphs"
+        ]
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
         "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "tref": {
     "name": "tref",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe textual content for a [`<text>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text) [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element can be either character data directly embedded within the [`<text>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text) element or the character data content of a referenced element, where the referencing is specified with a **`<tref>`** element. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/tref)",
     "elements": [
       "desc",
@@ -4967,7 +6148,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -4997,13 +6179,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -5015,7 +6202,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -5028,16 +6216,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -5055,13 +6243,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -5110,23 +6308,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -5138,7 +6338,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -5155,9 +6369,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -5170,25 +6383,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -5203,7 +6419,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -5224,31 +6446,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -5265,13 +6524,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -5279,7 +6551,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -5288,7 +6561,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -5303,7 +6577,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -5320,7 +6598,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -5395,7 +6680,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -5437,7 +6723,10 @@ export var SvgSchema = {
         "name": "rotate",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "auto-reverse"
+        ]
       },
       {
         "name": "textLength",
@@ -5449,9 +6738,13 @@ export var SvgSchema = {
         "name": "lengthAdjust",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "spacing",
+          "spacingAndGlyphs"
+        ]
       }
-    ]
+    ],
+    "deprecated": true
   },
   "textPath": {
     "name": "textPath",
@@ -5480,7 +6773,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -5498,7 +6792,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -5511,16 +6806,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -5538,13 +6833,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -5593,23 +6898,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -5621,7 +6928,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -5638,9 +6959,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -5653,25 +6973,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -5686,7 +7009,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -5707,31 +7036,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -5748,13 +7114,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -5762,7 +7141,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -5771,7 +7151,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -5786,7 +7167,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -5803,7 +7188,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -5878,7 +7270,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -5908,25 +7301,74 @@ export var SvgSchema = {
         "name": "lengthAdjust",
         "description": "Where length adjustment should be applied to the text: the space between glyphs, or both the space and the glyphs themselves. *Value type*: `spacing`|`spacingAndGlyphs`; *Default value*: `spacing`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/textPath)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "spacing",
+          "spacingAndGlyphs"
+        ]
       },
       {
         "name": "method",
         "description": "Which method to render individual glyphs along the path. *Value type*: `align`|`stretch` ; *Default value*: `align`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/textPath)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "align",
+          "stretch"
+        ]
       },
       {
         "name": "spacing",
         "description": "How space between glyphs should be handled. *Value type*: `auto`|`exact` ; *Default value*: `exact`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/textPath)",
         "detail": "svg item attribute",
+        "options": [
+          "auto",
+          "exact"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "altGlyph": {
     "name": "altGlyph",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<altGlyph>`** SVG element allows sophisticated selection of the glyphs used to render its child character data. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyph)",
     "elements": [],
     "attributes": [
@@ -5940,7 +7382,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -5970,13 +7413,18 @@ export var SvgSchema = {
           "teal",
           "green",
           "olive"
-        ]
+        ],
+        "colorAttribute": true
       },
       {
         "name": "color-interpolation",
         "description": "It specifies the color space for gradient interpolations, color animations, and alpha compositing. *Value*: `auto`|**`sRGB`**|`linearRGB`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "sRGB",
+          "linearRGB"
+        ]
       },
       {
         "name": "color-rendering",
@@ -5988,7 +7436,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -6001,16 +7450,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -6028,13 +7477,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -6083,23 +7542,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -6111,7 +7572,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -6128,9 +7603,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -6143,25 +7617,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -6176,7 +7653,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -6197,31 +7680,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -6238,13 +7758,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -6252,7 +7785,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -6261,7 +7795,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -6276,7 +7811,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -6293,7 +7832,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -6380,7 +7926,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -6422,13 +7969,17 @@ export var SvgSchema = {
         "name": "rotate",
         "description": "This attribute defines the supplemental rotation that will be applied to the element. *Value type*: [**<list-of-numbers>**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#list-of-ts) ; *Default value*: *none*; *Animatable*: **yes (non-additive)** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyph)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "auto",
+          "auto-reverse"
+        ]
       }
-    ]
+    ],
+    "deprecated": true
   },
   "altGlyphDef": {
     "name": "altGlyphDef",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<altGlyphDef>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element defines a substitution representation for glyphs. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyphDef)",
     "elements": [
       "altGlyphItem",
@@ -6441,11 +7992,12 @@ export var SvgSchema = {
         "detail": "svg core attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "altGlyphItem": {
     "name": "altGlyphItem",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<altGlyphItem>`** element provides a set of candidates for glyph substitution by the [`<altGlyph>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyph) element. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyphItem)",
     "elements": [
       "glyphRef"
@@ -6457,11 +8009,12 @@ export var SvgSchema = {
         "detail": "svg core attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "glyphRef": {
     "name": "glyphRef",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe `glyphRef` element provides a single possible glyph to the referencing [`<altGlyph>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/altGlyph) substitution. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/glyphRef)",
     "elements": [],
     "attributes": [
@@ -6500,23 +8053,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -6528,7 +8083,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "class",
@@ -6578,7 +8147,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "marker": {
     "name": "marker",
@@ -6636,7 +8206,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -6660,7 +8231,20 @@ export var SvgSchema = {
         "name": "preserveAspectRatio",
         "description": "This attribute defines how the svg fragment must be deformed if it is embedded in a container with a different aspect ratio. *Value type*: (`none`| `xMinYMin`| `xMidYMin`| `xMaxYMin`| `xMinYMid`| `xMidYMid`| `xMaxYMid`| `xMinYMax`| `xMidYMax`| `xMaxYMax`) (`meet`|`slice`)? ; *Default value*: `xMidYMid meet`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "none",
+          "xMinYMin",
+          "xMidYMin",
+          "xMaxYMin",
+          "xMinYMid",
+          "xMidYMid",
+          "xMaxYMid",
+          "xMinYMax",
+          "xMidYMax",
+          "xMaxYMax",
+          "meet",
+          "slice"
+        ]
       },
       {
         "name": "refX",
@@ -6678,7 +8262,10 @@ export var SvgSchema = {
         "name": "markerUnits",
         "description": "This attribute defines the coordinate system for the attributes `markerWidth`, `markerHeight` and the contents of the `<marker>`. *Value type*: `userSpaceOnUse`|`strokeWidth` ; *Default value*: `strokeWidth`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "strokeWidth",
+          "userSpaceOnUse"
+        ]
       },
       {
         "name": "markerWidth",
@@ -6696,13 +8283,23 @@ export var SvgSchema = {
         "name": "orient",
         "description": "This attribute defines the orientation of the marker relative to the shape it is attached to. *Value type*: `auto`|`auto-start-reverse`|**[`<angle>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#angle)** ; *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/marker)",
         "detail": "svg item attribute",
+        "options": [
+          "auto",
+          "auto-start-reverse"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "color-profile": {
     "name": "color-profile",
-    "detail": null,
+    "detail": "svg element (deprecated)",
     "description": null,
     "elements": [
       "desc",
@@ -6734,7 +8331,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "linearGradient": {
     "name": "linearGradient",
@@ -6760,7 +8358,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -6778,7 +8377,10 @@ export var SvgSchema = {
         "name": "gradientUnits",
         "description": "This attribute defines the coordinate system for attributes `x1`, `x2`, `y1`, `y2` *Value type*: `userSpaceOnUse`|`objectBoundingBox` ; *Default value*: `objectBoundingBox`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "gradientTransform",
@@ -6814,9 +8416,20 @@ export var SvgSchema = {
         "name": "spreadMethod",
         "description": "This attribute indicates how the gradient behaves if it starts or ends inside the bounds of the shape containing the gradient. *Value type*: `pad`|`reflect`|`repeat` ; *Default value*: `pad`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient)",
         "detail": "svg item attribute",
+        "options": [
+          "pad",
+          "reflect",
+          "repeat"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "radialGradient": {
     "name": "radialGradient",
@@ -6842,13 +8455,17 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "gradientUnits",
         "description": "This attribute defines the coordinate system for attributes `cx`, `cy`, `r`, `fx`, `fy`, `fr` *Value type*: `userSpaceOnUse`|`objectBoundingBox` ; *Default value*: `objectBoundingBox`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/radialGradient)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "gradientTransform",
@@ -6890,9 +8507,26 @@ export var SvgSchema = {
         "name": "spreadMethod",
         "description": "This attribute indicates how the gradient behaves if it starts or ends inside the bounds of the shape containing the gradient. *Value type*: `pad`|`reflect`|`repeat` ; *Default value*: `pad`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/radialGradient)",
         "detail": "svg item attribute",
+        "options": [
+          "pad",
+          "reflect",
+          "repeat"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "fr",
+        "description": "The radius of the focal circle of the radial gradient (SVG 2).",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "stop": {
     "name": "stop",
@@ -6914,7 +8548,8 @@ export var SvgSchema = {
         "name": "stop-color",
         "description": "This attribute defines the color of the gradient stop. It can be used as a CSS property. *Value type*: `currentcolor`|[**<color>**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color)|[**<icccolor>**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#icccolor); *Default value*: `black`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/stop)",
         "detail": "svg item attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stop-opacity",
@@ -6940,7 +8575,8 @@ export var SvgSchema = {
         "detail": "svg item attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "pattern": {
     "name": "pattern",
@@ -6998,7 +8634,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -7016,7 +8653,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -7040,13 +8678,29 @@ export var SvgSchema = {
         "name": "preserveAspectRatio",
         "description": "This attribute defines how the SVG fragment must be deformed if it is embedded in a container with a different aspect ratio. *Value type*: (`none`| `xMinYMin`| `xMidYMin`| `xMaxYMin`| `xMinYMid`| `xMidYMid`| `xMaxYMid`| `xMinYMax`| `xMidYMax`| `xMaxYMax`) (`meet`|`slice`)? ; *Default value*: `xMidYMid meet`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/pattern)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "none",
+          "xMinYMin",
+          "xMidYMin",
+          "xMaxYMin",
+          "xMinYMid",
+          "xMidYMid",
+          "xMaxYMid",
+          "xMinYMax",
+          "xMidYMax",
+          "xMaxYMax",
+          "meet",
+          "slice"
+        ]
       },
       {
         "name": "patternUnits",
         "description": "This attribute defines the coordinate system for attributes `x`, `y`, `width`, and `height`. *Value type*: `userSpaceOnUse`|`objectBoundingBox`; *Default value*: `objectBoundingBox`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/pattern)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "patternTransform",
@@ -7077,8 +8731,21 @@ export var SvgSchema = {
         "description": "This attribute determines the height of the pattern tile. *Value type*: [**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length)|[**`<percentage>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#percentage); *Default value*: `0`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/pattern)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "clipPath": {
     "name": "clipPath",
@@ -7114,7 +8781,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -7132,7 +8800,8 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "fill-opacity",
@@ -7145,16 +8814,16 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
         "name": "stroke",
         "description": "Defines the color used to paint the outline of the shape. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "stroke-dasharray",
@@ -7172,13 +8841,23 @@ export var SvgSchema = {
         "name": "stroke-linecap",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "butt",
+          "round",
+          "square"
+        ]
       },
       {
         "name": "stroke-linejoin",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "arcs",
+          "bevel",
+          "miter",
+          "miter-clip",
+          "round"
+        ]
       },
       {
         "name": "stroke-miterlimit",
@@ -7227,23 +8906,25 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "normal",
-          "wider",
-          "narrower",
           "ultra-condensed",
           "extra-condensed",
+          "condensed",
           "semi-condensed",
           "semi-expanded",
           "expanded",
           "extra-expanded",
-          "ultra-expanded",
-          "inherit"
+          "ultra-expanded"
         ]
       },
       {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -7255,7 +8936,21 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "clip-path",
@@ -7272,9 +8967,8 @@ export var SvgSchema = {
         "description": "It indicates how to determine what side of a path is inside a shape in order to know how a [`<clipPath>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath) should clip its target. *Value*: **`nonzero`**|`evenodd`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
         "options": [
-          "evenodd",
           "nonzero",
-          "inherit"
+          "evenodd"
         ]
       },
       {
@@ -7287,25 +8981,28 @@ export var SvgSchema = {
           "default",
           "pointer",
           "move",
-          "e-resize",
-          "ne-resize",
-          "nw-resize",
-          "n-resize",
-          "se-resize",
-          "sw-resize",
-          "s-resize",
-          "w-resize",
           "text",
           "wait",
           "help",
-          "inherit"
+          "n-resize",
+          "s-resize",
+          "e-resize",
+          "w-resize",
+          "ne-resize",
+          "nw-resize",
+          "se-resize",
+          "sw-resize"
         ]
       },
       {
         "name": "display",
         "description": "It allows to control the rendering of graphical or container elements. *Value*: see CSS [`display`](https://developer.mozilla.org/en-US/docs/Web/CSS/display); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "inline",
+          "block",
+          "none"
+        ]
       },
       {
         "name": "filter",
@@ -7320,7 +9017,13 @@ export var SvgSchema = {
         "name": "image-rendering",
         "description": "It provides a hint to the browser about how to make speed vs. quality tradeoffs as it performs image processing. *Value*: **`auto`**|`optimizeQuality`|`optimizeSpeed`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeQuality",
+          "crisp-edges",
+          "pixelated"
+        ]
       },
       {
         "name": "mask",
@@ -7341,31 +9044,68 @@ export var SvgSchema = {
         "name": "pointer-events",
         "description": "Defines whether or when an element may be the target of a mouse event. *Value*: `bounding-box`|**`visiblePainted`**|`visibleFill`|`visibleStroke`|`visible` |`painted`|`fill`|`stroke`|`all`|`none`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "visiblePainted",
+          "visibleFill",
+          "visibleStroke",
+          "visible",
+          "painted",
+          "fill",
+          "stroke",
+          "all",
+          "none"
+        ]
       },
       {
         "name": "shape-rendering",
         "description": "Hints about what tradeoffs to make as the browser renders [`<path>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/path) element or basic shapes. *Value*: **`auto`**|`optimizeSpeed`|`crispEdges`|`geometricPrecision` |`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "crispEdges",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "text-rendering",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "auto",
+          "optimizeSpeed",
+          "optimizeLegibility",
+          "geometricPrecision"
+        ]
       },
       {
         "name": "visibility",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "visible",
+          "hidden",
+          "collapse"
+        ]
       },
       {
         "name": "alignment-baseline",
         "description": "It specifies how an object is aligned along the font baseline with respect to its parent. *Value*: **`auto`**|`baseline`|`before-edge`|`text-before-edge`|`middle`|`central`|`after-edge`|`text-after-edge`|`ideographic`|`alphabetic`|`hanging`|`mathematical`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "baseline",
+          "before-edge",
+          "text-before-edge",
+          "middle",
+          "central",
+          "after-edge",
+          "text-after-edge",
+          "ideographic",
+          "alphabetic",
+          "hanging",
+          "mathematical"
+        ]
       },
       {
         "name": "baseline-shift",
@@ -7382,13 +9122,26 @@ export var SvgSchema = {
         "name": "direction",
         "description": "It specifies the base writing direction of text. *Value*: **`ltr`**|`rtl`|`inherit`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "ltr",
+          "rtl"
+        ]
       },
       {
         "name": "dominant-baseline",
         "description": "It defines the baseline used to align the box's text and inline-level contents. *Value*: `auto`|`text-bottom`|`alphabetic`|`ideographic`|`middle`|`central`| `mathematical`|`hanging`|`text-top`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "auto",
+          "text-bottom",
+          "alphabetic",
+          "ideographic",
+          "middle",
+          "central",
+          "mathematical",
+          "hanging",
+          "text-top"
+        ]
       },
       {
         "name": "glyph-orientation-horizontal",
@@ -7396,7 +9149,8 @@ export var SvgSchema = {
         "detail": "svg presentation attribute",
         "options": [
           "inherit"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "glyph-orientation-vertical",
@@ -7405,7 +9159,8 @@ export var SvgSchema = {
         "options": [
           "inherit",
           "auto"
-        ]
+        ],
+        "deprecated": true
       },
       {
         "name": "letter-spacing",
@@ -7420,7 +9175,11 @@ export var SvgSchema = {
         "name": "text-anchor",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "start",
+          "middle",
+          "end"
+        ]
       },
       {
         "name": "text-decoration",
@@ -7437,7 +9196,14 @@ export var SvgSchema = {
         "name": "unicode-bidi",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "embed",
+          "bidi-override",
+          "isolate",
+          "isolate-override",
+          "plaintext"
+        ]
       },
       {
         "name": "word-spacing",
@@ -7452,13 +9218,24 @@ export var SvgSchema = {
         "name": "writing-mode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "horizontal-tb",
+          "vertical-rl",
+          "vertical-lr",
+          "lr",
+          "lr-tb",
+          "rl",
+          "rl-tb",
+          "tb",
+          "tb-rl"
+        ]
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -7482,9 +9259,19 @@ export var SvgSchema = {
         "name": "clipPathUnits",
         "description": "Defines the coordinate system for the contents of the `<clipPath>` element. *Value type*: `userSpaceOnUse`|`objectBoundingBox` ; *Default value*: `userSpaceOnUse`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/clipPath)",
         "detail": "svg item attribute",
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "mask": {
     "name": "mask",
@@ -7542,7 +9329,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -7560,7 +9348,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -7584,7 +9373,10 @@ export var SvgSchema = {
         "name": "maskUnits",
         "description": "This attribute defines the coordinate system for attributes [`x`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/x), [`y`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/y), [`width`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/width) and [`height`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/height) on the `<mask>`. *Value type*: `userSpaceOnUse`|`objectBoundingBox` ; *Default value*: `objectBoundingBox`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/mask)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "x",
@@ -7609,8 +9401,15 @@ export var SvgSchema = {
         "description": "This attribute defines the height of the masking area. *Value type*: [**`<length>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#length) ; *Default value*: `120%`; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/mask)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "filter": {
     "name": "filter",
@@ -7637,7 +9436,8 @@ export var SvgSchema = {
       "feTile",
       "feTurbulence",
       "animate",
-      "set"
+      "set",
+      "feDropShadow"
     ],
     "attributes": [
       {
@@ -7650,7 +9450,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -7668,13 +9469,19 @@ export var SvgSchema = {
         "name": "filterUnits",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "primitiveUnits",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "userSpaceOnUse",
+          "objectBoundingBox"
+        ]
       },
       {
         "name": "x",
@@ -7706,7 +9513,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feDistantLight": {
     "name": "feDistantLight",
@@ -7735,7 +9543,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "fePointLight": {
     "name": "fePointLight",
@@ -7770,7 +9579,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feSpotLight": {
     "name": "feSpotLight",
@@ -7835,7 +9645,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feBlend": {
     "name": "feBlend",
@@ -7856,21 +9667,53 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "in2",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "mode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "normal",
+          "multiply",
+          "screen",
+          "darken",
+          "lighten",
+          "overlay",
+          "color-dodge",
+          "color-burn",
+          "hard-light",
+          "soft-light",
+          "difference",
+          "exclusion",
+          "hue",
+          "saturation",
+          "color",
+          "luminosity"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feColorMatrix": {
     "name": "feColorMatrix",
@@ -7891,13 +9734,37 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "values",
@@ -7905,7 +9772,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feComponentTransfer": {
     "name": "feComponentTransfer",
@@ -7928,9 +9796,17 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feFuncR": {
     "name": "feFuncR",
@@ -7951,7 +9827,24 @@ export var SvgSchema = {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "tableValues",
@@ -7995,7 +9888,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feFuncG": {
     "name": "feFuncG",
@@ -8016,7 +9910,24 @@ export var SvgSchema = {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "tableValues",
@@ -8060,7 +9971,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feFuncB": {
     "name": "feFuncB",
@@ -8081,7 +9993,24 @@ export var SvgSchema = {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "tableValues",
@@ -8125,7 +10054,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feFuncA": {
     "name": "feFuncA",
@@ -8146,7 +10076,24 @@ export var SvgSchema = {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       },
       {
         "name": "tableValues",
@@ -8190,7 +10137,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feComposite": {
     "name": "feComposite",
@@ -8211,19 +10159,43 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "in2",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "operator",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "over",
+          "in",
+          "out",
+          "atop",
+          "xor",
+          "lighter",
+          "arithmetic",
+          "erode",
+          "dilate"
+        ]
       },
       {
         "name": "k1",
@@ -8249,7 +10221,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feConvolveMatrix": {
     "name": "feConvolveMatrix",
@@ -8264,7 +10237,14 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "order",
@@ -8306,7 +10286,11 @@ export var SvgSchema = {
         "name": "edgeMode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "duplicate",
+          "wrap",
+          "none"
+        ]
       },
       {
         "name": "kernelUnitLength",
@@ -8320,7 +10304,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feDiffuseLighting": {
     "name": "feDiffuseLighting",
@@ -8345,13 +10330,21 @@ export var SvgSchema = {
         "name": "lighting-color",
         "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "class",
@@ -8377,7 +10370,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feDisplacementMap": {
     "name": "feDisplacementMap",
@@ -8398,13 +10392,27 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "in2",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "scale",
@@ -8416,15 +10424,26 @@ export var SvgSchema = {
         "name": "xChannelSelector",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "R",
+          "G",
+          "B",
+          "A"
+        ]
       },
       {
         "name": "yChannelSelector",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "R",
+          "G",
+          "B",
+          "A"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feFlood": {
     "name": "feFlood",
@@ -8446,7 +10465,8 @@ export var SvgSchema = {
         "name": "flood-color",
         "description": "It indicates what color to use to flood the current filter primitive subregion defined through the [`<feFlood>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feFlood) or [`<feDropShadow>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow) element. *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "flood-opacity",
@@ -8458,7 +10478,14 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "class",
@@ -8472,7 +10499,8 @@ export var SvgSchema = {
         "detail": "svg styling attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feGaussianBlur": {
     "name": "feGaussianBlur",
@@ -8493,7 +10521,14 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "stdDeviation",
@@ -8501,7 +10536,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feImage": {
     "name": "feImage",
@@ -8553,7 +10589,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -8572,8 +10609,15 @@ export var SvgSchema = {
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feMerge": {
     "name": "feMerge",
@@ -8619,7 +10663,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feMergeNode": {
     "name": "feMergeNode",
@@ -8640,9 +10685,17 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feMorphology": {
     "name": "feMorphology",
@@ -8663,13 +10716,30 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "operator",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "over",
+          "in",
+          "out",
+          "atop",
+          "xor",
+          "lighter",
+          "arithmetic",
+          "erode",
+          "dilate"
+        ]
       },
       {
         "name": "radius",
@@ -8677,7 +10747,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feOffset": {
     "name": "feOffset",
@@ -8698,7 +10769,14 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "dx",
@@ -8712,7 +10790,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feSpecularLighting": {
     "name": "feSpecularLighting",
@@ -8737,13 +10816,21 @@ export var SvgSchema = {
         "name": "lighting-color",
         "description": "It defines the color of the light source for filter primitives elements [`<feDiffuseLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDiffuseLighting) and [`<feSpecularLighting>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feSpecularLighting). *Value*: [`<color>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#color); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": null,
+        "colorAttribute": true
       },
       {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       },
       {
         "name": "class",
@@ -8775,7 +10862,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feTile": {
     "name": "feTile",
@@ -8796,9 +10884,17 @@ export var SvgSchema = {
         "name": "in",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "feTurbulence": {
     "name": "feTurbulence",
@@ -8867,19 +10963,40 @@ export var SvgSchema = {
         "name": "stitchTiles",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "stitch",
+          "noStitch"
+        ]
       },
       {
         "name": "type",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
       }
-    ]
+    ],
+    "deprecated": false
   },
   "cursor": {
     "name": "cursor",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\n<div class=\"notecard note\" id=\"sect2\">\r\n\r\n**Note:** The CSS [`cursor`](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor) property should be used instead of this element.\r\n\n</div>\r\n\r\nThe **`<cursor>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element can be used to define a platform-independent custom cursor. A recommended approach for defining a platform-independent custom cursor is to create a PNG image and define a `cursor` element that references the PNG image and identifies the exact position within the image which is the pointer position (i.e., the hot spot).\r\n\r\nThe PNG format is recommended because it supports the ability to define a transparency mask via an alpha channel. If a different image format is used, this format should support the definition of a transparency mask (two options: provide an explicit alpha channel or use a particular pixel color to indicate transparency). If the transparency mask can be determined, the mask defines the shape of the cursor; otherwise, the cursor is an opaque rectangle. Typically, the other pixel information (e.g., the R, G and B channels) defines the colors for those parts of the cursor which are not masked out. Note that cursors usually contain at least two colors so that the cursor can be visible over most backgrounds. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/cursor)",
     "elements": [
       "desc",
@@ -8897,7 +11014,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -8915,7 +11033,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "x",
@@ -8929,7 +11048,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "a": {
     "name": "a",
@@ -8987,7 +11107,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9065,7 +11186,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -9089,9 +11211,42 @@ export var SvgSchema = {
         "name": "target",
         "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) or URL fragment the hyperlink points to. *Value type*: **[`<URL>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/a)",
         "detail": "svg item attribute",
+        "options": [
+          "_self",
+          "_parent",
+          "_top",
+          "_blank"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "view": {
     "name": "view",
@@ -9113,7 +11268,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "viewBox",
@@ -9125,13 +11281,27 @@ export var SvgSchema = {
         "name": "preserveAspectRatio",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "none",
+          "xMinYMin",
+          "xMidYMin",
+          "xMaxYMin",
+          "xMinYMid",
+          "xMidYMid",
+          "xMaxYMid",
+          "xMinYMax",
+          "xMidYMax",
+          "xMaxYMax",
+          "meet",
+          "slice"
+        ]
       },
       {
         "name": "zoomAndPan",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "viewTarget",
@@ -9139,7 +11309,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "script": {
     "name": "script",
@@ -9157,15 +11328,40 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "type",
         "description": "The [URL](https://developer.mozilla.org/en-US/docs/Glossary/URL) to the script to load. *Value type*: **[`<URL>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#url)** ; *Default value*: *none*; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/script)",
         "detail": "svg item attribute",
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "animate": {
     "name": "animate",
@@ -9187,7 +11383,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9253,13 +11450,19 @@ export var SvgSchema = {
         "name": "restart",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "always",
+          "whenNotActive",
+          "never"
+        ]
       },
       {
         "name": "repeatCount",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "indefinite"
+        ]
       },
       {
         "name": "repeatDur",
@@ -9271,13 +11474,22 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "freeze",
+          "remove"
+        ],
+        "colorAttribute": true
       },
       {
         "name": "calcMode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "discrete",
+          "linear",
+          "paced",
+          "spline"
+        ]
       },
       {
         "name": "values",
@@ -9319,21 +11531,35 @@ export var SvgSchema = {
         "name": "additive",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "replace",
+          "sum"
+        ]
       },
       {
         "name": "accumulate",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "none",
+          "sum"
+        ]
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
+        "options": null,
+        "deprecated": true
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "set": {
     "name": "set",
@@ -9355,7 +11581,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9421,13 +11648,19 @@ export var SvgSchema = {
         "name": "restart",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "always",
+          "whenNotActive",
+          "never"
+        ]
       },
       {
         "name": "repeatCount",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "indefinite"
+        ]
       },
       {
         "name": "repeatDur",
@@ -9439,21 +11672,33 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "freeze",
+          "remove"
+        ],
+        "colorAttribute": true
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "to",
         "description": "This attribute defines the value to be applied to the target attribute for the duration of the animation. The value must match the requirements of the target attribute. *Value type*: [**<anything>**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#anything); *Default value*: none; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/set)",
         "detail": "svg item attribute",
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "animateMotion": {
     "name": "animateMotion",
@@ -9476,7 +11721,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9542,13 +11788,19 @@ export var SvgSchema = {
         "name": "restart",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "always",
+          "whenNotActive",
+          "never"
+        ]
       },
       {
         "name": "repeatCount",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "indefinite"
+        ]
       },
       {
         "name": "repeatDur",
@@ -9560,13 +11812,22 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "freeze",
+          "remove"
+        ],
+        "colorAttribute": true
       },
       {
         "name": "calcMode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "discrete",
+          "linear",
+          "paced",
+          "spline"
+        ]
       },
       {
         "name": "values",
@@ -9608,19 +11869,26 @@ export var SvgSchema = {
         "name": "additive",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "replace",
+          "sum"
+        ]
       },
       {
         "name": "accumulate",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "none",
+          "sum"
+        ]
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "path",
@@ -9638,15 +11906,25 @@ export var SvgSchema = {
         "name": "rotate",
         "description": "This attribute defines a rotation applied to the element animated along a path, usually to make it pointing in the direction of the animation. *Value type*: [**`<number>`**](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#number)|`auto`|`auto-reverse`; *Default value*: `0`; *Animatable*: **no** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/animateMotion)",
         "detail": "svg item attribute",
-        "options": null
+        "options": [
+          "auto",
+          "auto-reverse"
+        ]
       },
       {
         "name": "origin",
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
+        "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "mpath": {
     "name": "mpath",
@@ -9668,13 +11946,21 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
+        "options": null,
+        "deprecated": true
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "animateColor": {
     "name": "animateColor",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "The SVG **`<animate>`** element provides a way to animate an attribute of an element over time. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/animateColor)",
     "elements": [
       "desc",
@@ -9692,7 +11978,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9758,13 +12045,19 @@ export var SvgSchema = {
         "name": "restart",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "always",
+          "whenNotActive",
+          "never"
+        ]
       },
       {
         "name": "repeatCount",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "indefinite"
+        ]
       },
       {
         "name": "repeatDur",
@@ -9776,13 +12069,22 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "freeze",
+          "remove"
+        ],
+        "colorAttribute": true
       },
       {
         "name": "calcMode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "discrete",
+          "linear",
+          "paced",
+          "spline"
+        ]
       },
       {
         "name": "values",
@@ -9824,21 +12126,29 @@ export var SvgSchema = {
         "name": "additive",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "replace",
+          "sum"
+        ]
       },
       {
         "name": "accumulate",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "none",
+          "sum"
+        ]
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       }
-    ]
+    ],
+    "deprecated": true
   },
   "animateTransform": {
     "name": "animateTransform",
@@ -9860,7 +12170,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -9926,13 +12237,19 @@ export var SvgSchema = {
         "name": "restart",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "always",
+          "whenNotActive",
+          "never"
+        ]
       },
       {
         "name": "repeatCount",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "indefinite"
+        ]
       },
       {
         "name": "repeatDur",
@@ -9944,13 +12261,22 @@ export var SvgSchema = {
         "name": "fill",
         "description": "It defines the color of the inside of the graphical element it applies to. *Value*: [`<paint>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Content_type#paint); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "freeze",
+          "remove"
+        ],
+        "colorAttribute": true
       },
       {
         "name": "calcMode",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "discrete",
+          "linear",
+          "paced",
+          "spline"
+        ]
       },
       {
         "name": "values",
@@ -9992,31 +12318,62 @@ export var SvgSchema = {
         "name": "additive",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "replace",
+          "sum"
+        ]
       },
       {
         "name": "accumulate",
         "description": null,
         "detail": null,
-        "options": null
+        "options": [
+          "none",
+          "sum"
+        ]
       },
       {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "type",
         "description": null,
         "detail": null,
+        "options": [
+          "translate",
+          "scale",
+          "rotate",
+          "skewX",
+          "skewY",
+          "matrix",
+          "saturate",
+          "hueRotate",
+          "luminanceToAlpha",
+          "fractalNoise",
+          "turbulence",
+          "identity",
+          "table",
+          "discrete",
+          "linear",
+          "gamma"
+        ]
+      },
+      {
+        "name": "href",
+        "description": "The URL of a linked resource. Replaces `xlink:href` in SVG 2.",
+        "detail": "svg2 attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "font": {
     "name": "font",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element defines a font to be used for text layout. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font)",
     "elements": [
       "desc",
@@ -10039,7 +12396,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -10089,11 +12447,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "glyph": {
     "name": "glyph",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nA **`<glyph>`** defines a single glyph in an SVG font. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/glyph)",
     "elements": [
       "desc",
@@ -10203,11 +12562,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "missing-glyph": {
     "name": "missing-glyph",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<missing-glyph>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element's content is rendered, if for a given character the font doesn't define an appropriate [`<glyph>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/glyph). [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/missing-glyph)",
     "elements": [
       "desc",
@@ -10287,11 +12647,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "hkern": {
     "name": "hkern",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<hkern>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element allows to fine-tweak the horizontal distance between two glyphs. This process is known as [kerning](https://en.wikipedia.org/wiki/Kerning). [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/hkern)",
     "elements": [],
     "attributes": [
@@ -10331,11 +12692,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "vkern": {
     "name": "vkern",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<vkern>`** SVG element allows to fine-tweak the vertical distance between two glyphs in top-to-bottom fonts. This process is known as [kerning](https://en.wikipedia.org/wiki/Kerning). [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/vkern)",
     "elements": [],
     "attributes": [
@@ -10375,11 +12737,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "font-face": {
     "name": "font-face",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font-face>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element corresponds to the CSS [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rule. It defines a font's outer properties. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face)",
     "elements": [
       "desc",
@@ -10405,7 +12768,11 @@ export var SvgSchema = {
         "name": "font-style",
         "description": "It specifies whether a font should be styled with a normal, italic, or oblique face from its [`font-family`](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/font-family). *Value*: **`normal`**|`italic`|`oblique`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "italic",
+          "oblique"
+        ]
       },
       {
         "name": "font-variant",
@@ -10417,13 +12784,37 @@ export var SvgSchema = {
         "name": "font-weight",
         "description": "It specifies the weight (or boldness) of the font. *Value*: **`normal`**|`bold`|`lighter`|`bolder`|`100`|`200`|`300`|`400`|`500`|`600`|`700`|`800`|`900`; *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "bold",
+          "bolder",
+          "lighter",
+          "100",
+          "200",
+          "300",
+          "400",
+          "500",
+          "600",
+          "700",
+          "800",
+          "900"
+        ]
       },
       {
         "name": "font-stretch",
         "description": "It selects a normal, condensed, or expanded face from a font. *Value*: see CSS [`font-stretch`](https://developer.mozilla.org/en-US/docs/Web/CSS/font-stretch); *Animatable*: **Yes** [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)",
         "detail": "svg presentation attribute",
-        "options": null
+        "options": [
+          "normal",
+          "ultra-condensed",
+          "extra-condensed",
+          "condensed",
+          "semi-condensed",
+          "semi-expanded",
+          "expanded",
+          "extra-expanded",
+          "ultra-expanded"
+        ]
       },
       {
         "name": "font-size",
@@ -10583,11 +12974,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "font-face-src": {
     "name": "font-face-src",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font-face-src>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element corresponds to the [`src`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/src) descriptor in CSS [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules. It serves as container for [`<font-face-name>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-name), pointing to locally installed copies of this font, and [`<font-face-uri>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-uri), utilizing remotely defined fonts. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-src)",
     "elements": [
       "font-face-uri",
@@ -10600,11 +12992,12 @@ export var SvgSchema = {
         "detail": "svg core attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "font-face-uri": {
     "name": "font-face-uri",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font-face-uri>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element points to a remote definition of the current font. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-uri)",
     "elements": [
       "font-face-format"
@@ -10616,11 +13009,12 @@ export var SvgSchema = {
         "detail": "svg core attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "font-face-format": {
     "name": "font-face-format",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font-face-format>`** [SVG](https://developer.mozilla.org/en-US/docs/Web/SVG) element describes the type of font referenced by its parent [`<font-face-uri>`](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-uri). [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-format)",
     "elements": [],
     "attributes": [
@@ -10636,11 +13030,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "font-face-name": {
     "name": "font-face-name",
-    "detail": "svg element",
+    "detail": "svg element (deprecated)",
     "description": "<div class=\"notecard deprecated\" id=\"sect1\">\r\n\r\n**Deprecated:** This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the [compatibility table](#browser_compatibility) at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.\r\n</div>\r\n\r\nThe **`<font-face-name>`** element points to a locally installed copy of this font, identified by its name. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/font-face-name)",
     "elements": [],
     "attributes": [
@@ -10656,11 +13051,12 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "definition-src": {
     "name": "definition-src",
-    "detail": null,
+    "detail": "svg element (deprecated)",
     "description": null,
     "elements": [],
     "attributes": [
@@ -10670,7 +13066,8 @@ export var SvgSchema = {
         "detail": null,
         "options": null
       }
-    ]
+    ],
+    "deprecated": true
   },
   "metadata": {
     "name": "metadata",
@@ -10684,7 +13081,8 @@ export var SvgSchema = {
         "detail": "svg core attribute",
         "options": null
       }
-    ]
+    ],
+    "deprecated": false
   },
   "foreignObject": {
     "name": "foreignObject",
@@ -10702,7 +13100,8 @@ export var SvgSchema = {
         "name": "requiredFeatures",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "requiredExtensions",
@@ -10780,7 +13179,8 @@ export var SvgSchema = {
         "name": "externalResourcesRequired",
         "description": null,
         "detail": null,
-        "options": null
+        "options": null,
+        "deprecated": true
       },
       {
         "name": "class",
@@ -10829,7 +13229,380 @@ export var SvgSchema = {
         "description": null,
         "detail": null,
         "options": null
+      },
+      {
+        "name": "tabindex",
+        "description": "A numeric value indicating the tabbing order of the element.",
+        "detail": "svg2 global attribute",
+        "options": null
+      },
+      {
+        "name": "autofocus",
+        "description": "Indicates that the element should be focused on page load.",
+        "detail": "svg2 global attribute",
+        "options": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "transform-origin",
+        "description": "Sets the origin for transformations. Similar to CSS `transform-origin`.",
+        "detail": "svg2 presentation attribute",
+        "options": null
+      },
+      {
+        "name": "vector-effect",
+        "description": "Specifies the vector effect to use when drawing the object. Most commonly used for `non-scaling-stroke`.",
+        "detail": "svg2 presentation attribute",
+        "options": [
+          "none",
+          "non-scaling-stroke",
+          "non-scaling-size",
+          "non-rotation",
+          "fixed-position"
+        ]
+      }
+    ],
+    "deprecated": false
+  },
+  "feDropShadow": {
+    "name": "feDropShadow",
+    "detail": "svg element",
+    "description": "The **`<feDropShadow>`** SVG filter primitive creates a drop shadow of the input image. It is a shorthand filter that combines `<feGaussianBlur>` and `<feOffset>`. [more...](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/feDropShadow)",
+    "deprecated": false,
+    "elements": [],
+    "attributes": [
+      {
+        "name": "in",
+        "description": "Identifies input for the filter primitive.",
+        "detail": "svg filter attribute",
+        "options": [
+          "SourceGraphic",
+          "SourceAlpha",
+          "BackgroundImage",
+          "BackgroundAlpha",
+          "FillPaint",
+          "StrokePaint"
+        ]
+      },
+      {
+        "name": "dx",
+        "description": "The x offset of the drop shadow.",
+        "detail": "svg item attribute",
+        "options": null
+      },
+      {
+        "name": "dy",
+        "description": "The y offset of the drop shadow.",
+        "detail": "svg item attribute",
+        "options": null
+      },
+      {
+        "name": "stdDeviation",
+        "description": "The standard deviation for the blur operation in the drop shadow.",
+        "detail": "svg item attribute",
+        "options": null
+      },
+      {
+        "name": "flood-color",
+        "description": "The color of the drop shadow.",
+        "detail": "svg item attribute",
+        "options": null,
+        "colorAttribute": true
+      },
+      {
+        "name": "flood-opacity",
+        "description": "The opacity of the drop shadow.",
+        "detail": "svg item attribute",
+        "options": null
+      },
+      {
+        "name": "result",
+        "description": "Assigns a name to the filter output.",
+        "detail": "svg filter attribute",
+        "options": null
+      },
+      {
+        "name": "x",
+        "description": "The x coordinate of the filter subregion.",
+        "detail": "svg filter attribute",
+        "options": null
+      },
+      {
+        "name": "y",
+        "description": "The y coordinate of the filter subregion.",
+        "detail": "svg filter attribute",
+        "options": null
+      },
+      {
+        "name": "width",
+        "description": "The width of the filter subregion.",
+        "detail": "svg filter attribute",
+        "options": null
+      },
+      {
+        "name": "height",
+        "description": "The height of the filter subregion.",
+        "detail": "svg filter attribute",
+        "options": null
       }
     ]
-  }
+  },
+  "__pathCommands": [
+    {
+      "name": "M",
+      "insert": "M ${1:x} ${2:y}",
+      "description": "**Move to** (absolute) — Start a new sub-path at (x, y)"
+    },
+    {
+      "name": "m",
+      "insert": "m ${1:dx} ${2:dy}",
+      "description": "**Move to** (relative) — Start a new sub-path offset by (dx, dy)"
+    },
+    {
+      "name": "L",
+      "insert": "L ${1:x} ${2:y}",
+      "description": "**Line to** (absolute) — Draw a line to (x, y)"
+    },
+    {
+      "name": "l",
+      "insert": "l ${1:dx} ${2:dy}",
+      "description": "**Line to** (relative) — Draw a line offset by (dx, dy)"
+    },
+    {
+      "name": "H",
+      "insert": "H ${1:x}",
+      "description": "**Horizontal line** (absolute) — Draw a horizontal line to x"
+    },
+    {
+      "name": "h",
+      "insert": "h ${1:dx}",
+      "description": "**Horizontal line** (relative) — Draw a horizontal line offset by dx"
+    },
+    {
+      "name": "V",
+      "insert": "V ${1:y}",
+      "description": "**Vertical line** (absolute) — Draw a vertical line to y"
+    },
+    {
+      "name": "v",
+      "insert": "v ${1:dy}",
+      "description": "**Vertical line** (relative) — Draw a vertical line offset by dy"
+    },
+    {
+      "name": "C",
+      "insert": "C ${1:x1} ${2:y1} ${3:x2} ${4:y2} ${5:x} ${6:y}",
+      "description": "**Cubic Bézier** (absolute) — Curve with control points (x1,y1), (x2,y2) to endpoint (x,y)"
+    },
+    {
+      "name": "c",
+      "insert": "c ${1:dx1} ${2:dy1} ${3:dx2} ${4:dy2} ${5:dx} ${6:dy}",
+      "description": "**Cubic Bézier** (relative) — Curve with relative control points"
+    },
+    {
+      "name": "S",
+      "insert": "S ${1:x2} ${2:y2} ${3:x} ${4:y}",
+      "description": "**Smooth cubic Bézier** (absolute) — First control point reflected from previous curve"
+    },
+    {
+      "name": "s",
+      "insert": "s ${1:dx2} ${2:dy2} ${3:dx} ${4:dy}",
+      "description": "**Smooth cubic Bézier** (relative)"
+    },
+    {
+      "name": "Q",
+      "insert": "Q ${1:x1} ${2:y1} ${3:x} ${4:y}",
+      "description": "**Quadratic Bézier** (absolute) — Curve with control point (x1,y1) to endpoint (x,y)"
+    },
+    {
+      "name": "q",
+      "insert": "q ${1:dx1} ${2:dy1} ${3:dx} ${4:dy}",
+      "description": "**Quadratic Bézier** (relative)"
+    },
+    {
+      "name": "T",
+      "insert": "T ${1:x} ${2:y}",
+      "description": "**Smooth quadratic Bézier** (absolute) — Control point reflected from previous curve"
+    },
+    {
+      "name": "t",
+      "insert": "t ${1:dx} ${2:dy}",
+      "description": "**Smooth quadratic Bézier** (relative)"
+    },
+    {
+      "name": "A",
+      "insert": "A ${1:rx} ${2:ry} ${3:rotation} ${4:large-arc} ${5:sweep} ${6:x} ${7:y}",
+      "description": "**Arc** (absolute) — Elliptical arc: rx ry x-rotation large-arc-flag sweep-flag x y"
+    },
+    {
+      "name": "a",
+      "insert": "a ${1:rx} ${2:ry} ${3:rotation} ${4:large-arc} ${5:sweep} ${6:dx} ${7:dy}",
+      "description": "**Arc** (relative) — Elliptical arc with relative endpoint"
+    },
+    {
+      "name": "Z",
+      "insert": "Z",
+      "description": "**Close path** — Draw a straight line back to the start of the sub-path"
+    },
+    {
+      "name": "z",
+      "insert": "z",
+      "description": "**Close path** — Same as Z (case-insensitive)"
+    }
+  ],
+  "__colorNames": [
+    "aliceblue",
+    "antiquewhite",
+    "aqua",
+    "aquamarine",
+    "azure",
+    "beige",
+    "bisque",
+    "black",
+    "blanchedalmond",
+    "blue",
+    "blueviolet",
+    "brown",
+    "burlywood",
+    "cadetblue",
+    "chartreuse",
+    "chocolate",
+    "coral",
+    "cornflowerblue",
+    "cornsilk",
+    "crimson",
+    "cyan",
+    "darkblue",
+    "darkcyan",
+    "darkgoldenrod",
+    "darkgray",
+    "darkgreen",
+    "darkgrey",
+    "darkkhaki",
+    "darkmagenta",
+    "darkolivegreen",
+    "darkorange",
+    "darkorchid",
+    "darkred",
+    "darksalmon",
+    "darkseagreen",
+    "darkslateblue",
+    "darkslategray",
+    "darkslategrey",
+    "darkturquoise",
+    "darkviolet",
+    "deeppink",
+    "deepskyblue",
+    "dimgray",
+    "dimgrey",
+    "dodgerblue",
+    "firebrick",
+    "floralwhite",
+    "forestgreen",
+    "fuchsia",
+    "gainsboro",
+    "ghostwhite",
+    "gold",
+    "goldenrod",
+    "gray",
+    "green",
+    "greenyellow",
+    "grey",
+    "honeydew",
+    "hotpink",
+    "indianred",
+    "indigo",
+    "ivory",
+    "khaki",
+    "lavender",
+    "lavenderblush",
+    "lawngreen",
+    "lemonchiffon",
+    "lightblue",
+    "lightcoral",
+    "lightcyan",
+    "lightgoldenrodyellow",
+    "lightgray",
+    "lightgreen",
+    "lightgrey",
+    "lightpink",
+    "lightsalmon",
+    "lightseagreen",
+    "lightskyblue",
+    "lightslategray",
+    "lightslategrey",
+    "lightsteelblue",
+    "lightyellow",
+    "lime",
+    "limegreen",
+    "linen",
+    "magenta",
+    "maroon",
+    "mediumaquamarine",
+    "mediumblue",
+    "mediumorchid",
+    "mediumpurple",
+    "mediumseagreen",
+    "mediumslateblue",
+    "mediumspringgreen",
+    "mediumturquoise",
+    "mediumvioletred",
+    "midnightblue",
+    "mintcream",
+    "mistyrose",
+    "moccasin",
+    "navajowhite",
+    "navy",
+    "oldlace",
+    "olive",
+    "olivedrab",
+    "orange",
+    "orangered",
+    "orchid",
+    "palegoldenrod",
+    "palegreen",
+    "paleturquoise",
+    "palevioletred",
+    "papayawhip",
+    "peachpuff",
+    "peru",
+    "pink",
+    "plum",
+    "powderblue",
+    "purple",
+    "rebeccapurple",
+    "red",
+    "rosybrown",
+    "royalblue",
+    "saddlebrown",
+    "salmon",
+    "sandybrown",
+    "seagreen",
+    "seashell",
+    "sienna",
+    "silver",
+    "skyblue",
+    "slateblue",
+    "slategray",
+    "slategrey",
+    "snow",
+    "springgreen",
+    "steelblue",
+    "tan",
+    "teal",
+    "thistle",
+    "tomato",
+    "turquoise",
+    "violet",
+    "wheat",
+    "white",
+    "whitesmoke",
+    "yellow",
+    "yellowgreen",
+    "none",
+    "currentColor",
+    "inherit",
+    "transparent"
+  ]
 }
