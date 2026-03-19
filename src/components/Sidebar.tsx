@@ -20,13 +20,13 @@ export function Sidebar() {
     <Stack
       p="md"
       h="100%"
-      style={{ backgroundColor: '#1e1e1e', color: '#999', overflow: 'auto' }}
+      style={{ backgroundColor: '#1e1e1e', color: '#aaa', overflow: 'auto' }}
     >
       <div>
-        <Title order={4} c="dimmed">SVG Code Sandbox</Title>
-        <Text size="sm" c="dimmed" mt="xs">Upload or paste SVG code for editing.</Text>
-        <Text size="sm" c="dimmed" mt="xs">Autocomplete assists with tags and attributes, with real-time preview.</Text>
-        <Text size="sm" c="dimmed" mt="xs">Save your work by copying, downloading, or sharing via a public link.</Text>
+        <Title order={4}>SVG Code Sandbox</Title>
+        <Text size="sm" mt="xs">Upload or paste SVG code for editing.</Text>
+        <Text size="sm" mt="xs">Autocomplete assists with tags and attributes, with real-time preview.</Text>
+        <Text size="sm" mt="xs">Save your work by copying, downloading, or sharing via a public link.</Text>
       </div>
       <div ref={adsRef} />
     </Stack>

@@ -99,7 +99,7 @@ export default function App() {
       <AppShell.Header
         style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}
       >
-        <Group h="100%" px="md" justify="space-between">
+        <Group h="100%" px="md">
           <Text fw={700} size="lg" c="white">Online SVG code editor</Text>
           <Group gap="xs">
             <Tooltip label="Upload a SVG file from local computer to edit">
@@ -120,6 +120,20 @@ export default function App() {
           </Group>
         </Group>
       </AppShell.Header>
+
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://github.com/nbelyh/editsvgcode"
+        style={{ position: 'absolute', right: 0, top: 0, zIndex: 10000 }}
+      >
+        <img
+          width="149"
+          height="149"
+          src="https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png?resize=149%2C149"
+          alt="Fork me on GitHub"
+        />
+      </a>
 
       <AppShell.Main style={{ backgroundColor: '#1e1e1e' }}>
         <input
