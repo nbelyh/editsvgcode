@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppShell, Group, Button, Text, Tooltip } from '@mantine/core';
 import { IconFolderOpen, IconDownload, IconCloudUpload } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
-import { Editor } from './components/Editor';
+import { Editor, type EditorHandle } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
 import { EditSvgCodeDb } from './lib/firebase';
@@ -27,6 +27,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<EditorHandle>(null);
 
   useEffect(() => {
     const db = new EditSvgCodeDb();
@@ -90,6 +91,46 @@ export default function App() {
     document.body.removeChild(element);
   }, [svgCode]);
 
+  // Click-to-select: find the Nth occurrence of <tagName in source and select the full element
+  const handleElementSelect = useCallback((tagName: string, index: number) => {
+    if (!tagName || index < 0) {
+      editorRef.current?.clearSelection();
+      return;
+    }
+    // Find the Nth opening tag
+    const openRegex = new RegExp(`<${tagName}[\\s>/]`, 'gi');
+    let match: RegExpExecArray | null;
+    let count = 0;
+    let startOffset = -1;
+    while ((match = openRegex.exec(svgCode)) !== null) {
+      if (count === index) { startOffset = match.index; break; }
+      count++;
+    }
+    if (startOffset < 0) return;
+
+    // Find the end: self-closing "/>" or closing "</tagName>"
+    let endOffset = startOffset;
+    const selfClose = svgCode.indexOf('/>', startOffset);
+    const closeTag = svgCode.indexOf(`</${tagName}>`, startOffset);
+    const openEnd = svgCode.indexOf('>', startOffset);
+    if (selfClose >= 0 && selfClose <= openEnd) {
+      endOffset = selfClose + 2;
+    } else if (closeTag >= 0) {
+      endOffset = closeTag + tagName.length + 3; // </tagName>
+    } else if (openEnd >= 0) {
+      endOffset = openEnd + 1;
+    }
+
+    const before = svgCode.substring(0, startOffset);
+    const startLine = before.split('\n').length;
+    const startCol = startOffset - before.lastIndexOf('\n');
+    const upToEnd = svgCode.substring(0, endOffset);
+    const endLine = upToEnd.split('\n').length;
+    const endCol = endOffset - upToEnd.lastIndexOf('\n');
+
+    editorRef.current?.selectRange(startLine, startCol, endLine, endCol);
+  }, [svgCode]);
+
   return (
     <AppShell
       header={{ height: 56 }}
@@ -145,10 +186,10 @@ export default function App() {
         />
         <Allotment>
           <Allotment.Pane preferredSize="45%">
-            <Editor value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+            <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
           </Allotment.Pane>
           <Allotment.Pane preferredSize="45%">
-            <Preview svgCode={svgCode} />
+            <Preview svgCode={svgCode} onElementSelect={handleElementSelect} />
           </Allotment.Pane>
           <Allotment.Pane preferredSize="10%" minSize={150}>
             <Sidebar />
