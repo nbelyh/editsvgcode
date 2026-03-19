@@ -18,7 +18,19 @@ export function EditSvgCodeDb() {
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
-  firebase.analytics();
+
+  // Automatically detect if running locally and use emulators
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+  
+  if (isLocalhost) {
+    console.log('Running on localhost - using Firebase Emulators');
+    firebase.firestore().useEmulator('localhost', 8080);
+    firebase.auth().useEmulator('http://localhost:9099');
+  } else {
+    // Only enable analytics in production
+    firebase.analytics();
+  }
 
   this.db = firebase.firestore();
 

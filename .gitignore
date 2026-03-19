@@ -6,3 +6,5 @@ svg.xsd
 obj
 bin
 *.cache
+firestore-debug.log
+firebase-debug.log
