@@ -1,34 +1,19 @@
-import { useState, useCallback, useRef, useEffect, createContext, useContext, type FC } from 'react';
-import {
-  useExternalStoreRuntime,
-  AssistantRuntimeProvider,
-  ThreadPrimitive,
-  MessagePrimitive,
-  ComposerPrimitive,
-  type ThreadMessageLike,
-  type AppendMessage,
-} from '@assistant-ui/react';
-import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
-import { Badge, Button, Group, Loader, NativeSelect, Text } from '@mantine/core';
-import { IconSparkles, IconUser, IconTool, IconPlus, IconFocus2 } from '@tabler/icons-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { NativeSelect, Badge } from '@mantine/core';
+import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil } from '@tabler/icons-react';
 import { sendChatRequest, type ChatMessage, type ChatToolCall } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
 
-interface StoredMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  toolCalls?: ChatToolCall[];
+interface StoredToolCall extends ChatToolCall {
+  status: 'pending' | 'accepted' | 'rejected';
 }
 
-const AVAILABLE_MODELS = [
-  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-  { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-  { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
-  { value: 'gpt-5-nano', label: 'GPT-5 Nano' },
-  { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
-  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
-];
+interface DisplayMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  toolCalls?: StoredToolCall[];
+}
 
 interface AiChatProps {
   svgCode: string;
@@ -38,335 +23,334 @@ interface AiChatProps {
   onAcceptSvg: (svg: string) => void;
 }
 
-type ProposalStatus = 'pending' | 'accepted' | 'rejected';
-
-interface ProposalContextValue {
-  messages: StoredMessage[];
-  statuses: Map<number, ProposalStatus>;
-  onAccept: (messageIndex: number) => void;
-  onReject: (messageIndex: number) => void;
-}
-
-const ProposalContext = createContext<ProposalContextValue | null>(null);
-
-/** Convert stored messages to assistant-ui format (text only — tool calls rendered manually) */
-function toThreadMessages(messages: StoredMessage[]): ThreadMessageLike[] {
-  return messages.map((m, i): ThreadMessageLike => ({
-    id: `msg-${i}`,
-    role: m.role,
-    content: m.content,
-  }));
-}
-
-const UserMessage: FC = () => (
-  <div className="aui-msg aui-msg-user">
-    <div className="aui-msg-header">
-      <IconUser size={14} />
-      <span>You</span>
-    </div>
-    <MessagePrimitive.Content />
-  </div>
-);
-
-const AssistantText: FC = () => (
-  <div className="aui-markdown">
-    <MarkdownTextPrimitive />
-  </div>
-);
-
-const AssistantMessageWithProposals: FC<{ messageIndex: number }> = ({ messageIndex }) => {
-  const ctx = useContext(ProposalContext);
-  if (!ctx) return null;
-
-  const msg = ctx.messages[messageIndex];
-  const status = ctx.statuses.get(messageIndex);
-
-  return (
-    <div className="aui-msg aui-msg-assistant">
-      <div className="aui-msg-header">
-        <IconSparkles size={14} />
-        <span>AI</span>
-      </div>
-      <MessagePrimitive.Content components={{ Text: AssistantText }} />
-      {msg?.toolCalls?.map((tc, j) => {
-        if (tc.name === 'replace_svg' || tc.name === 'edit_svg') {
-          const args = tc.arguments as { summary?: string; svg?: string; failedOperations?: string[] };
-          const summary = args.summary ?? 'SVG change';
-          return (
-            <div key={j} className="aui-proposal">
-              <div className="aui-proposal-header">
-                <IconTool size={14} />
-                <span className="aui-proposal-summary">{summary}</span>
-              </div>
-              {args.failedOperations?.length ? (
-                <Text size="xs" c="orange" mt={4}>⚠ {args.failedOperations.length} edit(s) could not be applied</Text>
-              ) : null}
-              {status === 'pending' && (
-                <div className="aui-proposal-actions">
-                  <Button size="compact-xs" variant="filled" onClick={() => ctx.onAccept(messageIndex)}>
-                    Accept
-                  </Button>
-                  <Button size="compact-xs" variant="default" onClick={() => ctx.onReject(messageIndex)}>
-                    Dismiss
-                  </Button>
-                </div>
-              )}
-              {status === 'accepted' && (
-                <Text size="xs" fw={600} c="blue" mt={6}>✓ Applied</Text>
-              )}
-              {status === 'rejected' && (
-                <Text size="xs" fw={600} c="dimmed" mt={6}>Dismissed</Text>
-              )}
-            </div>
-          );
-        }
-        return (
-          <div key={j} className="aui-tool-call">
-            <IconTool size={12} />
-            <span>{tc.name}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+const MODELS = [
+  { label: 'GPT-4.1 mini', value: 'gpt-4.1-mini' },
+  { label: 'GPT-4.1 nano', value: 'gpt-4.1-nano' },
+  { label: 'GPT-5 mini', value: 'gpt-5-mini' },
+  { label: 'GPT-5 nano', value: 'gpt-5-nano' },
+  { label: 'GPT-5.4 mini', value: 'gpt-5.4-mini' },
+  { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
+];
 
 export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg }: AiChatProps) {
-  const [messages, setMessages] = useState<StoredMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
-  const [proposalStatuses, setProposalStatuses] = useState<Map<number, ProposalStatus>>(new Map());
   const [model, setModel] = useState('gpt-4.1-mini');
+  const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
 
-  // Restore chat from IndexedDB on mount
+  // Load messages from IndexedDB on mount
   useEffect(() => {
-    loadChatMessages<StoredMessage>().then((restored) => {
-      if (restored.length) {
-        setMessages(restored);
-        // Mark any svg-modifying proposals as pending so they remain actionable
-        const statuses = new Map<number, ProposalStatus>();
-        restored.forEach((m, i) => {
-          if (m.toolCalls?.some(tc => tc.name === 'replace_svg' || tc.name === 'edit_svg')) {
-            statuses.set(i, 'pending');
-          }
-        });
-        if (statuses.size) setProposalStatuses(statuses);
+    loadChatMessages<DisplayMessage>().then((stored) => {
+      if (stored.length > 0) {
+        setMessages(stored);
       }
+      loadedRef.current = true;
     });
   }, []);
 
-  // Persist messages to IndexedDB whenever they change
+  // Save messages to IndexedDB on change
   useEffect(() => {
-    saveChatMessages(messages);
-  }, [messages]);
-
-  // Refs for latest values so callbacks don't go stale
-  const svgCodeRef = useRef(svgCode);
-  svgCodeRef.current = svgCode;
-  const selectedElementRef = useRef(selectedElement);
-  selectedElementRef.current = selectedElement;
-  const selectedLineRangeRef = useRef(selectedLineRange);
-  selectedLineRangeRef.current = selectedLineRange;
-  const onPreviewSvgRef = useRef(onPreviewSvg);
-  onPreviewSvgRef.current = onPreviewSvg;
-  const onAcceptSvgRef = useRef(onAcceptSvg);
-  onAcceptSvgRef.current = onAcceptSvg;
-  const modelRef = useRef(model);
-  modelRef.current = model;
-
-  const handleNewChat = useCallback(() => {
-    setMessages([]);
-    setProposalStatuses(new Map());
-    setUsage(null);
-    onPreviewSvgRef.current(null);
-    clearChatMessages();
-  }, []);
-
-  const handleAcceptProposal = useCallback((messageIndex: number) => {
-    const msg = messages[messageIndex];
-    const tc = msg?.toolCalls?.find(t => t.name === 'replace_svg' || t.name === 'edit_svg');
-    if (tc) {
-      const args = tc.arguments as { svg: string };
-      onAcceptSvgRef.current(args.svg);
-      setProposalStatuses(prev => new Map(prev).set(messageIndex, 'accepted'));
+    if (loadedRef.current) {
+      saveChatMessages(messages);
     }
   }, [messages]);
 
-  const handleRejectProposal = useCallback((messageIndex: number) => {
-    onPreviewSvgRef.current(null);
-    setProposalStatuses(prev => new Map(prev).set(messageIndex, 'rejected'));
-  }, []);
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isRunning]);
 
-  const onNew = useCallback(async (message: AppendMessage) => {
-    const userText = message.content
-      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-      .map((p) => p.text)
-      .join('');
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text || isRunning) return;
 
-    if (!userText.trim()) return;
-
-    const userMsg: StoredMessage = { role: 'user', content: userText };
-    setMessages((prev) => [...prev, userMsg]);
+    const userMsg: DisplayMessage = { role: 'user', content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput('');
     setIsRunning(true);
 
-    const abortController = new AbortController();
-    abortRef.current = abortController;
+    const abort = new AbortController();
+    abortRef.current = abort;
 
     try {
-      const allMessages = [...messages, userMsg];
-      const chatMessages: ChatMessage[] = allMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const apiMessages: ChatMessage[] = newMessages.map(m => ({ role: m.role, content: m.content }));
 
       const response = await sendChatRequest(
-        chatMessages,
-        svgCodeRef.current,
-        selectedElementRef.current,
-        selectedLineRangeRef.current,
-        modelRef.current,
-        abortController.signal,
+        apiMessages,
+        svgCode,
+        selectedElement,
+        selectedLineRange,
+        model,
+        abort.signal,
       );
 
       setUsage(response.usage);
 
-      const assistantMsg: StoredMessage = {
+      const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: response.message,
-        toolCalls: response.toolCalls,
+        toolCalls: response.toolCalls?.map(tc => ({ ...tc, status: 'pending' as const })),
       };
 
-      setMessages((prev) => {
-        const newMessages = [...prev, assistantMsg];
-        // Show diff preview and mark as pending for svg-modifying tool calls
-        if (response.toolCalls?.length) {
-          const svgTc = response.toolCalls.find(tc => tc.name === 'replace_svg' || tc.name === 'edit_svg');
-          if (svgTc) {
-            const msgIndex = newMessages.length - 1;
-            setProposalStatuses(prevS => new Map(prevS).set(msgIndex, 'pending'));
-            onPreviewSvgRef.current((svgTc.arguments as { svg: string }).svg);
-          }
-        }
-        return newMessages;
-      });
+      setMessages(prev => [...prev, assistantMsg]);
+
+      // Auto-show preview for the first tool call with SVG
+      const firstSvg = response.toolCalls?.find(tc => tc.arguments.svg)?.arguments.svg as string | undefined;
+      if (firstSvg) onPreviewSvg(firstSvg);
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
-      setMessages((prev) => [...prev, {
+      const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: `Error: ${(err as Error).message}`,
-      }]);
+      };
+      setMessages(prev => [...prev, assistantMsg]);
     } finally {
       setIsRunning(false);
       abortRef.current = null;
     }
-  }, [messages]);
+  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model]);
 
-  const onCancel = useCallback(async () => {
+  const handleStop = useCallback(() => {
     abortRef.current?.abort();
     setIsRunning(false);
   }, []);
 
-  const threadMessages = toThreadMessages(messages);
+  const handleNewChat = useCallback(() => {
+    setMessages([]);
+    setInput('');
+    setUsage(null);
+    onPreviewSvg(null);
+    clearChatMessages();
+  }, [onPreviewSvg]);
 
-  const runtime = useExternalStoreRuntime({
-    isRunning,
-    messages: threadMessages,
-    convertMessage: (m: ThreadMessageLike) => m,
-    onNew,
-    onCancel,
-  });
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
 
-  const proposalCtx: ProposalContextValue = {
-    messages,
-    statuses: proposalStatuses,
-    onAccept: handleAcceptProposal,
-    onReject: handleRejectProposal,
-  };
+  const handleAccept = useCallback((msgIndex: number, tcIndex: number) => {
+    const msg = messages[msgIndex];
+    if (!msg?.toolCalls?.[tcIndex]) return;
+
+    const tc = msg.toolCalls[tcIndex];
+    const svg = tc.arguments.svg as string;
+    if (svg) onAcceptSvg(svg);
+    onPreviewSvg(null);
+
+    setMessages(prev => prev.map((m, i) =>
+      i !== msgIndex ? m : {
+        ...m,
+        toolCalls: m.toolCalls?.map((t, j) =>
+          j === tcIndex ? { ...t, status: 'accepted' as const } : t
+        ),
+      }
+    ));
+  }, [messages, onAcceptSvg, onPreviewSvg]);
+
+  const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
+    onPreviewSvg(null);
+
+    // Restore the user prompt that triggered this response
+    const userMsgIndex = msgIndex - 1;
+    const userMsg = messages[userMsgIndex];
+    const restoredText = userMsg?.role === 'user' ? userMsg.content : '';
+
+    // Remove the user+assistant pair
+    setMessages(prev => prev.filter((_, i) => i !== userMsgIndex && i !== msgIndex));
+    setInput(restoredText);
+  }, [messages, onPreviewSvg]);
 
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <ProposalContext.Provider value={proposalCtx}>
-        <div className="aui-root">
-          <ThreadPrimitive.Root className="aui-thread">
-            <ThreadPrimitive.Viewport className="aui-viewport">
-              <ThreadPrimitive.Empty>
-                <div className="aui-empty">
-                  <IconSparkles size={32} className="aui-empty-icon" />
-                  <p>Ask me to edit your SVG.</p>
-                  <p className="aui-empty-hint">e.g. "make the rectangle blue" or "add a drop shadow"</p>
-                </div>
-              </ThreadPrimitive.Empty>
-
-              <ThreadPrimitive.Messages>
-                {({ message }) => {
-                  if (message.role === 'user') return <UserMessage />;
-                  const idx = parseInt(String(message.id).replace('msg-', ''));
-                  return <AssistantMessageWithProposals messageIndex={idx} />;
-                }}
-              </ThreadPrimitive.Messages>
-
-              <ThreadPrimitive.If running>
-                <Group gap="xs" p="xs">
-                  <Loader size={14} type="dots" />
-                  <Text size="xs" c="dimmed">Thinking…</Text>
-                </Group>
-              </ThreadPrimitive.If>
-            </ThreadPrimitive.Viewport>
-
-            {usage && (
-              <Group justify="center" py={4}>
-                <Badge size="xs" variant="light" color={usage.used >= usage.limit ? 'red' : 'blue'}>
-                  {usage.used}/{usage.limit} edits today
-                </Badge>
-              </Group>
-            )}
-
-            <div className="aui-composer-area">
-              <Group gap={4} mb={4} justify="space-between">
-                <NativeSelect
-                  size="xs"
-                  value={model}
-                  onChange={(e) => setModel(e.currentTarget.value)}
-                  data={AVAILABLE_MODELS}
-                  style={{ width: 140 }}
-                />
-                <ThreadPrimitive.If empty={false}>
-                  <Button
-                    size="compact-xs"
-                    variant="subtle"
-                    leftSection={<IconPlus size={14} />}
-                    onClick={handleNewChat}
-                  >
-                    New Chat
-                  </Button>
-                </ThreadPrimitive.If>
-              </Group>
-              {selectedElement && (
-                <Group gap={4} mb={4}>
-                  <Badge
-                    size="xs"
-                    variant="light"
-                    leftSection={<IconFocus2 size={10} />}
-                  >
-                    {selectedElement.replace(/<([a-zA-Z][a-zA-Z0-9-]*)[\s/>].*$/s, '<$1>')}
-                  </Badge>
-                </Group>
-              )}
-              <ComposerPrimitive.Root className="aui-composer">
-                <ComposerPrimitive.Input
-                  placeholder="Ask about your SVG..."
-                  className="aui-composer-input"
-                  autoFocus
-                />
-                <ComposerPrimitive.Send className="aui-composer-send">
-                  Send
-                </ComposerPrimitive.Send>
-              </ComposerPrimitive.Root>
+    <div className="aui-root">
+      <div className="aui-thread">
+        <div className="aui-viewport" ref={viewportRef}>
+          {messages.length === 0 && (
+            <div className="aui-empty">
+              <IconSparkles size={32} className="aui-empty-icon" />
+              <p>Ask AI to edit your SVG</p>
+              <p className="aui-empty-hint">e.g. &quot;Change the fill to blue&quot;</p>
             </div>
-          </ThreadPrimitive.Root>
+          )}
+
+          {messages.map((msg, msgIdx) => {
+            // Assistant messages with only tool calls: render proposals directly without double-wrapping
+            if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content) {
+              return msg.toolCalls.map((tc, tcIdx) => (
+                <div key={`${msgIdx}-${tcIdx}`} className="aui-proposal" style={{ marginBottom: 8 }}>
+                  <div className="aui-proposal-header">
+                    {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
+                    <span className="aui-proposal-summary">
+                      {(tc.arguments.summary as string) || (tc.name === 'edit_svg' ? 'Edit SVG' : 'Replace SVG')}
+                    </span>
+                  </div>
+                  {tc.status === 'pending' && (
+                    <div className="aui-proposal-actions">
+                      <button
+                        className="aui-composer-send"
+                        style={{ fontSize: 11, padding: '3px 10px', height: 26 }}
+                        onClick={() => handleAccept(msgIdx, tcIdx)}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="aui-composer-send"
+                        style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-4)' }}
+                        onClick={() => handleReject(msgIdx, tcIdx)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {tc.status === 'accepted' && (
+                    <div className="aui-proposal-status aui-status-accepted">
+                      <IconCheck size={12} />&nbsp;Accepted
+                    </div>
+                  )}
+                  {tc.status === 'rejected' && (
+                    <div className="aui-proposal-status aui-status-rejected">
+                      <IconX size={12} />&nbsp;Dismissed
+                    </div>
+                  )}
+                  {'failedOperations' in tc.arguments && (
+                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
+                      ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
+                    </div>
+                  )}
+                </div>
+              ));
+            }
+
+            return (
+            <div key={msgIdx} className={`aui-msg ${msg.role === 'user' ? 'aui-msg-user' : 'aui-msg-assistant'}`}>
+              {msg.role === 'user' && (
+                <div className="aui-msg-header">
+                  <IconUser size={14} />
+                  You
+                </div>
+              )}
+              {msg.content && (
+                <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
+                  {msg.content}
+                </div>
+              )}
+              {msg.toolCalls?.map((tc, tcIdx) => (
+                <div key={tcIdx} className="aui-proposal">
+                  <div className="aui-proposal-header">
+                    {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
+                    <span className="aui-proposal-summary">
+                      {(tc.arguments.summary as string) || (tc.name === 'edit_svg' ? 'Edit SVG' : 'Replace SVG')}
+                    </span>
+                  </div>
+                  {tc.status === 'pending' && (
+                    <div className="aui-proposal-actions">
+                      <button
+                        className="aui-composer-send"
+                        style={{ fontSize: 11, padding: '3px 10px', height: 26 }}
+                        onClick={() => handleAccept(msgIdx, tcIdx)}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="aui-composer-send"
+                        style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-4)' }}
+                        onClick={() => handleReject(msgIdx, tcIdx)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {tc.status === 'accepted' && (
+                    <div className="aui-proposal-status aui-status-accepted">
+                      <IconCheck size={12} />&nbsp;Accepted
+                    </div>
+                  )}
+                  {tc.status === 'rejected' && (
+                    <div className="aui-proposal-status aui-status-rejected">
+                      <IconX size={12} />&nbsp;Dismissed
+                    </div>
+                  )}
+                  {'failedOperations' in tc.arguments && (
+                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
+                      ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            );
+          })}
+
+          {isRunning && (
+            <div className="aui-msg aui-msg-assistant">
+              <div className="aui-tool-call">Thinking…</div>
+            </div>
+          )}
+
+          <div ref={endRef} />
         </div>
-      </ProposalContext.Provider>
-    </AssistantRuntimeProvider>
+
+        <div className="aui-composer-area">
+          {selectedElement && (
+            <div style={{ marginBottom: 6 }}>
+              <Badge size="xs" variant="light" color="violet">
+                Selected: &lt;{selectedElement.match(/^<(\S+)/)?.[1] ?? '?'}&gt;
+              </Badge>
+            </div>
+          )}
+          <div className="aui-composer">
+            <textarea
+              className="aui-composer-input"
+              placeholder="Ask AI to edit your SVG…"
+              value={input}
+              onChange={e => {
+                setInput(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              disabled={isRunning}
+            />
+            {isRunning ? (
+              <button className="aui-composer-send" onClick={handleStop}>Stop</button>
+            ) : (
+              <button className="aui-composer-send" onClick={handleSend} disabled={!input.trim()}>
+                Send
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <NativeSelect
+              size="xs"
+              value={model}
+              onChange={e => setModel(e.currentTarget.value)}
+              data={MODELS}
+              style={{ flex: 1 }}
+            />
+            <button
+              className="aui-composer-send"
+              style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-5)' }}
+              onClick={handleNewChat}
+              disabled={isRunning}
+            >
+              New Chat
+            </button>
+          </div>
+          {usage && (
+            <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-dimmed)' }}>
+              {usage.used}/{usage.limit} requests today
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

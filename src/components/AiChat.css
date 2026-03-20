@@ -58,11 +58,10 @@
 
 .aui-msg-user {
   background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+  padding: 4px 8px;
 }
 
 .aui-msg-assistant {
-  background-color: var(--mantine-color-dark-6, var(--mantine-color-gray-0));
-  border-left: 2px solid var(--mantine-primary-color-filled);
 }
 
 .aui-msg-header {
@@ -129,10 +128,8 @@
 
 /* Proposal card (replace_svg) */
 .aui-proposal {
-  margin-top: 8px;
+  margin-top: 4px;
   padding: 8px;
-  background-color: var(--mantine-color-dark-7, var(--mantine-color-gray-1));
-  border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
 }
 
@@ -199,6 +196,7 @@
   font-family: inherit;
   min-height: 32px;
   max-height: 120px;
+  overflow-y: auto;
 }
 
 .aui-composer-input:focus {
