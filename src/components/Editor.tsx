@@ -12,6 +12,7 @@ interface EditorProps {
 export interface EditorHandle {
   selectRange: (startLine: number, startCol: number, endLine: number, endCol: number) => void;
   clearSelection: () => void;
+  openCommandPalette: () => void;
 }
 
 export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly }, ref) {
@@ -30,6 +31,13 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       if (!ed) return;
       const pos = ed.getPosition();
       if (pos) ed.setSelection({ startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column });
+    },
+    openCommandPalette() {
+      const ed = editorRef.current;
+      if (!ed) return;
+      ed.focus();
+      // Delay trigger until after focus lands
+      setTimeout(() => ed.trigger('sidebar', 'editor.action.quickCommand', null), 0);
     },
   }), []);
 

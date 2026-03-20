@@ -29,6 +29,18 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
 
+  // Global F1 handler so it works even when focus is outside the editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        editorRef.current?.openCommandPalette();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   useEffect(() => {
     const db = new EditSvgCodeDb();
     dbRef.current = db;
@@ -192,7 +204,7 @@ export default function App() {
             <Preview svgCode={svgCode} onElementSelect={handleElementSelect} />
           </Allotment.Pane>
           <Allotment.Pane preferredSize="10%" minSize={150}>
-            <Sidebar />
+            <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
           </Allotment.Pane>
         </Allotment>
       </AppShell.Main>

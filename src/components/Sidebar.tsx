@@ -1,7 +1,11 @@
-import { Stack, Title, Text } from '@mantine/core';
+import { Stack, Title, Text, Anchor, Kbd } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenCommandPalette?: () => void;
+}
+
+export function Sidebar({ onOpenCommandPalette }: SidebarProps) {
   const adsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,6 +31,11 @@ export function Sidebar() {
         <Text size="sm" mt="xs">Upload or paste SVG code for editing.</Text>
         <Text size="sm" mt="xs">Autocomplete assists with tags and attributes, with real-time preview.</Text>
         <Text size="sm" mt="xs">Save your work by copying, downloading, or sharing via a public link.</Text>
+        <Text size="sm" mt="xs">
+          Press <Kbd>F1</Kbd> to open the{' '}
+          <Anchor component="button" size="sm" onClick={onOpenCommandPalette}>Command Palette</Anchor>
+          {' '}for additional editor actions.
+        </Text>
       </div>
       <div ref={adsRef} />
     </Stack>
