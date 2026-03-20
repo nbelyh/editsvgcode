@@ -166,9 +166,9 @@ export default function App() {
             <Text component="a" href="https://unmanagedvisio.com" target="_blank" size="sm" c="dimmed" td="underline">
               Unmanaged Visio
             </Text>
-            {' '}check out the website privacy policy{' '}
+            {' '}
             <Text component="a" href="/privacy-policy.md" target="_blank" size="sm" c="dimmed" td="underline">
-              here
+              privacy policy
             </Text>
           </Text>
           <Group gap="md">
