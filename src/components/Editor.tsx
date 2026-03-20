@@ -1,7 +1,7 @@
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
-import { registerSvgProviders } from '../lib/completion-provider';
+import { registerSvgProviders, formatXml } from '../lib/completion-provider';
 
 interface EditorProps {
   value: string;
@@ -44,8 +44,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
 
-    // Expose for E2E tests
-    (window as any).__test_monaco_editor = editor;
+    // Expose for E2E tests (stripped from production builds by Vite)
+    if (import.meta.env.DEV) {
+      (window as any).__test_monaco_editor = editor;
+      (window as any).__test_formatXml = formatXml;
+    }
 
     if (!providersRegistered.current) {
       registerSvgProviders(monaco);

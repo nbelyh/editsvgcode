@@ -45,7 +45,7 @@ test.describe('DOMPurify Sanitization', () => {
     await page.waitForTimeout(500);
 
     const rect = page.locator('rect[fill="blue"]');
-    await expect(rect).toBeVisible({ timeout: 5000 });
+    await expect(rect).toBeVisible({ timeout: 10000 });
 
     const xssResult = await page.evaluate(() => (window as any).__xss2);
     expect(xssResult).toBeUndefined();

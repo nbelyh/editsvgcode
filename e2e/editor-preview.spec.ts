@@ -16,7 +16,7 @@ test.describe('Editor + Preview', () => {
     await waitForEditor(page);
     await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="blue"/></svg>');
 
-    const circle = page.locator('circle[fill="blue"]');
+    const circle = page.locator('[data-testid="svg-preview"] circle[fill="blue"]');
     await expect(circle).toBeVisible({ timeout: 10000 });
   });
 });
