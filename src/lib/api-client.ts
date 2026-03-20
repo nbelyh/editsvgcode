@@ -28,6 +28,8 @@ export async function sendChatRequest(
   messages: ChatMessage[],
   currentSvg: string,
   selectedElement?: string,
+  selectedLineRange?: { start: number; end: number },
+  model?: string,
   signal?: AbortSignal,
 ): Promise<ChatResponse> {
   const auth = getAuth();
@@ -44,7 +46,7 @@ export async function sendChatRequest(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ messages, currentSvg, selectedElement }),
+    body: JSON.stringify({ messages, currentSvg, selectedElement, selectedLineRange, model }),
     signal,
   });
 

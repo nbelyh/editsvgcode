@@ -54,5 +54,5 @@ export function findElementRange(svgCode: string, tagName: string, index: number
   const endLine = upToEnd.split('\n').length;
   const endCol = endOffset - upToEnd.lastIndexOf('\n');
 
-  return { startLine, startCol, endLine, endCol };
+  return { startLine, startCol, endLine, endCol, startOffset, endOffset };
 }

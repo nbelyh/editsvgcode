@@ -25,7 +25,14 @@ export default function App() {
   const editorRef = useRef<EditorHandle>(null);
   const [sidebarTab, setSidebarTab] = useState<string>('ai');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
+  const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
+
+  // Clear selection when SVG code changes (avoids stale reference)
+  useEffect(() => {
+    setSelectedElement(undefined);
+    setSelectedLineRange(undefined);
+  }, [svgCode]);
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -104,15 +111,15 @@ export default function App() {
     if (!tagName || index < 0) {
       editorRef.current?.clearSelection();
       setSelectedElement(undefined);
+      setSelectedLineRange(undefined);
       return;
     }
     const range = findElementRange(svgCode, tagName, index);
     if (!range) return;
     editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
-    // Extract the selected element text for AI context
-    const lines = svgCode.split('\n');
-    const selectedLines = lines.slice(range.startLine - 1, range.endLine);
-    setSelectedElement(selectedLines.join('\n'));
+    // Extract the exact selected element text for AI context
+    setSelectedElement(svgCode.substring(range.startOffset, range.endOffset));
+    setSelectedLineRange({ start: range.startLine, end: range.endLine });
   }, [svgCode]);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
@@ -200,17 +207,19 @@ export default function App() {
                 fullWidth
                 style={{ margin: '4px 8px 0' }}
               />
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                {sidebarTab === 'ai' ? (
+              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
                   <AiChat
                     svgCode={svgCode}
                     selectedElement={selectedElement}
+                    selectedLineRange={selectedLineRange}
                     onPreviewSvg={handlePreviewSvg}
                     onAcceptSvg={handleAcceptSvg}
                   />
-                ) : (
+                </div>
+                <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
                   <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
-                )}
+                </div>
               </div>
             </div>
           </Allotment.Pane>

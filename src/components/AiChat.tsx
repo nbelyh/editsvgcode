@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, createContext, useContext, type FC } from 'react';
+import { useState, useCallback, useRef, useEffect, createContext, useContext, type FC } from 'react';
 import {
   useExternalStoreRuntime,
   AssistantRuntimeProvider,
@@ -9,9 +9,10 @@ import {
   type AppendMessage,
 } from '@assistant-ui/react';
 import { MarkdownTextPrimitive } from '@assistant-ui/react-markdown';
-import { Badge, Button, Group, Loader, Text } from '@mantine/core';
-import { IconSparkles, IconUser, IconTool, IconPlus } from '@tabler/icons-react';
+import { Badge, Button, Group, Loader, NativeSelect, Text } from '@mantine/core';
+import { IconSparkles, IconUser, IconTool, IconPlus, IconFocus2 } from '@tabler/icons-react';
 import { sendChatRequest, type ChatMessage, type ChatToolCall } from '../lib/api-client';
+import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
 
 interface StoredMessage {
@@ -20,9 +21,19 @@ interface StoredMessage {
   toolCalls?: ChatToolCall[];
 }
 
+const AVAILABLE_MODELS = [
+  { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+  { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
+  { value: 'gpt-5-mini', label: 'GPT-5 Mini' },
+  { value: 'gpt-5-nano', label: 'GPT-5 Nano' },
+  { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
+];
+
 interface AiChatProps {
   svgCode: string;
   selectedElement?: string;
+  selectedLineRange?: { start: number; end: number };
   onPreviewSvg: (svg: string | null) => void;
   onAcceptSvg: (svg: string) => void;
 }
@@ -116,28 +127,56 @@ const AssistantMessageWithProposals: FC<{ messageIndex: number }> = ({ messageIn
   );
 };
 
-export function AiChat({ svgCode, selectedElement, onPreviewSvg, onAcceptSvg }: AiChatProps) {
+export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg }: AiChatProps) {
   const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const [proposalStatuses, setProposalStatuses] = useState<Map<number, ProposalStatus>>(new Map());
+  const [model, setModel] = useState('gpt-4.1-mini');
   const abortRef = useRef<AbortController | null>(null);
+
+  // Restore chat from IndexedDB on mount
+  useEffect(() => {
+    loadChatMessages<StoredMessage>().then((restored) => {
+      if (restored.length) {
+        setMessages(restored);
+        // Mark any replace_svg proposals as pending so they remain actionable
+        const statuses = new Map<number, ProposalStatus>();
+        restored.forEach((m, i) => {
+          if (m.toolCalls?.some(tc => tc.name === 'replace_svg')) {
+            statuses.set(i, 'pending');
+          }
+        });
+        if (statuses.size) setProposalStatuses(statuses);
+      }
+    });
+  }, []);
+
+  // Persist messages to IndexedDB whenever they change
+  useEffect(() => {
+    saveChatMessages(messages);
+  }, [messages]);
 
   // Refs for latest values so callbacks don't go stale
   const svgCodeRef = useRef(svgCode);
   svgCodeRef.current = svgCode;
   const selectedElementRef = useRef(selectedElement);
   selectedElementRef.current = selectedElement;
+  const selectedLineRangeRef = useRef(selectedLineRange);
+  selectedLineRangeRef.current = selectedLineRange;
   const onPreviewSvgRef = useRef(onPreviewSvg);
   onPreviewSvgRef.current = onPreviewSvg;
   const onAcceptSvgRef = useRef(onAcceptSvg);
   onAcceptSvgRef.current = onAcceptSvg;
+  const modelRef = useRef(model);
+  modelRef.current = model;
 
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setProposalStatuses(new Map());
     setUsage(null);
     onPreviewSvgRef.current(null);
+    clearChatMessages();
   }, []);
 
   const handleAcceptProposal = useCallback((messageIndex: number) => {
@@ -181,6 +220,8 @@ export function AiChat({ svgCode, selectedElement, onPreviewSvg, onAcceptSvg }: 
         chatMessages,
         svgCodeRef.current,
         selectedElementRef.current,
+        selectedLineRangeRef.current,
+        modelRef.current,
         abortController.signal,
       );
 
@@ -278,7 +319,14 @@ export function AiChat({ svgCode, selectedElement, onPreviewSvg, onAcceptSvg }: 
             )}
 
             <div className="aui-composer-area">
-              <Group gap={4} mb={4} justify="flex-end">
+              <Group gap={4} mb={4} justify="space-between">
+                <NativeSelect
+                  size="xs"
+                  value={model}
+                  onChange={(e) => setModel(e.currentTarget.value)}
+                  data={AVAILABLE_MODELS}
+                  style={{ width: 140 }}
+                />
                 <ThreadPrimitive.If empty={false}>
                   <Button
                     size="compact-xs"
@@ -290,6 +338,17 @@ export function AiChat({ svgCode, selectedElement, onPreviewSvg, onAcceptSvg }: 
                   </Button>
                 </ThreadPrimitive.If>
               </Group>
+              {selectedElement && (
+                <Group gap={4} mb={4}>
+                  <Badge
+                    size="xs"
+                    variant="light"
+                    leftSection={<IconFocus2 size={10} />}
+                  >
+                    {selectedElement.replace(/<([a-zA-Z][a-zA-Z0-9-]*)[\s/>].*$/s, '<$1>')}
+                  </Badge>
+                </Group>
+              )}
               <ComposerPrimitive.Root className="aui-composer">
                 <ComposerPrimitive.Input
                   placeholder="Ask about your SVG..."
