@@ -3,6 +3,7 @@ import { ActionIcon, Group, SegmentedControl, Text, Tooltip } from '@mantine/cor
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import DOMPurify from 'dompurify';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget } from '../lib/preview-utils';
 
 interface PreviewProps {
   svgCode: string;
@@ -21,46 +22,10 @@ const BG: Record<BgMode, { background: string; backgroundImage?: string }> = {
   none: { background: 'transparent' },
 };
 
-const LEVELS = [1, 2, 5, 10, 25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 800, 1000, 1500, 2000, 3000, 5000];
-
-const stepUp = (z: number) => LEVELS.find((l) => l > z) ?? Math.round(z * 1.5);
-const stepDown = (z: number) => [...LEVELS].reverse().find((l) => l < z) ?? Math.max(1, Math.round(z / 1.5));
-
-const isAbsoluteLength = (v: string) => /^[\d.]+(?:px)?$/.test(v.trim());
-
-/** Compute viewBox from getBBox, falling back to `fw x fh` if getBBox fails. */
-function synthesizeViewBox(svg: SVGSVGElement, fw: number, fh: number) {
-  try {
-    const bb = svg.getBBox();
-    if (bb.width > 0 && bb.height > 0) {
-      const x = Math.min(0, bb.x);
-      const y = Math.min(0, bb.y);
-      const w = Math.max(fw, bb.x + bb.width) - x;
-      const h = Math.max(fh, bb.y + bb.height) - y;
-      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
-      return { w, h };
-    }
-  } catch { /* not rendered */ }
-  if (fw > 0 && fh > 0) {
-    svg.setAttribute('viewBox', `0 0 ${fw} ${fh}`);
-    return { w: fw, h: fh };
-  }
-  return null;
-}
-
 const HIGHLIGHT_FILTER = 'drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff)';
 const HOVER_FILTER = HIGHLIGHT_FILTER;
 const SELECT_FILTER = HIGHLIGHT_FILTER;
 const DATA_SELECTED = 'data-esvg-selected';
-
-/** Find the nearest meaningful SVG child element from a click/hover target */
-function findSvgTarget(target: Element, svg: SVGSVGElement, container: HTMLDivElement): Element | null {
-  while (target && target !== svg && target !== container) {
-    if (target instanceof SVGElement && target.tagName !== 'svg') return target;
-    target = target.parentElement as Element;
-  }
-  return null;
-}
 
 export function Preview({ svgCode, onElementSelect }: PreviewProps) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);

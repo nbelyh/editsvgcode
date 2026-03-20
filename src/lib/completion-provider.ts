@@ -1,10 +1,10 @@
 import type { Monaco } from '@monaco-editor/react';
-import type { editor, Position, CancellationToken, languages } from 'monaco-editor';
+import type { editor, Position } from 'monaco-editor';
 import { SvgSchema } from '../svg-schema';
 
 const schema = SvgSchema as Record<string, any>;
 
-function getAreaInfo(text: string) {
+export function getAreaInfo(text: string) {
   const items = ['"', "'", '<!--', '<![CDATA['];
   let isCompletionAvailable = true;
   text = text.replace(
@@ -22,7 +22,7 @@ function getAreaInfo(text: string) {
   return { isCompletionAvailable, clearedText: text };
 }
 
-function getLastOpenedTag(text: string) {
+export function getLastOpenedTag(text: string) {
   const tags = text.match(/<\/*(?=\S*)([a-zA-Z-]+)/g);
   if (!tags) return undefined;
   const closingTags: string[] = [];
@@ -45,7 +45,7 @@ function getLastOpenedTag(text: string) {
   }
 }
 
-function isItemAvailable(itemName: string, maxOccurs: string | undefined, items: string[]) {
+export function isItemAvailable(itemName: string, maxOccurs: string | undefined, items: string[]) {
   maxOccurs = maxOccurs || '1';
   if (maxOccurs === 'unbounded') return true;
   let count = 0;
@@ -117,7 +117,7 @@ function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }
 }
 
 // Detect if cursor is inside an attribute value and return context
-function getAttributeValueContext(textUntilPosition: string) {
+export function getAttributeValueContext(textUntilPosition: string) {
   // Match pattern: attrName="partialValue  (cursor is after the opening quote)
   const match = textUntilPosition.match(/([a-zA-Z][\w-:]*)\s*=\s*"([^"]*)$/);
   if (!match) return null;
@@ -128,7 +128,7 @@ function getAttributeValueCompletions(
   monaco: Monaco,
   tagName: string,
   attrName: string,
-  partialValue: string,
+  _partialValue: string,
 ) {
   const suggestions: any[] = [];
 
@@ -162,7 +162,6 @@ function getAttributeValueCompletions(
     }
     // Also add functional color hints
     for (const fn of ['rgb(${1:r}, ${2:g}, ${3:b})', 'rgba(${1:r}, ${2:g}, ${3:b}, ${4:a})', 'hsl(${1:h}, ${2:s}%, ${3:l}%)', 'url(#${1:id})']) {
-      const label = fn.replace(/\$\{\d+:?[^}]*\}/g, '').replace(/[()]/g, m => m);
       suggestions.push({
         label: fn.split('(')[0] + '(…)',
         insertText: fn,
@@ -190,7 +189,7 @@ function getAttributeValueCompletions(
   return suggestions;
 }
 
-function formatXml(xml: string): string {
+export function formatXml(xml: string): string {
   const PADDING = '  ';
   const reg = /(>)(<)(\/*)/g;
   let pad = 0;

@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth",
     "ship": "tsc && vite build && firebase deploy",
-    "preview:deploy": "tsc && vite build && firebase hosting:channel:deploy preview --expires 7d"
+    "preview:deploy": "tsc && vite build && firebase hosting:channel:deploy preview --expires 7d",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@mantine/core": "^7.17.0",
@@ -24,14 +27,18 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/dompurify": "^3.2.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
     "concurrently": "^9.2.1",
     "firebase-tools": "^13.29.1",
+    "jsdom": "^29.0.1",
     "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^5.8.2",
-    "vite": "^6.2.2"
+    "vite": "^6.2.2",
+    "vitest": "^4.1.0"
   }
 }

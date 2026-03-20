@@ -1,25 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppShell, Group, Button, Text, Tooltip } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug, IconMessages } from '@tabler/icons-react';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
 import { Editor, type EditorHandle } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
 import { EditSvgCodeDb } from './lib/firebase';
+import { getUniqueId, getNewUniqueId, stripBom, findElementRange } from './lib/svg-utils';
 import './App.css';
 
 const DEFAULT_SVG = `<!-- sample rectangle -->
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
   <rect width="100" height="100" x="50" y="50" fill="red" />
 </svg>`;
-
-function getUniqueId(): string {
-  return document.location.pathname.split('/')[1] || '';
-}
-
-function getNewUniqueId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
 
 export default function App() {
   const [svgCode, setSvgCode] = useState('Loading please wait...');
@@ -83,9 +76,7 @@ export default function App() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      let text = ev.target?.result as string;
-      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-      setSvgCode(text);
+      setSvgCode(stripBom(ev.target?.result as string));
     };
     reader.readAsText(file);
     // Reset so the same file can be uploaded again
@@ -109,38 +100,9 @@ export default function App() {
       editorRef.current?.clearSelection();
       return;
     }
-    // Find the Nth opening tag
-    const openRegex = new RegExp(`<${tagName}[\\s>/]`, 'gi');
-    let match: RegExpExecArray | null;
-    let count = 0;
-    let startOffset = -1;
-    while ((match = openRegex.exec(svgCode)) !== null) {
-      if (count === index) { startOffset = match.index; break; }
-      count++;
-    }
-    if (startOffset < 0) return;
-
-    // Find the end: self-closing "/>" or closing "</tagName>"
-    let endOffset = startOffset;
-    const selfClose = svgCode.indexOf('/>', startOffset);
-    const closeTag = svgCode.indexOf(`</${tagName}>`, startOffset);
-    const openEnd = svgCode.indexOf('>', startOffset);
-    if (selfClose >= 0 && selfClose <= openEnd) {
-      endOffset = selfClose + 2;
-    } else if (closeTag >= 0) {
-      endOffset = closeTag + tagName.length + 3; // </tagName>
-    } else if (openEnd >= 0) {
-      endOffset = openEnd + 1;
-    }
-
-    const before = svgCode.substring(0, startOffset);
-    const startLine = before.split('\n').length;
-    const startCol = startOffset - before.lastIndexOf('\n');
-    const upToEnd = svgCode.substring(0, endOffset);
-    const endLine = upToEnd.split('\n').length;
-    const endCol = endOffset - upToEnd.lastIndexOf('\n');
-
-    editorRef.current?.selectRange(startLine, startCol, endLine, endCol);
+    const range = findElementRange(svgCode, tagName, index);
+    if (!range) return;
+    editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
   }, [svgCode]);
 
   return (
