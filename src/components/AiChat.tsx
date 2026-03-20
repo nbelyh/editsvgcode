@@ -89,14 +89,18 @@ const AssistantMessageWithProposals: FC<{ messageIndex: number }> = ({ messageIn
       </div>
       <MessagePrimitive.Content components={{ Text: AssistantText }} />
       {msg?.toolCalls?.map((tc, j) => {
-        if (tc.name === 'replace_svg') {
-          const summary = (tc.arguments as { summary?: string }).summary ?? 'SVG change';
+        if (tc.name === 'replace_svg' || tc.name === 'edit_svg') {
+          const args = tc.arguments as { summary?: string; svg?: string; failedOperations?: string[] };
+          const summary = args.summary ?? 'SVG change';
           return (
             <div key={j} className="aui-proposal">
               <div className="aui-proposal-header">
                 <IconTool size={14} />
                 <span className="aui-proposal-summary">{summary}</span>
               </div>
+              {args.failedOperations?.length ? (
+                <Text size="xs" c="orange" mt={4}>⚠ {args.failedOperations.length} edit(s) could not be applied</Text>
+              ) : null}
               {status === 'pending' && (
                 <div className="aui-proposal-actions">
                   <Button size="compact-xs" variant="filled" onClick={() => ctx.onAccept(messageIndex)}>
@@ -140,10 +144,10 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
     loadChatMessages<StoredMessage>().then((restored) => {
       if (restored.length) {
         setMessages(restored);
-        // Mark any replace_svg proposals as pending so they remain actionable
+        // Mark any svg-modifying proposals as pending so they remain actionable
         const statuses = new Map<number, ProposalStatus>();
         restored.forEach((m, i) => {
-          if (m.toolCalls?.some(tc => tc.name === 'replace_svg')) {
+          if (m.toolCalls?.some(tc => tc.name === 'replace_svg' || tc.name === 'edit_svg')) {
             statuses.set(i, 'pending');
           }
         });
@@ -181,7 +185,7 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
 
   const handleAcceptProposal = useCallback((messageIndex: number) => {
     const msg = messages[messageIndex];
-    const tc = msg?.toolCalls?.find(t => t.name === 'replace_svg');
+    const tc = msg?.toolCalls?.find(t => t.name === 'replace_svg' || t.name === 'edit_svg');
     if (tc) {
       const args = tc.arguments as { svg: string };
       onAcceptSvgRef.current(args.svg);
@@ -235,13 +239,13 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
 
       setMessages((prev) => {
         const newMessages = [...prev, assistantMsg];
-        // Show diff preview and mark as pending for replace_svg tool calls
+        // Show diff preview and mark as pending for svg-modifying tool calls
         if (response.toolCalls?.length) {
-          const replaceTc = response.toolCalls.find(tc => tc.name === 'replace_svg');
-          if (replaceTc) {
+          const svgTc = response.toolCalls.find(tc => tc.name === 'replace_svg' || tc.name === 'edit_svg');
+          if (svgTc) {
             const msgIndex = newMessages.length - 1;
             setProposalStatuses(prevS => new Map(prevS).set(msgIndex, 'pending'));
-            onPreviewSvgRef.current((replaceTc.arguments as { svg: string }).svg);
+            onPreviewSvgRef.current((svgTc.arguments as { svg: string }).svg);
           }
         }
         return newMessages;
