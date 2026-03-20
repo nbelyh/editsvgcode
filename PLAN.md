@@ -31,7 +31,8 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 ## Open Decisions
 
 - [ ] AI Chat UI library: assistant-ui vs CopilotKit vs custom Mantine (want VS Code Copilot Chat look)
-- [ ] BYOL: direct client-to-provider calls (skip proxy) vs proxy all through Azure Function
+- [x] BYOL: direct client-to-provider calls (skip proxy) — decided, keys stay in localStorage, never touch server
+- [x] Auth for AI endpoint: Firebase ID tokens from Phase 2 (anonymous auth already exists), server-side Firestore rate limiting
 
 ---
 
@@ -113,7 +114,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ---
 
-## Phase 1: Enhanced UX Features ← CURRENT
+## Phase 1: Enhanced UX Features ✅ COMPLETE
 
 **Goal:** Make the editor best-in-class for free users, increase engagement. Reference: [vscode-svg2](https://github.com/lishu/vscode-svg2) (MIT) for feature inspiration and code patterns.
 
@@ -131,83 +132,54 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - ✅ Fix: strip BOM from loaded SVG files (use readAsText instead of base64 roundtrip)
 - ✅ Rename toolbar buttons: Open / Download / Share (was Upload / Download / Save)
 
-### 1.2 Click-to-select in preview
+### 1.2 Click-to-select in preview ✅
 
-- Click SVG element in preview → highlight with dashed outline
-- Extract clicked element's XML from editor
-- Scroll editor to the selected element
-- Pass selection context to AI (Phase 2) automatically
-- Deselect on click outside
+- ✅ Click SVG element in preview → highlight with dashed filter
+- ✅ Hover effect with filter highlight
+- ✅ Multi-select with Ctrl+click
+- ✅ Scroll editor to the selected element
+- ✅ Pass selection context to AI (Phase 2) automatically
 
-### 1.3 SVG Element Tree
+### 1.3 Path data intelligence ✅
 
-- TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
-- Click tree node → highlight in preview + scroll in editor
-- Show element type + id + key attributes
-- Bidirectional sync: preview ↔ tree ↔ editor
-- *Note: Monaco already provides code folding for XML; this adds visual overview + preview integration*
-- *Ref: vscode-svg2 DocumentSymbol tree in outline panel*
-
-### 1.4 SVG Optimization (SVGO)
-
-- Install svgo (runs client-side)
-- Button in toolbar: "Optimize"
-- Show before/after file size
-- Use Monaco diff to preview optimization changes
-- *Ref: vscode-svg2 "Minify SVG" command (note: they warn SVGO can break SVGs — add undo/diff review)*
-
-### 1.5 Export options
-
-- SVG → PNG (render to canvas, resolution picker)
-- SVG → React JSX component
-- SVG → Data URI / Base64
-- SVG → Copy to clipboard
-- Export dropdown in toolbar
-- *Ref: vscode-svg2 "Export PNG" feature*
-
-### 1.6 Go to id definition / references
-
-- Ctrl+click on `url(#id)` → jump to the element with that `id`
-- Ctrl+click on `href="#id"` or `xlink:href="#id"` → same
-- Hover on `url(#id)` → show target element preview
-- *Ref: vscode-svg2 "In Id Reference Click Goto id="" element"*
-
-### 1.7 Rename id references
-
-- Place cursor on `id="foo"` → F2 → rename `id` and all `url(#foo)`, `href="#foo"` references
-- *Ref: vscode-svg2 "Rename Tag Name or Id Reference"*
-
-### 1.8 Path data intelligence
-
-- Path command completion inside d="..." (M, L, C, S, Q, T, A, Z with parameter snippets)
-- Hover tooltips explaining path commands + expected parameters
-- Path segment highlighting in preview as cursor moves through d="..." data
+- ✅ Path command completion inside d="..." (M/m, L/l, H/h, V/v, C/c, S/s, Q/q, T/t, A/a, Z/z with parameter snippets)
+- ✅ Hover tooltips explaining path commands + expected parameters
+- Path segment highlighting in preview as cursor moves through d="..." data — deferred to Phase 3
 - (Future) Visual path point dragging in preview — edit control points visually
 
-### 1.9 Enhanced color intelligence
+### 1.4 Enhanced color intelligence ✅
 
-- Named SVG color completions (aliceblue, coral, etc.)
-- Functional color syntax (rgb(), hsl())
-- url(#id) completions — suggest IDs of gradients, patterns, clip-paths defined in the document
-- `currentColor`, `inherit`, `none`, `transparent` suggestions
+- ✅ Named SVG color completions (148 colors: aliceblue, coral, etc.)
+- ✅ Functional color syntax (rgb(), rgba(), hsl() with parameter snippets)
+- ✅ url(#id) completion template
+- ✅ `currentColor`, `inherit`, `none`, `transparent` suggestions
 
-**Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
+**Deliverable:** Solid free editor with preview interactions, smart completions, and color/path intelligence.
 
 ---
 
 ## Phase 2: AI Sidebar MVP
 
-**Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day limit via localStorage counter. Builds on Phase 1's click-to-select for contextual editing.
+**Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day server-enforced limit. Builds on Phase 1's click-to-select for contextual editing.
+
+**Security notes (open-source repo):**
+- Azure Function is the AI proxy — OpenAI key lives only in Function environment variables, never in frontend
+- Firebase Auth ID tokens used from day one (anonymous auth already exists) — server validates every request
+- Azure Function URL stored in `VITE_API_URL` env variable (`.env` gitignored), not hardcoded in source
+- CORS locked to `https://editsvgcode.com` (+ `localhost` for dev)
+- Rate limiting enforced server-side in Firestore — localStorage counter is UX display only
 
 ### 2.1 Azure Function setup
 
-- Create Azure Function App (Node.js, consumption plan)
+- Create Azure Function App (Node.js, consumption plan) — same Azure subscription as Azure OpenAI (sponsored)
 - POST /api/chat endpoint
-- Accepts: messages array, current SVG, selected element
+- Accepts: `Authorization: Bearer <Firebase ID token>`, messages array, current SVG, selected element
+- Azure Function validates token via Firebase Admin SDK (`admin.auth().verifyIdToken(token)`)
+- Extracts UID from verified token → checks/increments Firestore `usage/{uid}/daily` counter
 - Calls Azure OpenAI (GPT-4o) with SVG-specific system prompt
 - Returns: streaming response with tool calls
-- Rate limiting: check X-Forwarded-For or anonymous UID, 5/day
-- CORS configuration for editsvgcode.com
+- Rate limiting: 5/day per UID, enforced server-side in Firestore (not IP-based, not localStorage)
+- CORS: allow `https://editsvgcode.com` + `http://localhost:*` only
 
 ### 2.2 Define AI tools/functions
 
@@ -222,9 +194,10 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - VS Code Copilot Chat-like panel in sidebar
 - Message list, input, streaming display
 - Model selector dropdown
-- Wire to Azure Function endpoint
+- Wire to Azure Function endpoint via `import.meta.env.VITE_API_URL`
+- Send Firebase ID token (`await user.getIdToken()`) in Authorization header on every request
 - Show tool call results (what the AI is doing)
-- Client-side rate limit display ("3 of 5 free edits used today")
+- Client-side rate limit display ("3 of 5 free edits used today") — UX hint only, server is source of truth
 
 ### 2.4 Apply AI edits to editor
 
@@ -248,9 +221,9 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Test: "animate the element"
 - Tune system prompt based on results
 
-**Deliverable:** Working AI SVG editor with chat, diff preview, 5/day free limit.
+**Deliverable:** Working AI SVG editor with chat, diff preview, 5/day server-enforced limit.
 
-**Claude prompt:** "Add a VS Code Copilot Chat-style AI sidebar to the editsvgcode React app. Create an Azure Function that proxies to Azure OpenAI GPT-4o with tool-calling for SVG edits. When AI proposes changes, show Monaco diff editor with accept/reject. Rate limit to 5 requests/day per user (localStorage counter for now). Include model selector dropdown."
+**Claude prompt:** "Add a VS Code Copilot Chat-style AI sidebar to the editsvgcode React app. Create an Azure Function that proxies to Azure OpenAI GPT-4o with tool-calling for SVG edits. The Function validates Firebase Auth ID tokens (admin.auth().verifyIdToken), enforces 5/day rate limit per UID in Firestore, and has CORS locked to editsvgcode.com. Frontend sends ID token in Authorization header. When AI proposes changes, show Monaco diff editor with accept/reject. Include model selector dropdown."
 
 ---
 
@@ -263,22 +236,74 @@ Deploy Phase 2, monitor:
 - What do they ask for? (Log prompts, anonymized)
 - Is AI output quality good enough?
 
-**If signals are good (>10% try, >1% hit limit) → proceed to Phase 3.**
+**If signals are good (>10% try, >1% hit limit) → proceed to Phase 3 (Enhanced UX) + Phase 4 (Payments).**
 
 ---
 
-## Phase 3: Payments & User Management
+## Phase 3: Enhanced UX Features
+
+**Goal:** Make the editor best-in-class — add element tree, exports, optimization, advanced navigation. Reference: [vscode-svg2](https://github.com/lishu/vscode-svg2) (MIT) for feature inspiration and code patterns.
+
+### 3.1 SVG Element Tree
+
+- TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
+- Click tree node → highlight in preview + scroll in editor
+- Show element type + id + key attributes
+- Bidirectional sync: preview ↔ tree ↔ editor
+- *Note: Monaco already provides code folding for XML; this adds visual overview + preview integration*
+- *Ref: vscode-svg2 DocumentSymbol tree in outline panel*
+
+### 3.2 SVG Optimization (SVGO)
+
+- Install svgo (runs client-side)
+- Button in toolbar: "Optimize"
+- Show before/after file size
+- Use Monaco diff to preview optimization changes
+- *Ref: vscode-svg2 "Minify SVG" command (note: they warn SVGO can break SVGs — add undo/diff review)*
+
+### 3.3 Export options
+
+- SVG → PNG (render to canvas, resolution picker)
+- SVG → React JSX component
+- SVG → Data URI / Base64
+- SVG → Copy to clipboard
+- Export dropdown in toolbar
+- *Ref: vscode-svg2 "Export PNG" feature*
+
+### 3.4 Go to id definition / references
+
+- Ctrl+click on `url(#id)` → jump to the element with that `id`
+- Ctrl+click on `href="#id"` or `xlink:href="#id"` → same
+- Hover on `url(#id)` → show target element preview
+- *Ref: vscode-svg2 "In Id Reference Click Goto id="" element"*
+
+### 3.5 Rename id references
+
+- Place cursor on `id="foo"` → F2 → rename `id` and all `url(#foo)`, `href="#foo"` references
+- *Ref: vscode-svg2 "Rename Tag Name or Id Reference"*
+
+### 3.6 Path segment preview highlighting
+
+- Path segment highlighting in preview as cursor moves through d="..." data
+- Visual feedback linking editor position to preview geometry
+
+**Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
+
+---
+
+## Phase 4: Payments & User Management
 
 **Goal:** Monetize with subscriptions via PayProGlobal.
 
-### 3.1 Firebase Auth upgrade
+### 4.1 Firebase Auth upgrade
 
 - Add Google sign-in + email/password (keep anonymous as fallback)
 - User avatar/menu in navbar (Mantine `Menu`)
 - Login/signup dialog (Mantine `Modal`)
-- Link anonymous account to real account (preserve saved documents)
+- Link anonymous account to real account (preserve saved documents + usage history)
+- *Note: Firebase ID token auth + server-side rate limiting already in place from Phase 2*
 
-### 3.2 User profile & settings
+### 4.2 User profile & settings
 
 - Settings dialog: account info, subscription status
 - BYOL configuration: user picks provider (OpenAI / Anthropic / Google) + enters API key
@@ -286,7 +311,7 @@ Deploy Phase 2, monitor:
 - BYOL requests go direct from browser to AI provider (skip Azure Function)
 - Model selector in AI sidebar reflects available models per provider
 
-### 3.3 PayProGlobal integration
+### 4.3 PayProGlobal integration
 
 - Create subscription products: Pro Monthly ($9/mo), Pro Annual ($79/yr)
 - "Upgrade to Pro" button → redirects to PayProGlobal checkout (pass Firebase UID)
@@ -296,7 +321,7 @@ Deploy Phase 2, monitor:
   - On cancellation: update subscription status
 - Client reads subscription status from Firestore on load
 
-### 3.4 Enforce tiers
+### 4.4 Enforce tiers
 
 - Azure Function: check subscription before processing AI request
 - Free: 5/day (server-enforced)
@@ -304,7 +329,7 @@ Deploy Phase 2, monitor:
 - BYOL: client-side calls, no server enforcement needed
 - Remove ads for Pro users
 
-### 3.5 Usage dashboard
+### 4.5 Usage dashboard
 
 - Counter in AI sidebar: "3/5 free edits today" or "Pro ∞"
 - Settings page: monthly usage stats
@@ -315,11 +340,11 @@ Deploy Phase 2, monitor:
 
 ---
 
-## Phase 4: Growth Features
+## Phase 5: Growth Features
 
 **Goal:** Drive more traffic and increase retention.
 
-### 4.1 SVG search & import
+### 5.1 SVG search & import
 
 - Azure Function: GET /api/search?q=shopping+cart
 - Aggregates: SVG Repo API, Lucide GitHub, Material Icons API
@@ -328,20 +353,20 @@ Deploy Phase 2, monitor:
 - Import: loads SVG into editor with license comment
 - License filter: only show MIT/CC0/Apache/CC-BY results
 
-### 4.2 AI SVG generation
+### 5.2 AI SVG generation
 
 - "Create a pie chart showing 40% blue, 35% green, 25% red"
 - Uses same Azure Function + AI, different system prompt
 - Result appears in editor
 
-### 4.3 SEO & marketing pages
+### 5.3 SEO & marketing pages
 
 - /tools/svg-to-react — landing page for React conversion
 - /tools/svg-optimizer — landing page for SVGO
 - /tools/svg-icons — landing page for icon search
 - Meta tags, Open Graph, structured data
 
-### 4.4 PWA support
+### 5.4 PWA support
 
 - Service worker for offline basic editing
 - Install prompt
@@ -353,12 +378,13 @@ Deploy Phase 2, monitor:
 ## Timeline
 
 ```text
-Phase 0: React rewrite              ~1-2 weekends
-Phase 1: AI sidebar MVP             ~1-2 weekends
+Phase 0: React rewrite              ✅ COMPLETE
+Phase 1: Enhanced UX (core)         ✅ COMPLETE
+Phase 2: AI sidebar MVP             ← CURRENT
   → DEPLOY & MEASURE 2-3 WEEKS
-Phase 2: Enhanced UX                ~1-2 weekends
-Phase 3: Payments                   ~1-2 weekends
-Phase 4: Growth                     ongoing
+Phase 3: Enhanced UX (advanced)     tree, exports, SVGO, id navigation
+Phase 4: Payments                   subscriptions, BYOL, tiers
+Phase 5: Growth                     search, SEO, PWA
 ```
 
 ## Manual Steps (Not Claude's Job)
@@ -367,5 +393,5 @@ Phase 4: Growth                     ongoing
 - [ ] Create Azure Function App in Azure Portal
 - [ ] Create PayProGlobal account + subscription products
 - [ ] Enable Firebase Auth providers (Google) in Firebase Console
-- [ ] Monitor analytics after Phase 1 launch
+- [ ] Monitor analytics after Phase 2 launch
 - [ ] Product Hunt / Hacker News launch post
