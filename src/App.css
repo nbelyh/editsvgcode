@@ -11,6 +11,22 @@
   overflow: hidden;
 }
 
+/*
+ * Prevent CLS from Allotment panes.
+ * Panes start at width:0 then resize via ResizeObserver, causing a layout shift.
+ * This animation keeps them invisible for the first 100ms while Allotment
+ * measures and positions them, then fades in. Elements with visibility:hidden
+ * or opacity:0 via animation don't contribute to CLS.
+ */
+@keyframes allotment-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+[data-testid="split-view-view"] {
+  animation: allotment-fade-in 0s ease-in 0.1s both;
+}
+
 /* Let suggest details panel size to content, scroll after ~10 lines */
 .monaco-editor .suggest-details-container,
 .monaco-editor .suggest-details,
