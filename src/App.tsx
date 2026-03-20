@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { AppShell, Group, Button, Text, Tooltip } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug } from '@tabler/icons-react';
+import { AppShell, Group, Button, Text, Tooltip, SegmentedControl } from '@mantine/core';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug, IconCheck, IconX } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
+import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from './components/Editor';
 import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
+import { AiChat } from './components/AiChat';
 import { EditSvgCodeDb } from './lib/firebase';
 import { getUniqueId, getNewUniqueId, stripBom, findElementRange } from './lib/svg-utils';
 import './App.css';
@@ -21,6 +23,9 @@ export default function App() {
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
+  const [sidebarTab, setSidebarTab] = useState<string>('ai');
+  const [selectedElement, setSelectedElement] = useState<string | undefined>();
+  const [proposedSvg, setProposedSvg] = useState<string | null>(null);
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -98,12 +103,32 @@ export default function App() {
   const handleElementSelect = useCallback((tagName: string, index: number) => {
     if (!tagName || index < 0) {
       editorRef.current?.clearSelection();
+      setSelectedElement(undefined);
       return;
     }
     const range = findElementRange(svgCode, tagName, index);
     if (!range) return;
     editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
+    // Extract the selected element text for AI context
+    const lines = svgCode.split('\n');
+    const selectedLines = lines.slice(range.startLine - 1, range.endLine);
+    setSelectedElement(selectedLines.join('\n'));
   }, [svgCode]);
+
+  const handleApplySvg = useCallback((svg: string, _summary: string) => {
+    setProposedSvg(svg);
+  }, []);
+
+  const handleAcceptProposal = useCallback(() => {
+    if (proposedSvg) {
+      setSvgCode(proposedSvg);
+      setProposedSvg(null);
+    }
+  }, [proposedSvg]);
+
+  const handleRejectProposal = useCallback(() => {
+    setProposedSvg(null);
+  }, []);
 
   return (
     <AppShell
@@ -146,13 +171,59 @@ export default function App() {
         />
         <Allotment>
           <Allotment.Pane preferredSize="45%">
-            <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+            {proposedSvg ? (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <Group gap="xs" p={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
+                  <Text size="xs" c="dimmed" fw={600}>AI Proposal</Text>
+                  <Button size="compact-xs" color="green" variant="filled" leftSection={<IconCheck size={14} />} onClick={handleAcceptProposal}>
+                    Accept
+                  </Button>
+                  <Button size="compact-xs" color="red" variant="subtle" leftSection={<IconX size={14} />} onClick={handleRejectProposal}>
+                    Reject
+                  </Button>
+                </Group>
+                <div style={{ flex: 1 }}>
+                  <DiffEditor
+                    original={svgCode}
+                    modified={proposedSvg}
+                    language="xml"
+                    theme="vs-dark"
+                    options={{ readOnly: true, renderSideBySide: false }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+            )}
           </Allotment.Pane>
           <Allotment.Pane preferredSize="45%">
-            <Preview svgCode={svgCode} onElementSelect={handleElementSelect} />
+            <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} />
           </Allotment.Pane>
-          <Allotment.Pane preferredSize="10%" minSize={150}>
-            <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
+          <Allotment.Pane preferredSize="10%" minSize={250}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#1e1e1e' }}>
+              <SegmentedControl
+                value={sidebarTab}
+                onChange={setSidebarTab}
+                data={[
+                  { label: 'AI Chat', value: 'ai' },
+                  { label: 'Info', value: 'info' },
+                ]}
+                size="xs"
+                fullWidth
+                style={{ margin: '4px 8px 0' }}
+              />
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                {sidebarTab === 'ai' ? (
+                  <AiChat
+                    svgCode={svgCode}
+                    selectedElement={selectedElement}
+                    onApplySvg={handleApplySvg}
+                  />
+                ) : (
+                  <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
+                )}
+              </div>
+            </div>
           </Allotment.Pane>
         </Allotment>
       </AppShell.Main>
