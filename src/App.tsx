@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppShell, Group, Button, Text, Tooltip } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload } from '@tabler/icons-react';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug, IconMessages } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
 import { Editor, type EditorHandle } from './components/Editor';
 import { Preview } from './components/Preview';
@@ -174,20 +174,6 @@ export default function App() {
         </Group>
       </AppShell.Header>
 
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="https://github.com/nbelyh/editsvgcode"
-        style={{ position: 'absolute', right: 0, top: 0, zIndex: 10000 }}
-      >
-        <img
-          width="149"
-          height="149"
-          src="https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png?resize=149%2C149"
-          alt="Fork me on GitHub"
-        />
-      </a>
-
       <AppShell.Main style={{ backgroundColor: '#1e1e1e' }}>
         <input
           ref={fileInputRef}
@@ -212,7 +198,7 @@ export default function App() {
       <AppShell.Footer
         style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderTop: '1px solid var(--mantine-color-dark-4)' }}
       >
-        <Group h="100%" px="md">
+        <Group h="100%" px="md" justify="space-between">
           <Text size="sm" c="dimmed">
             Built by Nikolay Belykh @{' '}
             <Text component="a" href="https://unmanagedvisio.com" target="_blank" size="sm" c="dimmed" td="underline">
@@ -223,6 +209,32 @@ export default function App() {
               here
             </Text>
           </Text>
+          <Group gap="md">
+            <Text
+              component="a"
+              href="https://github.com/nbelyh/editsvgcode/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              c="dimmed"
+              td="underline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <IconBug size={16} /> Report Issue
+            </Text>
+            <Text
+              component="a"
+              href="https://github.com/nbelyh/editsvgcode"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              c="dimmed"
+              td="underline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <IconBrandGithub size={16} /> GitHub
+            </Text>
+          </Group>
         </Group>
       </AppShell.Footer>
     </AppShell>

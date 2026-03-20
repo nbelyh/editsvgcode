@@ -9,8 +9,9 @@ export function Sidebar({ onOpenCommandPalette }: SidebarProps) {
   const adsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load Carbon Ads script
-    if (adsRef.current && !adsRef.current.querySelector('#_carbonads_js')) {
+    // Load Carbon Ads script (skip on localhost)
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isLocal && adsRef.current && !adsRef.current.querySelector('#_carbonads_js')) {
       const script = document.createElement('script');
       script.id = '_carbonads_js';
       script.async = true;
