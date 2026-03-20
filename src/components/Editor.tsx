@@ -44,6 +44,9 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
 
+    // Expose for E2E tests
+    (window as any).__test_monaco_editor = editor;
+
     if (!providersRegistered.current) {
       registerSvgProviders(monaco);
       providersRegistered.current = true;

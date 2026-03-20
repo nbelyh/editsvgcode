@@ -266,16 +266,16 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
         style={{ backgroundColor: '#252526', borderBottom: '1px solid #3c3c3c', flexShrink: 0 }}
       >
         <Tooltip label="Zoom in (Ctrl+Scroll)">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomIn}><IconZoomIn size={16} /></ActionIcon>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomIn} aria-label="Zoom in"><IconZoomIn size={16} /></ActionIcon>
         </Tooltip>
         <Tooltip label="Zoom out (Ctrl+Scroll)">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomOut}><IconZoomOut size={16} /></ActionIcon>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomOut} aria-label="Zoom out"><IconZoomOut size={16} /></ActionIcon>
         </Tooltip>
         <Tooltip label="Reset zoom to 100%">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomReset}><IconZoomReset size={16} /></ActionIcon>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomReset} aria-label="Reset zoom"><IconZoomReset size={16} /></ActionIcon>
         </Tooltip>
         <Tooltip label="Fit to window">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit}><IconArrowsMaximize size={16} /></ActionIcon>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit} aria-label="Fit to window"><IconArrowsMaximize size={16} /></ActionIcon>
         </Tooltip>
         <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{zoomPct}%</Text>
         <SegmentedControl

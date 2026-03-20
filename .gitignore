@@ -8,3 +8,5 @@ bin
 *.cache
 firestore-debug.log
 firebase-debug.log
+test-results
+playwright-report
