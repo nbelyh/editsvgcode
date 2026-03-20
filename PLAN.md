@@ -10,7 +10,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 ## Target Stack
 
 - **Frontend:** React 19 + Vite + TypeScript + Mantine
-- **AI Chat UI:** VS Code-style sidebar (CopilotKit or custom Mantine — TBD, needs VS Code Copilot Chat look & feel)
+- **AI Chat UI:** assistant-ui (headless primitives + useExternalStoreRuntime, custom dark theme CSS)
 - **Editor:** @monaco-editor/react (includes diff editor for AI proposals)
 - **Split panes:** allotment
 - **Backend:** Azure Function (AI proxy, rate limiting, PayProGlobal webhooks)
@@ -30,7 +30,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ## Open Decisions
 
-- [ ] AI Chat UI library: assistant-ui vs CopilotKit vs custom Mantine (want VS Code Copilot Chat look)
+- [x] AI Chat UI library: **assistant-ui** — headless primitives, custom runtime via useExternalStoreRuntime, dark theme CSS
 - [x] BYOL: direct client-to-provider calls (skip proxy) — decided, keys stay in localStorage, never touch server
 - [x] Auth for AI endpoint: Firebase ID tokens from Phase 2 (anonymous auth already exists), server-side Firestore rate limiting
 

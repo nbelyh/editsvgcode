@@ -18,6 +18,8 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.12.19",
+    "@assistant-ui/react-markdown": "^0.12.6",
     "@mantine/core": "^7.17.0",
     "@mantine/hooks": "^7.17.0",
     "@monaco-editor/react": "^4.7.0",

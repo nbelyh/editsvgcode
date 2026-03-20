@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AppShell, Group, Button, Text, Tooltip, SegmentedControl } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug, IconCheck, IconX } from '@tabler/icons-react';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
 import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from './components/Editor';
@@ -115,18 +115,12 @@ export default function App() {
     setSelectedElement(selectedLines.join('\n'));
   }, [svgCode]);
 
-  const handleApplySvg = useCallback((svg: string, _summary: string) => {
+  const handlePreviewSvg = useCallback((svg: string | null) => {
     setProposedSvg(svg);
   }, []);
 
-  const handleAcceptProposal = useCallback(() => {
-    if (proposedSvg) {
-      setSvgCode(proposedSvg);
-      setProposedSvg(null);
-    }
-  }, [proposedSvg]);
-
-  const handleRejectProposal = useCallback(() => {
+  const handleAcceptSvg = useCallback((svg: string) => {
+    setSvgCode(svg);
     setProposedSvg(null);
   }, []);
 
@@ -161,7 +155,7 @@ export default function App() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Main style={{ backgroundColor: '#1e1e1e' }}>
+      <AppShell.Main style={{ backgroundColor: 'var(--mantine-color-body)' }}>
         <input
           ref={fileInputRef}
           type="file"
@@ -174,13 +168,7 @@ export default function App() {
             {proposedSvg ? (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <Group gap="xs" p={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
-                  <Text size="xs" c="dimmed" fw={600}>AI Proposal</Text>
-                  <Button size="compact-xs" color="green" variant="filled" leftSection={<IconCheck size={14} />} onClick={handleAcceptProposal}>
-                    Accept
-                  </Button>
-                  <Button size="compact-xs" color="red" variant="subtle" leftSection={<IconX size={14} />} onClick={handleRejectProposal}>
-                    Reject
-                  </Button>
+                  <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
                 </Group>
                 <div style={{ flex: 1 }}>
                   <DiffEditor
@@ -200,7 +188,7 @@ export default function App() {
             <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} />
           </Allotment.Pane>
           <Allotment.Pane preferredSize="10%" minSize={250}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#1e1e1e' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
               <SegmentedControl
                 value={sidebarTab}
                 onChange={setSidebarTab}
@@ -217,7 +205,8 @@ export default function App() {
                   <AiChat
                     svgCode={svgCode}
                     selectedElement={selectedElement}
-                    onApplySvg={handleApplySvg}
+                    onPreviewSvg={handlePreviewSvg}
+                    onAcceptSvg={handleAcceptSvg}
                   />
                 ) : (
                   <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
