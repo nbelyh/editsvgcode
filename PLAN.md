@@ -14,7 +14,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - **Editor:** @monaco-editor/react (includes diff editor for AI proposals)
 - **Split panes:** allotment
 - **Backend:** Azure Function (AI proxy, rate limiting, PayProGlobal webhooks)
-- **AI Model:** GPT-4o on Azure OpenAI (primary), GPT-4o-mini (simple edits)
+- **AI Model:** Azure OpenAI Responses API — gpt-4.1 (primary), gpt-4.1-mini (simple edits)
 - **BYOL:** Bring Your Own LLM — users pick provider (OpenAI, Anthropic, Google, etc.) + enter their key
 - **Payments:** PayProGlobal (subscription)
 - **Auth:** Firebase Auth (email + Google sign-in, upgrade from anonymous)
@@ -176,8 +176,9 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - Accepts: `Authorization: Bearer <Firebase ID token>`, messages array, current SVG, selected element
 - Azure Function validates token via Firebase Admin SDK (`admin.auth().verifyIdToken(token)`)
 - Extracts UID from verified token → checks/increments Firestore `usage/{uid}/daily` counter
-- Calls Azure OpenAI (GPT-4o) with SVG-specific system prompt
-- Returns: streaming response with tool calls
+- Calls Azure OpenAI **Responses API** (`client.responses.create`) with gpt-4.1-mini (default) / gpt-4.1 (Pro)
+- Uses function tools via Responses API tool definitions
+- Returns: response with tool calls (function_call output items)
 - Rate limiting: 5/day per UID, enforced server-side in Firestore (not IP-based, not localStorage)
 - CORS: allow `https://editsvgcode.com` + `http://localhost:*` only
 
@@ -223,7 +224,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 **Deliverable:** Working AI SVG editor with chat, diff preview, 5/day server-enforced limit.
 
-**Claude prompt:** "Add a VS Code Copilot Chat-style AI sidebar to the editsvgcode React app. Create an Azure Function that proxies to Azure OpenAI GPT-4o with tool-calling for SVG edits. The Function validates Firebase Auth ID tokens (admin.auth().verifyIdToken), enforces 5/day rate limit per UID in Firestore, and has CORS locked to editsvgcode.com. Frontend sends ID token in Authorization header. When AI proposes changes, show Monaco diff editor with accept/reject. Include model selector dropdown."
+**Claude prompt:** "Add a VS Code Copilot Chat-style AI sidebar to the editsvgcode React app. Create an Azure Function that proxies to Azure OpenAI using the Responses API (client.responses.create) with gpt-4.1-mini. The Function validates Firebase Auth ID tokens (admin.auth().verifyIdToken), enforces 5/day rate limit per UID in Firestore, and has CORS locked to editsvgcode.com. Frontend sends ID token in Authorization header. When AI proposes changes, show Monaco diff editor with accept/reject. Include model selector dropdown."
 
 ---
 

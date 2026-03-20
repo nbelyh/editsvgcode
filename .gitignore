@@ -10,3 +10,9 @@ firestore-debug.log
 firebase-debug.log
 test-results
 playwright-report
+.env
+.env.*
+!.env.example
+api/local.settings.json
+api/dist
+api/node_modules
