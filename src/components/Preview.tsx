@@ -73,6 +73,8 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
   const [bgMode, setBgMode] = useState<BgMode>('checkerboard');
   const hoveredRef = useRef<SVGElement | null>(null);
   const fittedSvgRef = useRef<string | null>(null);
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   const clearAllSelections = useCallback(() => {
     const svg = containerRef.current?.querySelector('svg');
@@ -132,8 +134,17 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
     notifySelection();
   }, [clearAllSelections, applySelectionFilter, notifySelection]);
 
-  // Hover highlight
+  // Hover highlight + right-mouse-button pan
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning.current) {
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollLeft = panStart.current.scrollLeft - (e.clientX - panStart.current.x);
+        el.scrollTop = panStart.current.scrollTop - (e.clientY - panStart.current.y);
+      }
+      return;
+    }
+
     const container = containerRef.current;
     if (!container) return;
     const svg = container.querySelector('svg');
@@ -154,6 +165,23 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
       target.style.filter = HOVER_FILTER;
     }
     hoveredRef.current = target;
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 2) {
+      e.preventDefault();
+      isPanning.current = true;
+      const el = scrollRef.current!;
+      panStart.current = { x: e.clientX, y: e.clientY, scrollLeft: el.scrollLeft, scrollTop: el.scrollTop };
+      containerRef.current!.style.cursor = 'grabbing';
+    }
+  }, []);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (e.button === 2 && isPanning.current) {
+      isPanning.current = false;
+      containerRef.current!.style.cursor = 'crosshair';
+    }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -297,7 +325,7 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
         />
       </Group>
 
-      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto' }} onClick={handleClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto' }} onClick={handleClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
         <div style={{ minWidth: '100%', minHeight: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <div ref={containerRef} style={{ flexShrink: 0, cursor: 'crosshair' }} />
         </div>
