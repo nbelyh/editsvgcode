@@ -172,6 +172,9 @@ export default function App() {
             </Text>
           </Text>
           <Group gap="md">
+            <Text size="sm" c="dimmed">
+              v{__APP_VERSION__}
+            </Text>
             <Text
               component="a"
               href="https://github.com/nbelyh/editsvgcode/issues"
