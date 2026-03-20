@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { waitForEditor } from './helpers';
 
 test.describe('DOMPurify Sanitization', () => {
   test('script tags are stripped from SVG preview', async ({ page }) => {
     await page.goto('/');
+    await waitForEditor(page);
 
-    // Wait for Monaco editor to load
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 15000 });
-
-    // Set malicious SVG via Monaco API
+    // Set malicious SVG via Monaco API (can't use setSvgContent — script tag gets stripped)
     await page.evaluate(() => {
       const editor = (window as any).__test_monaco_editor;
       if (editor) {
@@ -33,8 +32,7 @@ test.describe('DOMPurify Sanitization', () => {
 
   test('onload event handlers are stripped', async ({ page }) => {
     await page.goto('/');
-
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 15000 });
+    await waitForEditor(page);
 
     // Set SVG with onload handler
     await page.evaluate(() => {

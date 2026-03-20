@@ -292,7 +292,7 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
 
       <div ref={scrollRef} style={{ flex: 1, overflow: 'auto' }} onClick={handleClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
         <div style={{ minWidth: '100%', minHeight: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div ref={containerRef} style={{ flexShrink: 0, cursor: 'crosshair' }} />
+          <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair' }} />
         </div>
       </div>
     </div>

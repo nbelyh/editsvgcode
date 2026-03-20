@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { waitForEditor } from './helpers';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,9 +10,7 @@ const __dirname = path.dirname(__filename);
 test.describe('File Upload & Download', () => {
   test('upload an SVG file and see it in the editor', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for editor to be ready
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 15000 });
+    await waitForEditor(page);
 
     // Create a temporary SVG file for upload
     const testSvg = '<svg xmlns="http://www.w3.org/2000/svg"><ellipse cx="100" cy="50" rx="80" ry="40" fill="green"/></svg>';
@@ -33,7 +32,7 @@ test.describe('File Upload & Download', () => {
 
   test('download button produces a file', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 15000 });
+    await waitForEditor(page);
 
     // Click the Download button and capture the download event
     const [download] = await Promise.all([

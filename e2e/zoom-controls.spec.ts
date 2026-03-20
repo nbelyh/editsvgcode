@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { waitForEditor, setSvgContent } from './helpers';
 
 test.describe('Zoom Controls', () => {
   test('zoom in/out buttons update the zoom percentage', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for preview SVG to appear
-    await expect(page.locator('svg').first()).toBeVisible({ timeout: 15000 });
+    await waitForEditor(page);
+    await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100" height="100" fill="red"/></svg>');
 
     // Read initial zoom text
     const zoomText = page.locator('text=%');
@@ -29,7 +29,8 @@ test.describe('Zoom Controls', () => {
 
   test('reset zoom returns to 100%', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('svg').first()).toBeVisible({ timeout: 15000 });
+    await waitForEditor(page);
+    await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100" height="100" fill="blue"/></svg>');
 
     // Zoom in first
     await page.getByLabel('Zoom in').click();
