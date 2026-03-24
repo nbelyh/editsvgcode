@@ -22,10 +22,59 @@ const BG: Record<BgMode, { background: string; backgroundImage?: string }> = {
   none: { background: 'transparent' },
 };
 
-const HIGHLIGHT_FILTER = 'drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff) drop-shadow(0 0 0.5px #0066ff)';
-const HOVER_FILTER = HIGHLIGHT_FILTER;
-const SELECT_FILTER = HIGHLIGHT_FILTER;
+const SELECTION_FILTER_ID = '__esvg-select-filter';
+const HOVER_FILTER_ID = '__esvg-hover-filter';
+const SELECT_FILTER = `url(#${SELECTION_FILTER_ID})`;
+const HOVER_FILTER = `url(#${HOVER_FILTER_ID})`;
 const DATA_SELECTED = 'data-esvg-selected';
+
+/** Inject selection/hover SVG filters into an <svg> element if not already present. */
+function ensureFilters(svg: SVGSVGElement) {
+  if (svg.getElementById(SELECTION_FILTER_ID)) return;
+  const ns = 'http://www.w3.org/2000/svg';
+
+  const makeDefs = () => {
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = document.createElementNS(ns, 'defs');
+      svg.prepend(defs);
+    }
+    return defs;
+  };
+
+  const buildFilter = (id: string, color: [number, number, number], dilate: number) => {
+    const f = document.createElementNS(ns, 'filter');
+    f.setAttribute('id', id);
+
+    const morph = document.createElementNS(ns, 'feMorphology');
+    morph.setAttribute('operator', 'dilate');
+    morph.setAttribute('radius', String(dilate));
+    f.appendChild(morph);
+
+    const blur = document.createElementNS(ns, 'feGaussianBlur');
+    blur.setAttribute('stdDeviation', '0.3');
+    f.appendChild(blur);
+
+    const [r, g, b] = color;
+    const matrix = document.createElementNS(ns, 'feColorMatrix');
+    matrix.setAttribute('type', 'matrix');
+    matrix.setAttribute('values', `0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 3 0`);
+    matrix.setAttribute('result', 'outline');
+    f.appendChild(matrix);
+
+    const blend = document.createElementNS(ns, 'feBlend');
+    blend.setAttribute('in', 'SourceGraphic');
+    blend.setAttribute('in2', 'outline');
+    blend.setAttribute('mode', 'normal');
+    f.appendChild(blend);
+
+    return f;
+  };
+
+  const defs = makeDefs();
+  defs.appendChild(buildFilter(SELECTION_FILTER_ID, [0, 0.2, 0.8], 3));
+  defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 0.8], 1.5));
+}
 
 export function Preview({ svgCode, onElementSelect }: PreviewProps) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);
@@ -179,6 +228,7 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
     });
     const svg = containerRef.current.querySelector('svg');
     if (!svg) { naturalSize.current = null; return; }
+    ensureFilters(svg);
 
     const wAttr = svg.getAttribute('width') || '';
     const hAttr = svg.getAttribute('height') || '';

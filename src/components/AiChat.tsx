@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NativeSelect, Badge } from '@mantine/core';
-import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus } from '@tabler/icons-react';
 import { sendChatRequest, type ChatMessage, type ChatToolCall } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
@@ -38,10 +38,44 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
   const [isRunning, setIsRunning] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const [model, setModel] = useState('gpt-4.1-mini');
+  const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadedRef = useRef(false);
+  const [composerHeight, setComposerHeight] = useState(100);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+
+  const autoGrow = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    // measure how tall the textarea wants to be
+    ta.style.height = '0';
+    const needed = ta.scrollHeight;
+    ta.style.height = '';
+    // composer overhead: padding (8+8) + usage line (~20) + gap
+    const overhead = 44;
+    const desired = needed + overhead;
+    if (desired > composerHeight) {
+      setComposerHeight(Math.min(200, desired));
+    }
+  }, [composerHeight]);
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    dragRef.current = { startY: e.clientY, startH: composerHeight };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [composerHeight]);
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const delta = dragRef.current.startY - e.clientY;
+    setComposerHeight(Math.max(60, Math.min(200, dragRef.current.startH + delta)));
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    dragRef.current = null;
+  }, []);
 
   // Load messages from IndexedDB on mount
   useEffect(() => {
@@ -170,6 +204,23 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
 
   return (
     <div className="aui-root">
+      <div className="aui-toolbar">
+        <NativeSelect
+          size="xs"
+          value={model}
+          onChange={e => setModel(e.currentTarget.value)}
+          data={MODELS}
+          style={{ flex: 1 }}
+        />
+        <button
+          className="aui-toolbar-btn"
+          onClick={handleNewChat}
+          disabled={isRunning || hasPending}
+          title="New Chat"
+        >
+          <IconPlus size={14} />
+        </button>
+      </div>
       <div className="aui-thread">
         <div className="aui-viewport" ref={viewportRef}>
           {messages.length === 0 && (
@@ -297,7 +348,13 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
           <div ref={endRef} />
         </div>
 
-        <div className="aui-composer-area">
+        <div
+          className="aui-composer-handle"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+        />
+        <div className="aui-composer-area" style={{ height: composerHeight }}>
           {selectedElement && (
             <div style={{ marginBottom: 6 }}>
               <Badge size="xs" variant="light" color="violet">
@@ -307,42 +364,24 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
           )}
           <div className="aui-composer">
             <textarea
+              ref={textareaRef}
               className="aui-composer-input"
               placeholder="Ask AI to edit your SVG…"
               value={input}
               onChange={e => {
                 setInput(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
+                requestAnimationFrame(autoGrow);
               }}
               onKeyDown={handleKeyDown}
-              rows={1}
-              disabled={isRunning}
+              disabled={isRunning || hasPending}
             />
             {isRunning ? (
               <button className="aui-composer-send" onClick={handleStop}>Stop</button>
             ) : (
-              <button className="aui-composer-send" onClick={handleSend} disabled={!input.trim()}>
+              <button className="aui-composer-send" onClick={handleSend} disabled={!input.trim() || hasPending}>
                 Send
               </button>
             )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <NativeSelect
-              size="xs"
-              value={model}
-              onChange={e => setModel(e.currentTarget.value)}
-              data={MODELS}
-              style={{ flex: 1 }}
-            />
-            <button
-              className="aui-composer-send"
-              style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-5)' }}
-              onClick={handleNewChat}
-              disabled={isRunning}
-            >
-              New Chat
-            </button>
           </div>
           {usage && (
             <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-dimmed)' }}>

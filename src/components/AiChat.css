@@ -8,10 +8,43 @@
   color: var(--mantine-color-text);
 }
 
+.aui-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.aui-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  padding: 4px;
+  height: 28px;
+  width: 28px;
+}
+
+.aui-toolbar-btn:hover {
+  color: var(--mantine-color-text);
+  border-color: var(--mantine-color-text);
+}
+
+.aui-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .aui-thread {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .aui-viewport {
@@ -172,15 +205,31 @@
 }
 
 /* Composer */
-.aui-composer-area {
+.aui-composer-handle {
+  height: 5px;
+  cursor: ns-resize;
   border-top: 1px solid var(--mantine-color-default-border);
+  flex-shrink: 0;
+}
+
+.aui-composer-handle:hover {
+  background-color: var(--mantine-primary-color-filled);
+  opacity: 0.4;
+}
+
+.aui-composer-area {
+  display: flex;
+  flex-direction: column;
   padding: 8px;
+  flex-shrink: 0;
 }
 
 .aui-composer {
   display: flex;
   gap: 4px;
-  align-items: flex-end;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 .aui-composer-input {
@@ -194,9 +243,9 @@
   outline: none;
   resize: none;
   font-family: inherit;
-  min-height: 32px;
-  max-height: 120px;
+  min-height: 0;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .aui-composer-input:focus {
@@ -208,6 +257,7 @@
 }
 
 .aui-composer-send {
+  align-self: flex-end;
   background-color: var(--mantine-primary-color-filled);
   color: var(--mantine-primary-color-contrast, white);
   border: none;
