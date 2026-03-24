@@ -196,7 +196,9 @@ export function formatXml(xml: string): string {
   xml = xml.replace(reg, '$1\r\n$2$3');
   return xml
     .split('\r\n')
-    .map((node) => {
+    .filter((line) => line.trim())
+    .map((rawNode) => {
+      const node = rawNode.trim();
       let indent = 0;
       if (node.match(/.+<\/\w[^>]*>$/)) {
         indent = 0;
