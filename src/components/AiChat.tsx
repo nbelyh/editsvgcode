@@ -37,7 +37,7 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
-  const [model, setModel] = useState('gpt-5.4-mini');
+  const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -208,7 +208,10 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
         <NativeSelect
           size="xs"
           value={model}
-          onChange={e => setModel(e.currentTarget.value)}
+          onChange={e => {
+            setModel(e.currentTarget.value);
+            localStorage.setItem('esvg-model', e.currentTarget.value);
+          }}
           data={MODELS}
           style={{ flex: 1 }}
         />
