@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { NativeSelect, Badge } from '@mantine/core';
-import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { sendChatRequest, type ChatMessage, type ChatToolCall } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
@@ -37,7 +37,7 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
-  const [model, setModel] = useState('gpt-4.1-mini');
+  const [model, setModel] = useState('gpt-5.4-mini');
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -219,6 +219,14 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
           title="New Chat"
         >
           <IconPlus size={14} />
+        </button>
+        <button
+          className="aui-toolbar-btn"
+          onClick={handleNewChat}
+          disabled={isRunning || hasPending || messages.length === 0}
+          title="Clear Chat"
+        >
+          <IconTrash size={14} />
         </button>
       </div>
       <div className="aui-thread">
