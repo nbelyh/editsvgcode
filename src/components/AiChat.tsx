@@ -129,7 +129,10 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: response.message,
-        toolCalls: response.toolCalls?.map(tc => ({ ...tc, status: 'pending' as const })),
+        toolCalls: response.toolCalls?.map(tc => ({
+          ...tc,
+          status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
+        })),
       };
 
       setMessages(prev => [...prev, assistantMsg]);
