@@ -9,6 +9,7 @@ import { Sidebar } from './components/Sidebar';
 import { AiChat } from './components/AiChat';
 import { EditSvgCodeDb } from './lib/firebase';
 import { getUniqueId, getNewUniqueId, stripBom, findElementRange } from './lib/svg-utils';
+import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from './lib/chat-storage';
 import './App.css';
 
 const DEFAULT_SVG = `<!-- sample rectangle -->
@@ -26,6 +27,7 @@ export default function App() {
   const [sidebarTab, setSidebarTab] = useState<string>('ai');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
+  const [canUndo, setCanUndo] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
 
   // Clear selection when SVG code changes (avoids stale reference)
@@ -33,6 +35,11 @@ export default function App() {
     setSelectedElement(undefined);
     setSelectedLineRange(undefined);
   }, [svgCode]);
+
+  // Persist SVG to IndexedDB so it matches chat history on reload
+  useEffect(() => {
+    if (!readOnly) saveSvgCode(svgCode);
+  }, [svgCode, readOnly]);
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -50,9 +57,15 @@ export default function App() {
     const db = new EditSvgCodeDb();
     dbRef.current = db;
 
-    const handleDbInit = () => {
+    const handleDbInit = async () => {
       const uniqueId = getUniqueId();
-      if (uniqueId) {
+      // Try restoring SVG from IndexedDB (matches chat history)
+      const savedSvg = await loadSvgCode();
+      setCanUndo(await hasCheckpoints());
+      if (savedSvg && savedSvg.includes('<svg')) {
+        setSvgCode(savedSvg);
+        setReadOnly(false);
+      } else if (uniqueId) {
         db.loadDocument(uniqueId).then((text) => {
           setSvgCode(text || DEFAULT_SVG);
           setReadOnly(false);
@@ -127,8 +140,18 @@ export default function App() {
   }, []);
 
   const handleAcceptSvg = useCallback((svg: string) => {
+    pushCheckpoint(svgCode).then(() => setCanUndo(true));
     setSvgCode(svg);
     setProposedSvg(null);
+  }, [svgCode]);
+
+  const handleUndo = useCallback(async (popCount: number) => {
+    const prev = await popCheckpoints(popCount);
+    if (prev) {
+      setSvgCode(prev);
+      setProposedSvg(null);
+    }
+    setCanUndo(await hasCheckpoints());
   }, []);
 
   return (
@@ -215,6 +238,8 @@ export default function App() {
                     selectedLineRange={selectedLineRange}
                     onPreviewSvg={handlePreviewSvg}
                     onAcceptSvg={handleAcceptSvg}
+                    onRestore={handleUndo}
+                    canUndo={canUndo}
                   />
                 </div>
                 <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>

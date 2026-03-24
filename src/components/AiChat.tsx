@@ -21,6 +21,8 @@ interface AiChatProps {
   selectedLineRange?: { start: number; end: number };
   onPreviewSvg: (svg: string | null) => void;
   onAcceptSvg: (svg: string) => void;
+  onRestore: (popCount: number) => void;
+  canUndo: boolean;
 }
 
 const MODELS = [
@@ -32,7 +34,7 @@ const MODELS = [
   { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
 ];
 
-export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg }: AiChatProps) {
+export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -166,6 +168,27 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
     clearChatMessages();
   }, [onPreviewSvg]);
 
+  const handleRestore = useCallback((msgIdx: number) => {
+    // Count accepted tool calls in messages from msgIdx onward
+    const removed = messages.slice(msgIdx);
+    const popCount = removed.reduce((n, m) =>
+      n + (m.toolCalls?.filter(tc => tc.status === 'accepted' && tc.arguments.svg).length ?? 0), 0);
+
+    // Restore the user prompt to the input box
+    const userMsg = messages[msgIdx];
+    if (userMsg?.role === 'user' && userMsg.content) {
+      setInput(userMsg.content);
+    }
+
+    // Truncate messages
+    const kept = messages.slice(0, msgIdx);
+    setMessages(kept);
+    saveChatMessages(kept);
+
+    onPreviewSvg(null);
+    if (popCount > 0) onRestore(popCount);
+  }, [messages, onPreviewSvg, onRestore]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -246,6 +269,9 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
           )}
 
           {messages.map((msg, msgIdx) => {
+            // Show checkpoint divider before every user message
+            const showCheckpoint = msg.role === 'user';
+
             // Assistant messages with only tool calls: render proposals directly without double-wrapping
             if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content) {
               return msg.toolCalls.map((tc, tcIdx) => (
@@ -293,7 +319,14 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
               ));
             }
 
-            return (
+            return (<>
+            {showCheckpoint && canUndo && (
+              <div key={`cp-${msgIdx}`} className="aui-checkpoint">
+                <div className="aui-checkpoint-line" />
+                <button className="aui-checkpoint-restore" onClick={() => handleRestore(msgIdx)}>Restore</button>
+                <div className="aui-checkpoint-line" />
+              </div>
+            )}
             <div key={msgIdx} className={`aui-msg ${msg.role === 'user' ? 'aui-msg-user' : 'aui-msg-assistant'}`}>
               {msg.role === 'user' && (
                 <div className="aui-msg-header">
@@ -350,7 +383,7 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
                 </div>
               ))}
             </div>
-            );
+            </>);
           })}
 
           {isRunning && (

@@ -204,6 +204,34 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* Checkpoint divider */
+.aui-checkpoint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 0 8px;
+}
+.aui-checkpoint-line {
+  flex: 1;
+  height: 1px;
+  background: var(--mantine-color-default-border);
+}
+.aui-checkpoint-restore {
+  background: none;
+  border: none;
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.aui-checkpoint-restore:hover {
+  color: var(--mantine-primary-color-filled);
+  background: var(--mantine-color-dark-5);
+}
+
 /* Composer */
 .aui-composer-handle {
   height: 5px;
