@@ -27,6 +27,7 @@
     "firebase": "^11.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.14.0",
     "vite-plugin-wasm": "^3.6.0",
     "vtracer-webapp": "^0.4.0"
   },

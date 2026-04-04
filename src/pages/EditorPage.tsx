@@ -1,0 +1,273 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Allotment } from 'allotment';
+import { DiffEditor } from '@monaco-editor/react';
+import { Editor, type EditorHandle } from '../components/Editor';
+import { Preview } from '../components/Preview';
+import { Sidebar } from '../components/Sidebar';
+import { AiChat } from '../components/AiChat';
+import { EditSvgCodeDb } from '../lib/firebase';
+import { getNewUniqueId, stripBom, findElementRange, formatXml } from '../lib/svg-utils';
+import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from '../lib/chat-storage';
+import { getAuth } from 'firebase/auth';
+
+const DEFAULT_SVG = `<!-- sample rectangle -->
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" x="50" y="50" fill="red" />
+</svg>`;
+
+export function EditorPage() {
+  const { fileId: routeFileId } = useParams<{ fileId?: string }>();
+  const navigate = useNavigate();
+
+  const [svgCode, setSvgCode] = useState('Loading please wait...');
+  const [readOnly, setReadOnly] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [fileId, setFileId] = useState(() => routeFileId || sessionStorage.getItem('esvg-local-id') || (() => {
+    const id = '_local_' + getNewUniqueId();
+    sessionStorage.setItem('esvg-local-id', id);
+    return id;
+  })());
+  const dbRef = useRef<EditSvgCodeDb | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<EditorHandle>(null);
+  const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
+  const [selectedElement, setSelectedElement] = useState<string | undefined>();
+  const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
+  const [canUndo, setCanUndo] = useState(false);
+  const [proposedSvg, setProposedSvg] = useState<string | null>(null);
+
+  // Clear selection when SVG code changes (avoids stale reference)
+  useEffect(() => {
+    setSelectedElement(undefined);
+    setSelectedLineRange(undefined);
+  }, [svgCode]);
+
+  // Persist SVG to IndexedDB so it matches chat history on reload
+  useEffect(() => {
+    if (!readOnly) saveSvgCode(svgCode, fileId);
+  }, [svgCode, readOnly, fileId]);
+
+  // Global F1 handler so it works even when focus is outside the editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        editorRef.current?.openCommandPalette();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const db = new EditSvgCodeDb();
+    dbRef.current = db;
+
+    const handleDbInit = async () => {
+      const uniqueId = routeFileId || '';
+      if (uniqueId) setFileId(uniqueId);
+      const currentFileId = uniqueId || sessionStorage.getItem('esvg-local-id') || fileId;
+      // Try restoring SVG from IndexedDB (matches chat history)
+      const savedSvg = await loadSvgCode(currentFileId);
+      setCanUndo(await hasCheckpoints(currentFileId));
+      if (savedSvg && savedSvg.includes('<svg')) {
+        setSvgCode(formatXml(savedSvg));
+        setReadOnly(false);
+      } else if (uniqueId) {
+        db.loadDocument(uniqueId).then((text) => {
+          setSvgCode(formatXml(text || DEFAULT_SVG));
+          setReadOnly(false);
+        });
+      } else {
+        setSvgCode(DEFAULT_SVG);
+        setReadOnly(false);
+      }
+    };
+
+    // If user is already authenticated, load immediately; otherwise wait for dbinit
+    if (getAuth().currentUser) {
+      handleDbInit();
+    }
+    document.addEventListener('dbinit', handleDbInit);
+    return () => document.removeEventListener('dbinit', handleDbInit);
+  }, [routeFileId]);
+
+  const handleSave = useCallback(() => {
+    const db = dbRef.current;
+    if (!db) return;
+    const uniqueId = routeFileId || getNewUniqueId();
+    setSaving(true);
+    setFileId(uniqueId);
+    db.saveDocument(uniqueId, svgCode)
+      .then(() => {
+        navigate('/' + uniqueId, { replace: true });
+      })
+      .finally(() => setSaving(false));
+  }, [svgCode, routeFileId, navigate]);
+
+  const handleUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const name = file.name.replace(/\.[^.]+$/, '');
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFileId(name);
+      sessionStorage.setItem('esvg-local-id', name);
+      setSvgCode(formatXml(stripBom(ev.target?.result as string)));
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, []);
+
+  const handleDownload = useCallback(() => {
+    const uniqueId = routeFileId || getNewUniqueId();
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:image/svg+xml;base64,' + window.btoa(svgCode));
+    element.setAttribute('download', uniqueId + '.svg');
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }, [svgCode, routeFileId]);
+
+  const handleElementSelect = useCallback((tagName: string, index: number) => {
+    if (!tagName || index < 0) {
+      editorRef.current?.clearSelection();
+      setSelectedElement(undefined);
+      setSelectedLineRange(undefined);
+      return;
+    }
+    const range = findElementRange(svgCode, tagName, index);
+    if (!range) return;
+    editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
+    setSelectedElement(svgCode.substring(range.startOffset, range.endOffset));
+    setSelectedLineRange({ start: range.startLine, end: range.endLine });
+  }, [svgCode]);
+
+  const handlePreviewSvg = useCallback((svg: string | null) => {
+    setProposedSvg(svg);
+  }, []);
+
+  const handleAcceptSvg = useCallback((svg: string) => {
+    pushCheckpoint(svgCode, fileId).then(() => setCanUndo(true));
+    setSvgCode(svg);
+    setProposedSvg(null);
+  }, [svgCode, fileId]);
+
+  const handleUndo = useCallback(async (popCount: number) => {
+    const prev = await popCheckpoints(popCount, fileId);
+    if (prev) {
+      setSvgCode(prev);
+      setProposedSvg(null);
+    }
+    setCanUndo(await hasCheckpoints(fileId));
+  }, [fileId]);
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/svg+xml"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+      <Allotment>
+        <Allotment.Pane preferredSize="45%">
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0 }}>
+              <Tooltip label="Open an SVG file from your computer">
+                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFolderOpen size={14} />} onClick={handleUpload}>
+                  Open
+                </Button>
+              </Tooltip>
+              <Tooltip label="Download the file to your computer">
+                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconDownload size={14} />} onClick={handleDownload}>
+                  Download
+                </Button>
+              </Tooltip>
+              <Tooltip label={routeFileId ? "Save changes to the shared file" : "Save to the cloud and get a shareable link"}>
+                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={handleSave} loading={saving}>
+                  {routeFileId ? 'Save' : 'Share'}
+                </Button>
+              </Tooltip>
+            </Group>
+            <div style={{ flex: 1 }}>
+              {proposedSvg ? (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                  <Group gap="xs" p={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
+                    <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
+                  </Group>
+                  <div style={{ flex: 1 }}>
+                    <DiffEditor
+                      original={svgCode}
+                      modified={proposedSvg}
+                      language="xml"
+                      theme="vs-dark"
+                      options={{ readOnly: true, renderSideBySide: false }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+              )}
+            </div>
+          </div>
+        </Allotment.Pane>
+        <Allotment.Pane preferredSize="45%">
+          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} />
+        </Allotment.Pane>
+        <Allotment.Pane preferredSize="10%" minSize={250}>
+          <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
+            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+              <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
+                <AiChat
+                  svgCode={svgCode}
+                  fileId={fileId}
+                  selectedElement={selectedElement}
+                  selectedLineRange={selectedLineRange}
+                  onPreviewSvg={handlePreviewSvg}
+                  onAcceptSvg={handleAcceptSvg}
+                  onRestore={handleUndo}
+                  canUndo={canUndo}
+                />
+              </div>
+              <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
+                <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
+              </div>
+            </div>
+            <div className="activity-bar">
+              <Tooltip label="Info" position="left">
+                <ActionIcon
+                  variant={sidebarTab === 'info' ? 'light' : 'subtle'}
+                  color={sidebarTab === 'info' ? 'blue' : 'gray'}
+                  size="lg"
+                  onClick={() => { setSidebarTab('info'); localStorage.setItem('esvg-sidebar-tab', 'info'); }}
+                >
+                  <IconInfoCircle size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="AI Chat" position="left">
+                <ActionIcon
+                  variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
+                  color={sidebarTab === 'ai' ? 'blue' : 'gray'}
+                  size="lg"
+                  onClick={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }}
+                >
+                  <IconSparkles size={20} />
+                </ActionIcon>
+              </Tooltip>
+            </div>
+          </div>
+        </Allotment.Pane>
+      </Allotment>
+    </>
+  );
+}
