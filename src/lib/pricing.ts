@@ -24,8 +24,9 @@ const chatPricing: Record<string, ModelPricing> = {
 };
 
 const imagePricing: Record<string, ImageModelPricing> = {
-  'gpt-image-1.5': { inputText: 5.00, cachedInputText: 1.25, outputImage: 32.00 },
-  'gpt-image-1':   { inputText: 5.00, cachedInputText: 1.25, outputImage: 40.00 },
+  'gpt-image-1-mini':   { inputText: 2.00, cachedInputText: 0.25, outputImage: 8.00 },
+  'gpt-image-1.5':      { inputText: 5.00, cachedInputText: 1.25, outputImage: 32.00 },
+  'gpt-image-1':        { inputText: 5.00, cachedInputText: 1.25, outputImage: 40.00 },
 };
 
 export interface TokenUsage {

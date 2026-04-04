@@ -206,7 +206,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ### 2.6 AI Image Generation ✅
 
-- ✅ POST /api/generate-image endpoint (gpt-image-1.5)
+- ✅ POST /api/generate-image endpoint (gpt-image-1-mini)
 - ✅ Browser-side vectorization via vtracer-webapp (WASM)
 - ✅ Chroma key magenta transparency
 - ✅ Token cost tracking for image generation
@@ -363,7 +363,7 @@ Deploy Phase 2, monitor:
 
 ### 5.2 AI SVG generation ✅ (moved to Phase 2.6)
 
-- ✅ Image generation via gpt-image-1.5
+- ✅ Image generation via gpt-image-1-mini
 - ✅ Browser-side vectorization to SVG
 
 ### 5.3 SEO & marketing pages
