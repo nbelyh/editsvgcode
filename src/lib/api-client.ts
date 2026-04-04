@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase/auth';
-import { buildSvgContext, executeReadTool, applyEditSvg } from './svg-ai';
+import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -85,8 +85,11 @@ export async function sendChatRequest(
 
   const idToken = await user.getIdToken();
 
+  // Normalize line endings — Monaco on Windows uses \r\n, models always output \n
+  const normalizedSvg = currentSvg.replace(/\r\n/g, '\n');
+
   // Build budgeted context on the client — only this small string goes to the server
-  const svgContext = buildSvgContext(currentSvg, selectedElement, selectedLineRange);
+  const svgContext = buildSvgContext(normalizedSvg, selectedElement, selectedLineRange);
 
   // First call
   let response = await callServer({ svgContext, messages, model }, idToken, signal);
@@ -103,7 +106,7 @@ export async function sendChatRequest(
     const continuation: unknown[] = [...response.output];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
-      const result = executeReadTool(call.name!, args, currentSvg);
+      const result = executeReadTool(call.name!, args, normalizedSvg);
       continuation.push({ type: 'function_call_output', call_id: call.call_id, output: result ?? '' });
     }
 
@@ -121,13 +124,15 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg')) {
+    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg' || item.name === 'replace_lines')) {
       const args = JSON.parse(item.arguments!);
       // Apply edit_svg operations locally
       if (item.name === 'edit_svg') {
-        const { svg, failed } = applyEditSvg(currentSvg, args.operations);
+        const { svg, failed } = applyEditSvg(normalizedSvg, args.operations);
         args.svg = svg;
         if (failed.length) args.failedOperations = failed;
+      } else if (item.name === 'replace_lines') {
+        args.svg = applyReplaceLines(normalizedSvg, args.start, args.end, args.content);
       }
       toolCalls.push({ name: item.name, arguments: args });
     }

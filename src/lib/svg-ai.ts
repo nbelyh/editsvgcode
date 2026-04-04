@@ -8,6 +8,11 @@ const HEAD_LINES = 20;
 const TAIL_LINES = 5;
 const SELECTION_PADDING = 30;
 
+/** Normalize \r\n to \n — Monaco on Windows uses \r\n, models always output \n */
+function normalize(s: string): string {
+  return s.replace(/\r\n/g, '\n');
+}
+
 /** Number each line: "1: <svg ...>" */
 function numberLines(lines: string[], startIndex: number): string {
   return lines.map((line, i) => `${startIndex + i + 1}: ${line}`).join('\n');
@@ -23,9 +28,10 @@ export function buildSvgContext(
   selectedElement?: string,
   selectedLineRange?: { start: number; end: number }
 ): string {
-  const lines = currentSvg.split('\n');
+  const svg = normalize(currentSvg);
+  const lines = svg.split('\n');
   const totalLines = lines.length;
-  const sizeKB = Math.round(currentSvg.length / 1024);
+  const sizeKB = Math.round(svg.length / 1024);
 
   // Small file — include everything
   if (totalLines <= LINE_BUDGET) {
@@ -99,7 +105,7 @@ export function executeReadTool(
   args: Record<string, unknown>,
   currentSvg: string
 ): string | null {
-  const lines = currentSvg.split('\n');
+  const lines = normalize(currentSvg).split('\n');
 
   if (toolName === 'read_svg_lines') {
     const start = Math.max(1, args.start as number);
@@ -134,14 +140,33 @@ export function applyEditSvg(
   currentSvg: string,
   operations: Array<{ find: string; replace: string }>
 ): { svg: string; failed: string[] } {
-  let svg = currentSvg;
+  let svg = normalize(currentSvg);
   const failed: string[] = [];
   for (const op of operations) {
-    if (svg.includes(op.find)) {
-      svg = svg.replace(op.find, op.replace);
+    const find = normalize(op.find);
+    const replace = normalize(op.replace);
+    if (svg.includes(find)) {
+      svg = svg.replace(find, replace);
     } else {
-      failed.push(op.find.length > 60 ? op.find.substring(0, 60) + '…' : op.find);
+      failed.push(find.length > 60 ? find.substring(0, 60) + '…' : find);
     }
   }
   return { svg, failed };
+}
+
+/**
+ * Apply replace_lines: replace lines [start..end] (1-based, inclusive) with new content.
+ */
+export function applyReplaceLines(
+  currentSvg: string,
+  start: number,
+  end: number,
+  content: string
+): string {
+  const svg = normalize(currentSvg);
+  const lines = svg.split('\n');
+  const before = lines.slice(0, start - 1);
+  const after = lines.slice(end);
+  const newContent = content ? content.split('\n') : [];
+  return [...before, ...newContent, ...after].join('\n');
 }
