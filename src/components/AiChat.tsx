@@ -126,7 +126,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     abortRef.current = abort;
 
     try {
-      const apiMessages: ChatMessage[] = newMessages.map(m => ({ role: m.role, content: m.content }));
+      const apiMessages: ChatMessage[] = newMessages
+        .filter(m => m.role === 'user' || m.content)
+        .map(m => ({ role: m.role, content: m.content }));
 
       const response = await sendChatRequest(
         apiMessages,
