@@ -27,6 +27,17 @@
   animation: allotment-fade-in 0s ease-in 0.1s both;
 }
 
+/* Activity bar — thin vertical icon strip (VS Code style) */
+.activity-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  background-color: var(--mantine-color-dark-7);
+  border-left: 1px solid var(--mantine-color-dark-4);
+}
+
 /* Let suggest details panel size to content, scroll after ~10 lines */
 .monaco-editor .suggest-details-container,
 .monaco-editor .suggest-details,

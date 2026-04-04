@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { AppShell, Group, Button, Text, Tooltip, SegmentedControl } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug } from '@tabler/icons-react';
+import { AppShell, Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
+import { IconFolderOpen, IconDownload, IconCloudUpload, IconBrandGithub, IconBug, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { Allotment } from 'allotment';
 import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from './components/Editor';
@@ -24,7 +24,7 @@ export default function App() {
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
-  const [sidebarTab, setSidebarTab] = useState<string>('ai');
+  const [sidebarTab, setSidebarTab] = useState<string>('info');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [canUndo, setCanUndo] = useState(false);
@@ -156,8 +156,8 @@ export default function App() {
 
   return (
     <AppShell
-      header={{ height: 56 }}
-      footer={{ height: 40 }}
+      header={{ height: 50 }}
+      footer={{ height: 22 }}
       padding={0}
     >
       <AppShell.Header
@@ -218,18 +218,7 @@ export default function App() {
             <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} />
           </Allotment.Pane>
           <Allotment.Pane preferredSize="10%" minSize={250}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
-              <SegmentedControl
-                value={sidebarTab}
-                onChange={setSidebarTab}
-                data={[
-                  { label: 'AI Chat', value: 'ai' },
-                  { label: 'Info', value: 'info' },
-                ]}
-                size="xs"
-                fullWidth
-                style={{ margin: '4px 8px 0' }}
-              />
+            <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
               <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
                 <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
                   <AiChat
@@ -246,6 +235,28 @@ export default function App() {
                   <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
                 </div>
               </div>
+              <div className="activity-bar">
+                <Tooltip label="Info" position="left">
+                  <ActionIcon
+                    variant={sidebarTab === 'info' ? 'light' : 'subtle'}
+                    color={sidebarTab === 'info' ? 'blue' : 'gray'}
+                    size="lg"
+                    onClick={() => setSidebarTab('info')}
+                  >
+                    <IconInfoCircle size={20} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="AI Chat" position="left">
+                  <ActionIcon
+                    variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
+                    color={sidebarTab === 'ai' ? 'blue' : 'gray'}
+                    size="lg"
+                    onClick={() => setSidebarTab('ai')}
+                  >
+                    <IconSparkles size={20} />
+                  </ActionIcon>
+                </Tooltip>
+              </div>
             </div>
           </Allotment.Pane>
         </Allotment>
@@ -254,44 +265,40 @@ export default function App() {
       <AppShell.Footer
         style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderTop: '1px solid var(--mantine-color-dark-4)' }}
       >
-        <Group h="100%" px="md" justify="space-between">
-          <Text size="sm" c="dimmed">
-            Built by Nikolay Belykh @{' '}
-            <Text component="a" href="https://unmanagedvisio.com" target="_blank" size="sm" c="dimmed" td="underline">
-              Unmanaged Visio
+        <Group h="100%" px="xs" justify="space-between">
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">v{__APP_VERSION__}</Text>
+            <Text size="xs" c="dimmed">
+              <Text component="a" href="https://unmanagedvisio.com" target="_blank" size="xs" c="dimmed" td="underline">
+                Nikolay Belykh
+              </Text>
             </Text>
-            {' '}
-            <Text component="a" href="/privacy-policy.md" target="_blank" size="sm" c="dimmed" td="underline">
-              privacy policy
+            <Text component="a" href="/privacy-policy.md" target="_blank" size="xs" c="dimmed" td="underline">
+              Privacy
             </Text>
-          </Text>
-          <Group gap="md">
-            <Text size="sm" c="dimmed">
-              v{__APP_VERSION__}
-            </Text>
+          </Group>
+          <Group gap="xs">
             <Text
               component="a"
               href="https://github.com/nbelyh/editsvgcode/issues"
               target="_blank"
               rel="noopener noreferrer"
-              size="sm"
+              size="xs"
               c="dimmed"
-              td="underline"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}
             >
-              <IconBug size={16} /> Report Issue
+              <IconBug size={12} />
             </Text>
             <Text
               component="a"
               href="https://github.com/nbelyh/editsvgcode"
               target="_blank"
               rel="noopener noreferrer"
-              size="sm"
+              size="xs"
               c="dimmed"
-              td="underline"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}
             >
-              <IconBrandGithub size={16} /> GitHub
+              <IconBrandGithub size={12} />
             </Text>
           </Group>
         </Group>

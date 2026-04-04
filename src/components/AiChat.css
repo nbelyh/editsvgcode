@@ -8,36 +8,14 @@
   color: var(--mantine-color-text);
 }
 
-.aui-toolbar {
+.aui-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 2px;
   padding: 4px 8px;
   border-bottom: 1px solid var(--mantine-color-default-border);
-}
-
-.aui-toolbar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  color: var(--mantine-color-dimmed);
-  cursor: pointer;
-  padding: 4px;
-  height: 28px;
-  width: 28px;
-}
-
-.aui-toolbar-btn:hover {
-  color: var(--mantine-color-text);
-  border-color: var(--mantine-color-text);
-}
-
-.aui-toolbar-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  flex-shrink: 0;
 }
 
 .aui-thread {
@@ -233,46 +211,33 @@
 }
 
 /* Composer */
-.aui-composer-handle {
-  height: 5px;
-  cursor: ns-resize;
-  border-top: 1px solid var(--mantine-color-default-border);
-  flex-shrink: 0;
-}
-
-.aui-composer-handle:hover {
-  background-color: var(--mantine-primary-color-filled);
-  opacity: 0.4;
-}
-
 .aui-composer-area {
   display: flex;
   flex-direction: column;
   padding: 8px;
   flex-shrink: 0;
+  gap: 6px;
+  border-top: 1px solid var(--mantine-color-default-border);
 }
 
 .aui-composer {
-  display: flex;
-  gap: 4px;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
+  position: relative;
 }
 
 .aui-composer-input {
-  flex: 1;
+  width: 100%;
   background-color: var(--mantine-color-dark-6, var(--mantine-color-gray-0));
   border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
+  border-radius: var(--mantine-radius-md);
   color: var(--mantine-color-text);
   font-size: 13px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   outline: none;
   resize: none;
   font-family: inherit;
-  min-height: 0;
-  overflow-y: auto;
+  min-height: 60px;
+  max-height: 200px;
+  overflow-y: hidden;
   box-sizing: border-box;
 }
 
@@ -284,24 +249,22 @@
   color: var(--mantine-color-placeholder);
 }
 
-.aui-composer-send {
-  align-self: flex-end;
-  background-color: var(--mantine-primary-color-filled);
-  color: var(--mantine-primary-color-contrast, white);
-  border: none;
-  border-radius: var(--mantine-radius-sm);
-  padding: 6px 12px;
-  font-size: 13px;
-  cursor: pointer;
+/* Footer row: model selector + actions */
+.aui-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.aui-composer-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.aui-usage {
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
   white-space: nowrap;
-  height: 32px;
-}
-
-.aui-composer-send:hover {
-  background-color: var(--mantine-primary-color-filled-hover);
-}
-
-.aui-composer-send:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
