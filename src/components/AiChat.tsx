@@ -360,8 +360,16 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
         <div className="aui-composer-area">
           {selectedElement && (
             <div style={{ marginBottom: 4 }}>
-              <Badge size="xs" variant="light" color="violet">
-                Selected: &lt;{selectedElement.match(/^<(\S+)/)?.[1] ?? '?'}&gt;
+              <Badge size="xs" variant="light" color="violet" style={{ maxWidth: '100%', textTransform: 'none' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {(() => {
+                    const maxLen = 60;
+                    // Get the opening tag (up to first > or />)
+                    const openTag = selectedElement.match(/^<[^>]*?\/?>/)?.[0] ?? selectedElement;
+                    if (openTag.length <= maxLen) return openTag;
+                    return openTag.slice(0, maxLen - 1) + '…>';
+                  })()}
+                </span>
               </Badge>
             </div>
           )}
