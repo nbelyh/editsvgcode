@@ -1,24 +1,45 @@
 import { useState, useEffect } from 'react';
 import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
-import { IconLogin, IconLogout, IconUser } from '@tabler/icons-react';
-import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
+import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser } from '@tabler/icons-react';
+import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle, signOutUser } from '../lib/firebase';
+import { signInWithGoogle, signInWithGithub, signOutUser } from '../lib/firebase';
+
+interface UserInfo {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  isAnonymous: boolean;
+}
+
+function snapshotUser(u: import('firebase/auth').User | null): UserInfo | null {
+  if (!u) return null;
+  return { uid: u.uid, displayName: u.displayName, email: u.email, photoURL: u.photoURL, isAnonymous: u.isAnonymous };
+}
 
 export function UserMenu() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const auth = getAuth();
-    return onAuthStateChanged(auth, setUser);
+    return onIdTokenChanged(auth, (u) => setUser(snapshotUser(u)));
   }, []);
 
   const isAnonymous = !user || user.isAnonymous;
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign-in failed:', err);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    try {
+      await signInWithGithub();
     } catch (err) {
       console.error('Sign-in failed:', err);
     }
@@ -62,8 +83,11 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate('/profile')}>
               Profile &amp; Files
             </Menu.Item>
-            <Menu.Item leftSection={<IconLogin size={14} />} onClick={handleSignIn}>
+            <Menu.Item leftSection={<IconBrandGoogle size={14} />} onClick={handleGoogleSignIn}>
               Sign in with Google
+            </Menu.Item>
+            <Menu.Item leftSection={<IconBrandGithub size={14} />} onClick={handleGithubSignIn}>
+              Sign in with GitHub
             </Menu.Item>
           </>
         ) : (

@@ -18,10 +18,12 @@ import {
   signInAnonymously,
   signInWithPopup,
   GoogleAuthProvider,
+  GithubAuthProvider,
   linkWithPopup,
   updateProfile,
   onAuthStateChanged,
   connectAuthEmulator,
+  type AuthProvider,
   type User,
 } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
@@ -112,33 +114,42 @@ export class EditSvgCodeDb {
   }
 }
 
-/** Sign in with Google. If the user is currently anonymous, link the account so data is preserved. */
-export async function signInWithGoogle(): Promise<User> {
+/** Sign in with a provider. If anonymous, link the account to preserve data. */
+async function signInWithProvider(provider: AuthProvider): Promise<User> {
   const auth = getAuth();
-  const provider = new GoogleAuthProvider();
+  let user: User;
 
-  // If currently signed in anonymously, try to link to preserve data
   if (auth.currentUser?.isAnonymous) {
     try {
       const result = await linkWithPopup(auth.currentUser, provider);
-      // After linking, the profile may still have the anonymous user's empty name/photo.
-      // Copy from the Google credential so displayName & photoURL are visible.
-      const google = result.user.providerData.find((p) => p.providerId === 'google.com');
-      if (google && (!result.user.displayName || !result.user.photoURL)) {
+      await result.user.reload();
+      const linked = result.user.providerData[0];
+      if (linked && (!result.user.displayName || !result.user.photoURL)) {
         await updateProfile(result.user, {
-          displayName: google.displayName ?? result.user.displayName,
-          photoURL: google.photoURL ?? result.user.photoURL,
+          displayName: linked.displayName || result.user.displayName || undefined,
+          photoURL: linked.photoURL || result.user.photoURL || undefined,
         });
       }
-      return result.user;
+      user = result.user;
     } catch (err: unknown) {
-      // If linking fails (e.g. account already exists), fall through to regular sign-in
       if ((err as { code?: string }).code !== 'auth/credential-already-in-use') throw err;
+      user = (await signInWithPopup(auth, provider)).user;
     }
+  } else {
+    user = (await signInWithPopup(auth, provider)).user;
   }
 
-  const result = await signInWithPopup(auth, provider);
-  return result.user;
+  // Refresh token so onIdTokenChanged fires in UI components
+  await user.getIdToken(true);
+  return user;
+}
+
+export function signInWithGoogle(): Promise<User> {
+  return signInWithProvider(new GoogleAuthProvider());
+}
+
+export function signInWithGithub(): Promise<User> {
+  return signInWithProvider(new GithubAuthProvider());
 }
 
 /** Sign out and fall back to anonymous auth. */
