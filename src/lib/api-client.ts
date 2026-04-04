@@ -1,5 +1,6 @@
 import { getAuth } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
+import { generateImage } from './image-gen';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -69,6 +70,8 @@ async function callServer(
   return data as ServerResponse;
 }
 
+export type ProgressStatus = 'thinking' | 'generating-image' | 'vectorizing';
+
 export async function sendChatRequest(
   inputMessages: ChatMessage[],
   currentSvg: string,
@@ -76,6 +79,7 @@ export async function sendChatRequest(
   selectedLineRange?: { start: number; end: number },
   model?: string,
   signal?: AbortSignal,
+  onProgress?: (status: ProgressStatus) => void,
 ): Promise<ChatResponse> {
   let messages = inputMessages;
   const auth = getAuth();
@@ -106,6 +110,7 @@ export async function sendChatRequest(
   }
 
   // First call
+  onProgress?.('thinking');
   let response = await callServer({ svgContext, messages, model }, idToken, signal);
 
   // Agentic loop — execute read-only tools locally, send results back
@@ -141,7 +146,7 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg' || item.name === 'replace_lines')) {
+    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image')) {
       const args = JSON.parse(item.arguments!);
       // Apply edit_svg operations locally, chaining from previous tool call result
       if (item.name === 'edit_svg') {
@@ -154,6 +159,12 @@ export async function sendChatRequest(
         runningSvg = args.svg;
       } else if (item.name === 'replace_svg') {
         runningSvg = args.svg;
+      } else if (item.name === 'generate_image') {
+        // Call server to generate raster image and vectorize to SVG
+        onProgress?.('generating-image');
+        const result = await generateImage(args.prompt, signal, (s) => onProgress?.(s));
+        args.svg = result.svg;
+        runningSvg = result.svg;
       }
       toolCalls.push({ name: item.name, arguments: args });
     }

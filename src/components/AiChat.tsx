@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Badge, ActionIcon, Tooltip, Select } from '@mantine/core';
 import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, type ChatMessage, type ChatToolCall } from '../lib/api-client';
+import { sendChatRequest, type ChatMessage, type ChatToolCall, type ProgressStatus } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
 
@@ -39,6 +39,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
@@ -89,6 +90,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setMessages(newMessages);
     setInput('');
     setIsRunning(true);
+    setProgressStatus('thinking');
 
     const abort = new AbortController();
     abortRef.current = abort;
@@ -103,6 +105,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         selectedLineRange,
         model,
         abort.signal,
+        setProgressStatus,
       );
 
       setUsage(response.usage);
@@ -351,7 +354,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
           {isRunning && (
             <div className="aui-msg aui-msg-assistant">
-              <div className="aui-tool-call">Thinking…</div>
+              <div className="aui-status-indicator">
+                <span className="aui-spinner" />
+                {progressStatus === 'thinking' && 'Thinking…'}
+                {progressStatus === 'generating-image' && 'Generating image…'}
+                {progressStatus === 'vectorizing' && 'Vectorizing…'}
+              </div>
             </div>
           )}
 

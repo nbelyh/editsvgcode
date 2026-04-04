@@ -1,13 +1,15 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import wasm from 'vite-plugin-wasm';
 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
   },
-  plugins: [react()],
+  plugins: [react(), wasm()],
   build: {
+    target: 'es2022',
     outDir: 'dist',
   },
   server: {

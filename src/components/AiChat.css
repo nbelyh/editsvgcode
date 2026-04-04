@@ -137,6 +137,30 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* Status indicator with spinner */
+.aui-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--mantine-color-default-border);
+  border-top-color: var(--mantine-primary-color-filled);
+  border-radius: 50%;
+  animation: aui-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes aui-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Proposal card (replace_svg) */
 .aui-proposal {
   margin-top: 4px;
