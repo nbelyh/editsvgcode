@@ -1,4 +1,5 @@
 import { getAuth } from 'firebase/auth';
+import { buildSvgContext, executeReadTool, applyEditSvg } from './svg-ai';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -24,6 +25,50 @@ export interface ChatErrorResponse {
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
+/** Raw response shape from the server (thin AI proxy) */
+interface ServerResponse {
+  output: Array<{
+    type: string;
+    name?: string;
+    call_id?: string;
+    arguments?: string;
+    content?: Array<{ type: string; text?: string }>;
+  }>;
+  usage: { used: number; limit: number };
+}
+
+const MAX_TOOL_ROUNDS = 10;
+
+async function callServer(
+  body: { svgContext: string; messages: ChatMessage[]; model?: string; continuation?: unknown[] },
+  idToken: string,
+  signal?: AbortSignal,
+): Promise<ServerResponse> {
+  const res = await fetch(`${API_URL}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    const err = data as ChatErrorResponse;
+    const error = new Error(err.error ?? `Request failed (${res.status})`);
+    if (res.status === 429) {
+      (error as Error & { used?: number; limit?: number }).used = err.used;
+      (error as Error & { used?: number; limit?: number }).limit = err.limit;
+    }
+    throw error;
+  }
+
+  return data as ServerResponse;
+}
+
 export async function sendChatRequest(
   messages: ChatMessage[],
   currentSvg: string,
@@ -40,27 +85,57 @@ export async function sendChatRequest(
 
   const idToken = await user.getIdToken();
 
-  const res = await fetch(`${API_URL}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ messages, currentSvg, selectedElement, selectedLineRange, model }),
-    signal,
-  });
+  // Build budgeted context on the client — only this small string goes to the server
+  const svgContext = buildSvgContext(currentSvg, selectedElement, selectedLineRange);
 
-  const data = await res.json();
+  // First call
+  let response = await callServer({ svgContext, messages, model }, idToken, signal);
 
-  if (!res.ok) {
-    const err = data as ChatErrorResponse;
-    const error = new Error(err.error ?? `Request failed (${res.status})`);
-    if (res.status === 429) {
-      (error as Error & { used?: number; limit?: number }).used = err.used;
-      (error as Error & { used?: number; limit?: number }).limit = err.limit;
+  // Agentic loop — execute read-only tools locally, send results back
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const readCalls = response.output.filter(
+      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg')
+    );
+
+    if (readCalls.length === 0) break;
+
+    // Build continuation: previous AI output + local tool results
+    const continuation: unknown[] = [...response.output];
+    for (const call of readCalls) {
+      const args = JSON.parse(call.arguments!);
+      const result = executeReadTool(call.name!, args, currentSvg);
+      continuation.push({ type: 'function_call_output', call_id: call.call_id, output: result ?? '' });
     }
-    throw error;
+
+    response = await callServer({ svgContext, messages, model, continuation }, idToken, signal);
   }
 
-  return data as ChatResponse;
+  // Extract message + tool calls from final response
+  let message = '';
+  const toolCalls: ChatToolCall[] = [];
+
+  for (const item of response.output) {
+    if (item.type === 'message') {
+      for (const part of item.content ?? []) {
+        if (part.type === 'output_text' && part.text) {
+          message += part.text;
+        }
+      }
+    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg')) {
+      const args = JSON.parse(item.arguments!);
+      // Apply edit_svg operations locally
+      if (item.name === 'edit_svg') {
+        const { svg, failed } = applyEditSvg(currentSvg, args.operations);
+        args.svg = svg;
+        if (failed.length) args.failedOperations = failed;
+      }
+      toolCalls.push({ name: item.name, arguments: args });
+    }
+  }
+
+  return {
+    message,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    usage: response.usage,
+  };
 }
