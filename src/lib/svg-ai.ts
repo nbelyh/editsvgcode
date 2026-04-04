@@ -138,7 +138,7 @@ export function executeReadTool(
  */
 export function applyEditSvg(
   currentSvg: string,
-  operations: Array<{ find: string; replace: string }>
+  operations: Array<{ find: string; replace: string; replaceAll?: boolean }>
 ): { svg: string; failed: string[] } {
   let svg = normalize(currentSvg);
   const failed: string[] = [];
@@ -146,7 +146,7 @@ export function applyEditSvg(
     const find = normalize(op.find);
     const replace = normalize(op.replace);
     if (svg.includes(find)) {
-      svg = svg.replace(find, replace);
+      svg = op.replaceAll ? svg.split(find).join(replace) : svg.replace(find, replace);
     } else {
       failed.push(find.length > 60 ? find.substring(0, 60) + '…' : find);
     }

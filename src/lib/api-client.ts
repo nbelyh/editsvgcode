@@ -70,13 +70,14 @@ async function callServer(
 }
 
 export async function sendChatRequest(
-  messages: ChatMessage[],
+  inputMessages: ChatMessage[],
   currentSvg: string,
   selectedElement?: string,
   selectedLineRange?: { start: number; end: number },
   model?: string,
   signal?: AbortSignal,
 ): Promise<ChatResponse> {
+  let messages = inputMessages;
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) {
@@ -90,6 +91,19 @@ export async function sendChatRequest(
 
   // Build budgeted context on the client — only this small string goes to the server
   const svgContext = buildSvgContext(normalizedSvg, selectedElement, selectedLineRange);
+
+  // Append current selection to the last user message so the model sees it in context
+  if (selectedElement && messages.length > 0) {
+    const lastIdx = messages.length - 1;
+    if (messages[lastIdx].role === 'user') {
+      const selectionNote = selectedLineRange
+        ? `\n\n[Currently selected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\`]`
+        : `\n\n[Currently selected element:\n\`\`\`svg\n${selectedElement}\n\`\`\`]`;
+      messages = messages.map((m, i) =>
+        i === lastIdx ? { ...m, content: m.content + selectionNote } : m
+      );
+    }
+  }
 
   // First call
   let response = await callServer({ svgContext, messages, model }, idToken, signal);
@@ -117,6 +131,9 @@ export async function sendChatRequest(
   let message = '';
   const toolCalls: ChatToolCall[] = [];
 
+  // Track running SVG state so multiple tool calls chain correctly
+  let runningSvg = normalizedSvg;
+
   for (const item of response.output) {
     if (item.type === 'message') {
       for (const part of item.content ?? []) {
@@ -126,13 +143,17 @@ export async function sendChatRequest(
       }
     } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg' || item.name === 'replace_lines')) {
       const args = JSON.parse(item.arguments!);
-      // Apply edit_svg operations locally
+      // Apply edit_svg operations locally, chaining from previous tool call result
       if (item.name === 'edit_svg') {
-        const { svg, failed } = applyEditSvg(normalizedSvg, args.operations);
+        const { svg, failed } = applyEditSvg(runningSvg, args.operations);
         args.svg = svg;
+        runningSvg = svg;
         if (failed.length) args.failedOperations = failed;
       } else if (item.name === 'replace_lines') {
-        args.svg = applyReplaceLines(normalizedSvg, args.start, args.end, args.content);
+        args.svg = applyReplaceLines(runningSvg, args.start, args.end, args.content);
+        runningSvg = args.svg;
+      } else if (item.name === 'replace_svg') {
+        runningSvg = args.svg;
       }
       toolCalls.push({ name: item.name, arguments: args });
     }
