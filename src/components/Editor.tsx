@@ -1,7 +1,8 @@
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
-import { registerSvgProviders, formatXml } from '../lib/completion-provider';
+import { registerSvgProviders } from '../lib/completion-provider';
+import { formatXml } from '../lib/svg-utils';
 
 interface EditorProps {
   value: string;

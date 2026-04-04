@@ -17,6 +17,33 @@ export function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
 }
 
+/** Pretty-print XML/SVG with proper indentation */
+export function formatXml(xml: string): string {
+  const PADDING = '  ';
+  const reg = /(>)(<)(\/*)/g;
+  let pad = 0;
+  xml = xml.replace(reg, '$1\n$2$3');
+  return xml
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((rawNode) => {
+      const node = rawNode.trim();
+      let indent = 0;
+      if (node.match(/.+<\/\w[^>]*>$/)) {
+        indent = 0;
+      } else if (node.match(/^<\/\w/) && pad > 0) {
+        pad -= 1;
+      } else if (node.match(/^<\w[^>]*[^/]>.*$/)) {
+        indent = 1;
+      } else {
+        indent = 0;
+      }
+      pad += indent;
+      return PADDING.repeat(pad - indent) + node;
+    })
+    .join('\n');
+}
+
 /**
  * Find the start/end offsets and line/column positions of the Nth occurrence of `<tagName` in source.
  * Returns null if the occurrence is not found.

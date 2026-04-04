@@ -8,7 +8,7 @@ import { Preview } from './components/Preview';
 import { Sidebar } from './components/Sidebar';
 import { AiChat } from './components/AiChat';
 import { EditSvgCodeDb } from './lib/firebase';
-import { getUniqueId, getNewUniqueId, stripBom, findElementRange } from './lib/svg-utils';
+import { getUniqueId, getNewUniqueId, stripBom, findElementRange, formatXml } from './lib/svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from './lib/chat-storage';
 import './App.css';
 
@@ -63,11 +63,11 @@ export default function App() {
       const savedSvg = await loadSvgCode();
       setCanUndo(await hasCheckpoints());
       if (savedSvg && savedSvg.includes('<svg')) {
-        setSvgCode(savedSvg);
+        setSvgCode(formatXml(savedSvg));
         setReadOnly(false);
       } else if (uniqueId) {
         db.loadDocument(uniqueId).then((text) => {
-          setSvgCode(text || DEFAULT_SVG);
+          setSvgCode(formatXml(text || DEFAULT_SVG));
           setReadOnly(false);
         });
       } else {
@@ -101,7 +101,7 @@ export default function App() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setSvgCode(stripBom(ev.target?.result as string));
+      setSvgCode(formatXml(stripBom(ev.target?.result as string)));
     };
     reader.readAsText(file);
     // Reset so the same file can be uploaded again

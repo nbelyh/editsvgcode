@@ -1,6 +1,7 @@
 import type { Monaco } from '@monaco-editor/react';
 import type { editor, Position } from 'monaco-editor';
 import { SvgSchema } from '../svg-schema';
+import { formatXml } from './svg-utils';
 
 const schema = SvgSchema as Record<string, any>;
 
@@ -187,32 +188,6 @@ function getAttributeValueCompletions(
   }
 
   return suggestions;
-}
-
-export function formatXml(xml: string): string {
-  const PADDING = '  ';
-  const reg = /(>)(<)(\/*)/g;
-  let pad = 0;
-  xml = xml.replace(reg, '$1\r\n$2$3');
-  return xml
-    .split('\r\n')
-    .filter((line) => line.trim())
-    .map((rawNode) => {
-      const node = rawNode.trim();
-      let indent = 0;
-      if (node.match(/.+<\/\w[^>]*>$/)) {
-        indent = 0;
-      } else if (node.match(/^<\/\w/) && pad > 0) {
-        pad -= 1;
-      } else if (node.match(/^<\w[^>]*[^/]>.*$/)) {
-        indent = 1;
-      } else {
-        indent = 0;
-      }
-      pad += indent;
-      return PADDING.repeat(pad - indent) + node;
-    })
-    .join('\r\n');
 }
 
 export function registerSvgProviders(monaco: Monaco) {

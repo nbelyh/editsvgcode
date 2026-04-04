@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripBom, findElementRange, getNewUniqueId } from '../svg-utils';
+import { stripBom, findElementRange, getNewUniqueId, formatXml } from '../svg-utils';
 
 // ---------------------------------------------------------------------------
 // stripBom
@@ -104,5 +104,37 @@ describe('findElementRange', () => {
     expect(range!.startLine).toBe(1);
     expect(range!.startCol).toBe(6); // after '<svg>'
     expect(range!.endCol).toBe(13); // after '<rect/>'
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatXml
+// ---------------------------------------------------------------------------
+describe('formatXml', () => {
+  it('formats a single-line SVG with indentation', () => {
+    const input = '<svg><rect/></svg>';
+    const output = formatXml(input);
+    const lines = output.split('\n');
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines[0].trim()).toBe('<svg>');
+    expect(lines[lines.length - 1].trim()).toBe('</svg>');
+  });
+
+  it('preserves self-closing tags', () => {
+    const input = '<svg><rect/></svg>';
+    const output = formatXml(input);
+    expect(output).toContain('<rect/>');
+  });
+
+  it('handles already formatted XML', () => {
+    const input = '<svg>\n  <rect/>\n</svg>';
+    const output = formatXml(input);
+    expect(output).toContain('<rect/>');
+    expect(output).toContain('<svg>');
+    expect(output).toContain('</svg>');
+  });
+
+  it('handles empty string', () => {
+    expect(formatXml('')).toBe('');
   });
 });

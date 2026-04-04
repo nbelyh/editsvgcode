@@ -4,7 +4,6 @@ import {
   getLastOpenedTag,
   isItemAvailable,
   getAttributeValueContext,
-  formatXml,
 } from '../completion-provider';
 
 // ---------------------------------------------------------------------------
@@ -144,37 +143,5 @@ describe('getAttributeValueContext', () => {
     const result = getAttributeValueContext('<svg xmlns:xlink="http://');
     expect(result).toBeDefined();
     expect(result!.attrName).toBe('xmlns:xlink');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// formatXml
-// ---------------------------------------------------------------------------
-describe('formatXml', () => {
-  it('formats a single-line SVG with indentation', () => {
-    const input = '<svg><rect/></svg>';
-    const output = formatXml(input);
-    const lines = output.split('\r\n');
-    expect(lines.length).toBeGreaterThan(1);
-    expect(lines[0].trim()).toBe('<svg>');
-    expect(lines[lines.length - 1].trim()).toBe('</svg>');
-  });
-
-  it('preserves self-closing tags', () => {
-    const input = '<svg><rect/></svg>';
-    const output = formatXml(input);
-    expect(output).toContain('<rect/>');
-  });
-
-  it('handles already formatted XML', () => {
-    const input = '<svg>\r\n  <rect/>\r\n</svg>';
-    const output = formatXml(input);
-    expect(output).toContain('<rect/>');
-    expect(output).toContain('<svg>');
-    expect(output).toContain('</svg>');
-  });
-
-  it('handles empty string', () => {
-    expect(formatXml('')).toBe('');
   });
 });
