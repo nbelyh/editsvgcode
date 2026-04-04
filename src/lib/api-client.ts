@@ -1,6 +1,9 @@
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
+import type { TokenUsage } from './pricing';
+
+export type { TokenUsage } from './pricing';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,10 +15,20 @@ export interface ChatToolCall {
   arguments: Record<string, unknown>;
 }
 
+export interface DailyTokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cached_tokens: number;
+  requests: number;
+  by_model: Record<string, { input_tokens: number; output_tokens: number; cached_tokens: number; requests: number }>;
+}
+
 export interface ChatResponse {
   message: string;
   toolCalls?: ChatToolCall[];
   usage: { used: number; limit: number };
+  tokens: TokenUsage[];
+  dailyTokens?: DailyTokenUsage;
 }
 
 export interface ChatErrorResponse {
@@ -36,9 +49,36 @@ interface ServerResponse {
     content?: Array<{ type: string; text?: string }>;
   }>;
   usage: { used: number; limit: number };
+  tokens?: {
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    cached_tokens: number;
+  };
+  daily_tokens?: DailyTokenUsage;
 }
 
 const MAX_TOOL_ROUNDS = 10;
+
+/** Fetch current usage and daily token totals (read-only, no increment). */
+export async function fetchUsage(): Promise<{ usage: { used: number; limit: number }; dailyTokens: DailyTokenUsage } | null> {
+  const auth = getAuth();
+
+  // Wait for auth to be ready (anonymous sign-in may not have completed yet)
+  const user = await new Promise<import('firebase/auth').User | null>((resolve) => {
+    if (auth.currentUser) return resolve(auth.currentUser);
+    const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u); });
+  });
+  if (!user) return null;
+
+  const idToken = await user.getIdToken();
+  const res = await fetch(`${API_URL}/api/usage`, {
+    headers: { 'Authorization': `Bearer ${idToken}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return { usage: data.usage, dailyTokens: data.daily_tokens };
+}
 
 async function callServer(
   body: { svgContext: string; messages: ChatMessage[]; model?: string; continuation?: unknown[] },
@@ -113,6 +153,17 @@ export async function sendChatRequest(
   onProgress?.('thinking');
   let response = await callServer({ svgContext, messages, model }, idToken, signal);
 
+  // Accumulate token usage across all server round-trips
+  const allTokens: TokenUsage[] = [];
+  if (response.tokens) {
+    allTokens.push({
+      model: response.tokens.model,
+      inputTokens: response.tokens.input_tokens,
+      outputTokens: response.tokens.output_tokens,
+      cachedTokens: response.tokens.cached_tokens,
+    });
+  }
+
   // Agentic loop — execute read-only tools locally, send results back
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const readCalls = response.output.filter(
@@ -130,6 +181,14 @@ export async function sendChatRequest(
     }
 
     response = await callServer({ svgContext, messages, model, continuation }, idToken, signal);
+    if (response.tokens) {
+      allTokens.push({
+        model: response.tokens.model,
+        inputTokens: response.tokens.input_tokens,
+        outputTokens: response.tokens.output_tokens,
+        cachedTokens: response.tokens.cached_tokens,
+      });
+    }
   }
 
   // Extract message + tool calls from final response
@@ -165,6 +224,7 @@ export async function sendChatRequest(
         const result = await generateImage(args.prompt, signal, (s) => onProgress?.(s));
         args.svg = result.svg;
         runningSvg = result.svg;
+        if (result.tokens) allTokens.push(result.tokens);
       }
       toolCalls.push({ name: item.name, arguments: args });
     }
@@ -174,5 +234,7 @@ export async function sendChatRequest(
     message,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     usage: response.usage,
+    tokens: allTokens,
+    dailyTokens: response.daily_tokens,
   };
 }

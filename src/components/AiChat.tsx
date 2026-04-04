@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Badge, ActionIcon, Tooltip, Select } from '@mantine/core';
 import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, type ChatMessage, type ChatToolCall, type ProgressStatus } from '../lib/api-client';
+import { sendChatRequest, fetchUsage, type ChatMessage, type ChatToolCall, type ProgressStatus, type TokenUsage, type DailyTokenUsage } from '../lib/api-client';
+import { computeChatCost, computeImageCost, formatCost, formatTokens } from '../lib/pricing';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
 
@@ -13,6 +14,7 @@ interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
   toolCalls?: StoredToolCall[];
+  tokens?: TokenUsage[];
 }
 
 interface AiChatProps {
@@ -35,12 +37,33 @@ const MODELS = [
   { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
 ];
 
+function TokenInfo({ tokens }: { tokens: TokenUsage[] }) {
+  const totalCost = tokens.reduce((sum, t) => {
+    const isImage = t.model.startsWith('gpt-image');
+    return sum + (isImage ? computeImageCost(t) : computeChatCost(t));
+  }, 0);
+  const totalInput = tokens.reduce((s, t) => s + t.inputTokens, 0);
+  const totalOutput = tokens.reduce((s, t) => s + t.outputTokens, 0);
+  const totalCached = tokens.reduce((s, t) => s + t.cachedTokens, 0);
+  const models = [...new Set(tokens.map(t => t.model))];
+
+  return (
+    <div className="aui-token-info">
+      <span>{models.join(', ')}</span>
+      <span>↓{formatTokens(totalInput)}{totalCached > 0 && ` (${formatTokens(totalCached)} cached)`}</span>
+      <span>↑{formatTokens(totalOutput)}</span>
+      <span>{formatCost(totalCost)}</span>
+    </div>
+  );
+}
+
 export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [dailyTokens, setDailyTokens] = useState<DailyTokenUsage | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -66,6 +89,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         setMessages(stored);
       }
       loadedRef.current = true;
+    });
+    // Fetch current usage + daily token totals
+    fetchUsage().then((data) => {
+      if (data) {
+        setUsage(data.usage);
+        setDailyTokens(data.dailyTokens);
+      }
     });
   }, []);
 
@@ -110,6 +140,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
       setUsage(response.usage);
 
+      // Store server-side daily totals
+      if (response.dailyTokens) setDailyTokens(response.dailyTokens);
+
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: response.message,
@@ -117,6 +150,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           ...tc,
           status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
         })),
+        tokens: response.tokens.length > 0 ? response.tokens : undefined,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -240,7 +274,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
             // Assistant messages with only tool calls: render proposals directly without double-wrapping
             if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content) {
-              return msg.toolCalls.map((tc, tcIdx) => (
+              return (<div key={msgIdx}>
+                {msg.toolCalls.map((tc, tcIdx) => (
                 <div key={`${msgIdx}-${tcIdx}`} className="aui-proposal" style={{ marginBottom: 8 }}>
                   <div className="aui-proposal-header">
                     {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
@@ -282,7 +317,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                     </div>
                   )}
                 </div>
-              ));
+              ))}
+              {msg.tokens && <TokenInfo tokens={msg.tokens} />}
+              </div>);
             }
 
             return (<>
@@ -348,6 +385,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                   )}
                 </div>
               ))}
+              {msg.tokens && <TokenInfo tokens={msg.tokens} />}
             </div>
             </>);
           })}
@@ -414,6 +452,24 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             <div className="aui-composer-footer-actions">
               {usage && (
                 <span className="aui-usage">{usage.used}/{usage.limit}</span>
+              )}
+              {dailyTokens && dailyTokens.requests > 0 && (
+                <Tooltip multiline w={220} label={
+                  Object.entries(dailyTokens.by_model).map(([m, u]) => {
+                    const isImg = m.startsWith('gpt-image');
+                    const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
+                    const cost = isImg ? computeImageCost(t) : computeChatCost(t);
+                    return `${m}: ↓${formatTokens(u.input_tokens)} ↑${formatTokens(u.output_tokens)} ${formatCost(cost)}`;
+                  }).join('\n')
+                }>
+                  <span className="aui-usage" style={{ marginLeft: 4, cursor: 'default', whiteSpace: 'pre-line' }}>
+                    {formatCost(Object.entries(dailyTokens.by_model).reduce((sum, [m, u]) => {
+                      const isImg = m.startsWith('gpt-image');
+                      const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
+                      return sum + (isImg ? computeImageCost(t) : computeChatCost(t));
+                    }, 0))} today
+                  </span>
+                </Tooltip>
               )}
               <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
                 <ActionIcon

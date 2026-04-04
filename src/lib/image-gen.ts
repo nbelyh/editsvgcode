@@ -1,4 +1,5 @@
 import { getAuth } from 'firebase/auth';
+import type { TokenUsage } from './pricing';
 
 export type ImageProgressStatus = 'generating-image' | 'vectorizing';
 
@@ -12,7 +13,7 @@ export async function generateImage(
   prompt: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
-): Promise<{ svg: string; usage: { used: number; limit: number } }> {
+): Promise<{ svg: string; usage: { used: number; limit: number }; tokens?: TokenUsage }> {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
@@ -39,6 +40,14 @@ export async function generateImage(
     limit: Number(res.headers.get('X-Usage-Limit') ?? 0),
   };
 
+  const tokensModel = res.headers.get('X-Tokens-Model');
+  const tokens: TokenUsage | undefined = tokensModel ? {
+    model: tokensModel,
+    inputTokens: Number(res.headers.get('X-Tokens-Input') ?? 0),
+    outputTokens: Number(res.headers.get('X-Tokens-Output') ?? 0),
+    cachedTokens: Number(res.headers.get('X-Tokens-Cached') ?? 0),
+  } : undefined;
+
   const blob = await res.blob();
   const imageUrl = URL.createObjectURL(blob);
 
@@ -46,7 +55,7 @@ export async function generateImage(
   onProgress?.('vectorizing');
   try {
     const svg = await vectorizeInBrowser(imageUrl);
-    return { svg, usage };
+    return { svg, usage, tokens };
   } finally {
     URL.revokeObjectURL(imageUrl);
   }
