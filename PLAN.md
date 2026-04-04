@@ -158,7 +158,7 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 
 ---
 
-## Phase 2: AI Sidebar MVP
+## Phase 2: AI Sidebar MVP ✅ COMPLETE
 
 **Goal:** Working AI chat that can edit SVG. No payments, no auth upgrade. Free for everyone, 5/day server-enforced limit. Builds on Phase 1's click-to-select for contextual editing.
 
@@ -169,58 +169,65 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - CORS locked to `https://editsvgcode.com` (+ `localhost` for dev)
 - Rate limiting enforced server-side in Firestore — localStorage counter is UX display only
 
-### 2.1 Azure Function setup
+### 2.1 Azure Function setup ✅
 
-- Create Azure Function App (Node.js, consumption plan) — same Azure subscription as Azure OpenAI (sponsored)
-- POST /api/chat endpoint
-- Accepts: `Authorization: Bearer <Firebase ID token>`, messages array, current SVG, selected element
-- Azure Function validates token via Firebase Admin SDK (`admin.auth().verifyIdToken(token)`)
-- Extracts UID from verified token → checks/increments Firestore `usage/{uid}/daily` counter
-- Calls Azure OpenAI **Responses API** (`client.responses.create`) with gpt-4.1-mini (default) / gpt-4.1 (Pro)
-- Uses function tools via Responses API tool definitions
-- Returns: response with tool calls (function_call output items)
-- Rate limiting: 5/day per UID, enforced server-side in Firestore (not IP-based, not localStorage)
-- CORS: allow `https://editsvgcode.com` + `http://localhost:*` only
+- ✅ Azure Function App (Node.js) with POST /api/chat endpoint
+- ✅ Validates Firebase Auth ID tokens, extracts UID
+- ✅ Server-side rate limiting in Firestore (usage/{uid}/daily)
+- ✅ Calls Azure OpenAI Responses API (gpt-4.1-mini default)
+- ✅ CORS configured
 
-### 2.2 Define AI tools/functions
+### 2.2 Define AI tools/functions ✅
 
-- `replace_svg(svg_code)` — full SVG replacement
-- `edit_element(selector, attributes, action)` — targeted edit
-- `insert_element(parent_selector, position, svg_fragment)` — add new
-- `get_svg_structure()` — model calls this to understand document
-- System prompt: SVG editing assistant, rules, output format
+- ✅ `replace_svg(svg_code)` — full SVG replacement
+- ✅ `replace_lines` — targeted line-range edits for large SVGs
+- ✅ `replaceAll` option for bulk text replacements
+- ✅ System prompt with SVG editing rules
+- ✅ Selection context passed to AI automatically
 
-### 2.3 AI sidebar UI (VS Code style)
+### 2.3 AI sidebar UI ✅
 
-- VS Code Copilot Chat-like panel in sidebar
-- Message list, input, streaming display
-- Model selector dropdown
-- Wire to Azure Function endpoint via `import.meta.env.VITE_API_URL`
-- Send Firebase ID token (`await user.getIdToken()`) in Authorization header on every request
-- Show tool call results (what the AI is doing)
-- Client-side rate limit display ("3 of 5 free edits used today") — UX hint only, server is source of truth
+- ✅ VS Code Copilot Chat-like panel in sidebar
+- ✅ Message list, input, streaming display
+- ✅ Per-file chat storage in IndexedDB
+- ✅ Token cost tracking per message (model, input/output tokens, cost)
+- ✅ Daily cost display with per-model tooltip
 
-### 2.4 Apply AI edits to editor
+### 2.4 Apply AI edits to editor ✅
 
-- When AI calls replace_svg → switch Monaco to diff mode
-- Show original vs proposed (inline diff)
-- Preview pane shows the proposed SVG rendered
-- Accept button: commit new SVG, switch back to normal editor
-- Reject button: discard, revert preview
+- ✅ Monaco diff editor for AI proposals (inline diff)
+- ✅ Preview pane shows proposed SVG
+- ✅ Accept/reject in chat
 
-### 2.5 Streaming UX
+### 2.5 Streaming UX ⏳
 
-- Stream AI text responses in the chat
-- Show "thinking..." indicator
-- Abort button to cancel mid-stream
+- ✅ Progress indicators (thinking, generating image, vectorizing)
+- ⬚ SSE streaming of AI text responses (Azure Functions v4 HTTP streaming needs investigation — `enableHttpStream` + `ReadableStream`/`Readable` didn't work with local func host)
 
-### 2.6 Test & iterate on prompt quality
+### 2.6 AI Image Generation ✅
 
-- Test: "make the rectangle blue"
-- Test: "add a drop shadow"
-- Test: "create a 200x200 circle"
-- Test: "animate the element"
-- Tune system prompt based on results
+- ✅ POST /api/generate-image endpoint (gpt-image-1.5)
+- ✅ Browser-side vectorization via vtracer-webapp (WASM)
+- ✅ Chroma key magenta transparency
+- ✅ Token cost tracking for image generation
+
+### 2.7 Token Usage Tracking ✅
+
+- ✅ Per-user Firestore storage (usage_tokens/{uid}/daily/{date})
+- ✅ GET /api/usage endpoint (read-only)
+- ✅ Azure OpenAI pricing table (pricing.ts)
+- ✅ Per-message and daily cost display in chat UI
+
+### 2.8 Firebase Auth & Profile ✅
+
+- ✅ Google sign-in with anonymous account linking (linkWithPopup)
+- ✅ GitHub sign-in support
+- ✅ Profile update after linking (displayName, photoURL)
+- ✅ UserMenu component with avatar/dropdown
+- ✅ React Router: /, /:fileId, /profile routes
+- ✅ Profile page: user info, shared files list with SVG preview thumbnails + file size
+- ✅ Delete shared files from profile
+- ✅ Share/Save button toggle for new vs existing files
 
 **Deliverable:** Working AI SVG editor with chat, diff preview, 5/day server-enforced limit.
 
@@ -292,25 +299,25 @@ Deploy Phase 2, monitor:
 
 ---
 
-## Phase 4: Payments & User Management
+## Phase 4: Payments & Subscription Management
 
 **Goal:** Monetize with subscriptions via PayProGlobal.
 
-### 4.1 Firebase Auth upgrade
+### 4.1 Firebase Auth upgrade ✅ (moved to Phase 2.8)
 
-- Add Google sign-in + email/password (keep anonymous as fallback)
-- User avatar/menu in navbar (Mantine `Menu`)
-- Login/signup dialog (Mantine `Modal`)
-- Link anonymous account to real account (preserve saved documents + usage history)
+- ✅ Google + GitHub sign-in (keep anonymous as fallback)
+- ✅ User avatar/menu in navbar
+- ✅ Link anonymous account to real account (preserve saved documents + usage history)
 - *Note: Firebase ID token auth + server-side rate limiting already in place from Phase 2*
 
-### 4.2 User profile & settings
+### 4.2 User profile & settings (partially done)
 
-- Settings dialog: account info, subscription status
+- ✅ Profile page: account info, shared files list with preview/size/delete
 - BYOL configuration: user picks provider (OpenAI / Anthropic / Google) + enters API key
 - BYOL keys stored in localStorage (never sent to your server)
 - BYOL requests go direct from browser to AI provider (skip Azure Function)
 - Model selector in AI sidebar reflects available models per provider
+- Subscription status display
 
 ### 4.3 PayProGlobal integration
 
@@ -354,11 +361,10 @@ Deploy Phase 2, monitor:
 - Import: loads SVG into editor with license comment
 - License filter: only show MIT/CC0/Apache/CC-BY results
 
-### 5.2 AI SVG generation
+### 5.2 AI SVG generation ✅ (moved to Phase 2.6)
 
-- "Create a pie chart showing 40% blue, 35% green, 25% red"
-- Uses same Azure Function + AI, different system prompt
-- Result appears in editor
+- ✅ Image generation via gpt-image-1.5
+- ✅ Browser-side vectorization to SVG
 
 ### 5.3 SEO & marketing pages
 
@@ -381,7 +387,7 @@ Deploy Phase 2, monitor:
 ```text
 Phase 0: React rewrite              ✅ COMPLETE
 Phase 1: Enhanced UX (core)         ✅ COMPLETE
-Phase 2: AI sidebar MVP             ← CURRENT
+Phase 2: AI sidebar MVP             ✅ COMPLETE (incl. image gen, auth, profile)
   → DEPLOY & MEASURE 2-3 WEEKS
 Phase 3: Enhanced UX (advanced)     tree, exports, SVGO, id navigation
 Phase 4: Payments                   subscriptions, BYOL, tiers
@@ -390,9 +396,9 @@ Phase 5: Growth                     search, SEO, PWA
 
 ## Manual Steps (Not Claude's Job)
 
-- [ ] Create Azure OpenAI resource + deploy GPT-4o model
-- [ ] Create Azure Function App in Azure Portal
+- [x] Create Azure OpenAI resource + deploy GPT-4.1 models
+- [x] Create Azure Function App in Azure Portal
+- [x] Enable Firebase Auth providers (Google, GitHub) in Firebase Console
 - [ ] Create PayProGlobal account + subscription products
-- [ ] Enable Firebase Auth providers (Google) in Firebase Console
 - [ ] Monitor analytics after Phase 2 launch
 - [ ] Product Hunt / Hacker News launch post
