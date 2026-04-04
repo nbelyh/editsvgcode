@@ -21,10 +21,15 @@ export default function App() {
   const [svgCode, setSvgCode] = useState('Loading please wait...');
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fileId, setFileId] = useState(() => getUniqueId() || sessionStorage.getItem('esvg-local-id') || (() => {
+    const id = '_local_' + getNewUniqueId();
+    sessionStorage.setItem('esvg-local-id', id);
+    return id;
+  })());
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
-  const [sidebarTab, setSidebarTab] = useState<string>('info');
+  const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [canUndo, setCanUndo] = useState(false);
@@ -38,8 +43,8 @@ export default function App() {
 
   // Persist SVG to IndexedDB so it matches chat history on reload
   useEffect(() => {
-    if (!readOnly) saveSvgCode(svgCode);
-  }, [svgCode, readOnly]);
+    if (!readOnly) saveSvgCode(svgCode, fileId);
+  }, [svgCode, readOnly, fileId]);
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -59,9 +64,11 @@ export default function App() {
 
     const handleDbInit = async () => {
       const uniqueId = getUniqueId();
+      if (uniqueId) setFileId(uniqueId);
+      const currentFileId = uniqueId || sessionStorage.getItem('esvg-local-id') || fileId;
       // Try restoring SVG from IndexedDB (matches chat history)
-      const savedSvg = await loadSvgCode();
-      setCanUndo(await hasCheckpoints());
+      const savedSvg = await loadSvgCode(currentFileId);
+      setCanUndo(await hasCheckpoints(currentFileId));
       if (savedSvg && savedSvg.includes('<svg')) {
         setSvgCode(formatXml(savedSvg));
         setReadOnly(false);
@@ -85,6 +92,7 @@ export default function App() {
     if (!db) return;
     const uniqueId = getUniqueId() || getNewUniqueId();
     setSaving(true);
+    setFileId(uniqueId);
     db.saveDocument(uniqueId, svgCode)
       .then(() => {
         history.pushState({}, 'Saved', '/' + uniqueId);
@@ -99,8 +107,11 @@ export default function App() {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const name = file.name.replace(/\.[^.]+$/, '');
     const reader = new FileReader();
     reader.onload = (ev) => {
+      setFileId(name);
+      sessionStorage.setItem('esvg-local-id', name);
       setSvgCode(formatXml(stripBom(ev.target?.result as string)));
     };
     reader.readAsText(file);
@@ -140,19 +151,19 @@ export default function App() {
   }, []);
 
   const handleAcceptSvg = useCallback((svg: string) => {
-    pushCheckpoint(svgCode).then(() => setCanUndo(true));
+    pushCheckpoint(svgCode, fileId).then(() => setCanUndo(true));
     setSvgCode(svg);
     setProposedSvg(null);
   }, [svgCode]);
 
   const handleUndo = useCallback(async (popCount: number) => {
-    const prev = await popCheckpoints(popCount);
+    const prev = await popCheckpoints(popCount, fileId);
     if (prev) {
       setSvgCode(prev);
       setProposedSvg(null);
     }
-    setCanUndo(await hasCheckpoints());
-  }, []);
+    setCanUndo(await hasCheckpoints(fileId));
+  }, [fileId]);
 
   return (
     <AppShell
@@ -223,6 +234,7 @@ export default function App() {
                 <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
                   <AiChat
                     svgCode={svgCode}
+                    fileId={fileId}
                     selectedElement={selectedElement}
                     selectedLineRange={selectedLineRange}
                     onPreviewSvg={handlePreviewSvg}
@@ -241,7 +253,7 @@ export default function App() {
                     variant={sidebarTab === 'info' ? 'light' : 'subtle'}
                     color={sidebarTab === 'info' ? 'blue' : 'gray'}
                     size="lg"
-                    onClick={() => setSidebarTab('info')}
+                    onClick={() => { setSidebarTab('info'); localStorage.setItem('esvg-sidebar-tab', 'info'); }}
                   >
                     <IconInfoCircle size={20} />
                   </ActionIcon>
@@ -251,7 +263,7 @@ export default function App() {
                     variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
                     color={sidebarTab === 'ai' ? 'blue' : 'gray'}
                     size="lg"
-                    onClick={() => setSidebarTab('ai')}
+                    onClick={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }}
                   >
                     <IconSparkles size={20} />
                   </ActionIcon>

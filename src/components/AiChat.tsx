@@ -17,6 +17,7 @@ interface DisplayMessage {
 
 interface AiChatProps {
   svgCode: string;
+  fileId: string;
   selectedElement?: string;
   selectedLineRange?: { start: number; end: number };
   onPreviewSvg: (svg: string | null) => void;
@@ -34,7 +35,7 @@ const MODELS = [
   { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
 ];
 
-export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
+export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -59,7 +60,7 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
 
   // Load messages from IndexedDB on mount
   useEffect(() => {
-    loadChatMessages<DisplayMessage>().then((stored) => {
+    loadChatMessages<DisplayMessage>(fileId).then((stored) => {
       if (stored.length > 0) {
         setMessages(stored);
       }
@@ -70,9 +71,9 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
   // Save messages to IndexedDB on change
   useEffect(() => {
     if (loadedRef.current) {
-      saveChatMessages(messages);
+      saveChatMessages(messages, fileId);
     }
-  }, [messages]);
+  }, [messages, fileId]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -143,8 +144,8 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
     setInput('');
     setUsage(null);
     onPreviewSvg(null);
-    clearChatMessages();
-  }, [onPreviewSvg]);
+    clearChatMessages(fileId);
+  }, [onPreviewSvg, fileId]);
 
   const handleRestore = useCallback((msgIdx: number) => {
     // Count accepted tool calls in messages from msgIdx onward
@@ -161,11 +162,11 @@ export function AiChat({ svgCode, selectedElement, selectedLineRange, onPreviewS
     // Truncate messages
     const kept = messages.slice(0, msgIdx);
     setMessages(kept);
-    saveChatMessages(kept);
+    saveChatMessages(kept, fileId);
 
     onPreviewSvg(null);
     if (popCount > 0) onRestore(popCount);
-  }, [messages, onPreviewSvg, onRestore]);
+  }, [messages, onPreviewSvg, onRestore, fileId]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

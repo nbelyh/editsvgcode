@@ -216,7 +216,7 @@
   flex-direction: column;
   padding: 8px;
   flex-shrink: 0;
-  gap: 6px;
+  gap: 2px;
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
