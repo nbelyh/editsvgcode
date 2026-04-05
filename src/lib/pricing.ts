@@ -15,12 +15,20 @@ export interface ImageModelPricing {
 }
 
 const chatPricing: Record<string, ModelPricing> = {
-  'gpt-4.1-mini':  { input: 0.40,  cachedInput: 0.10,  output: 1.60 },
-  'gpt-4.1-nano':  { input: 0.10,  cachedInput: 0.03,  output: 0.40 },
-  'gpt-5-mini':    { input: 0.25,  cachedInput: 0.03,  output: 2.00 },
-  'gpt-5-nano':    { input: 0.05,  cachedInput: 0.01,  output: 0.40 },
-  'gpt-5.4-mini':  { input: 0.25,  cachedInput: 0.03,  output: 2.00 }, // estimated, same as gpt-5-mini
-  'gpt-5.4-nano':  { input: 0.05,  cachedInput: 0.01,  output: 0.40 }, // estimated, same as gpt-5-nano
+  // Non-reasoning
+  'gpt-4o-mini':        { input: 0.15,  cachedInput: 0.075, output: 0.60 },
+  'gpt-4.1-mini':       { input: 0.40,  cachedInput: 0.10,  output: 1.60 },
+  'gpt-4.1':            { input: 2.00,  cachedInput: 0.50,  output: 8.00 },
+  // Reasoning (gpt-5.x)
+  'gpt-5-mini':         { input: 0.25,  cachedInput: 0.03,  output: 2.00 },
+  'gpt-5':              { input: 2.00,  cachedInput: 0.50,  output: 8.00 },
+  'gpt-5.1':            { input: 2.00,  cachedInput: 0.50,  output: 8.00 },
+  'gpt-5.1-codex':      { input: 2.00,  cachedInput: 0.50,  output: 8.00 },
+  'gpt-5.1-codex-mini': { input: 0.25,  cachedInput: 0.03,  output: 2.00 },
+  'gpt-5.2':            { input: 3.00,  cachedInput: 0.75,  output: 12.00 },
+  'gpt-5.2-codex':      { input: 3.00,  cachedInput: 0.75,  output: 12.00 },
+  'gpt-5.4-mini':       { input: 0.25,  cachedInput: 0.03,  output: 2.00 },
+  'gpt-5.4':            { input: 3.00,  cachedInput: 0.75,  output: 12.00 },
 };
 
 const imagePricing: Record<string, ImageModelPricing> = {

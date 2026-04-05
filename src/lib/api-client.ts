@@ -114,6 +114,7 @@ export async function sendChatRequest(
   selectedElement?: string,
   selectedLineRange?: { start: number; end: number },
   model?: string,
+  imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ProgressStatus) => void,
 ): Promise<ChatResponse> {
@@ -217,7 +218,7 @@ export async function sendChatRequest(
       } else if (item.name === 'generate_image') {
         // Call server to generate raster image and vectorize to SVG
         onProgress?.('generating-image');
-        const result = await generateImage(args.prompt, signal, (s) => onProgress?.(s));
+        const result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
         args.svg = result.svg;
         runningSvg = result.svg;
         if (result.tokens) allTokens.push(result.tokens);

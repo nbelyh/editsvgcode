@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Badge, ActionIcon, Tooltip, Select } from '@mantine/core';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
+import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, fetchUsage, type ChatMessage, type ChatToolCall, type ProgressStatus, type TokenUsage, type DailyTokenUsage } from '../lib/api-client';
+import { sendChatRequest, fetchCredits, type ChatMessage, type ChatToolCall, type ProgressStatus, type TokenUsage, type Credits } from '../lib/api-client';
 import { computeChatCost, computeImageCost, formatCost, formatTokens } from '../lib/pricing';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
@@ -28,33 +29,47 @@ interface AiChatProps {
   canUndo: boolean;
 }
 
-const MODELS = [
-  { label: 'GPT-4.1 mini', value: 'gpt-4.1-mini' },
-  { label: 'GPT-4.1 nano', value: 'gpt-4.1-nano' },
-  { label: 'GPT-5 mini', value: 'gpt-5-mini' },
-  { label: 'GPT-5 nano', value: 'gpt-5-nano' },
-  { label: 'GPT-5.4 mini', value: 'gpt-5.4-mini' },
-  { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
+const EDIT_MODELS = [
+  { label: 'gpt-4o-mini (1x)', value: 'gpt-4o-mini', pro: false },
+  { label: 'gpt-4.1-mini (1x)', value: 'gpt-4.1-mini', pro: false },
+  { label: 'gpt-5-mini (3x)', value: 'gpt-5-mini', pro: false },
+  { label: 'gpt-5.1-codex-mini (3x)', value: 'gpt-5.1-codex-mini', pro: false },
+  { label: 'gpt-5.4-mini (3x)', value: 'gpt-5.4-mini', pro: false },
+  { label: 'gpt-4.1 (5x)', value: 'gpt-4.1', pro: true },
+  { label: 'gpt-5 (15x)', value: 'gpt-5', pro: true },
+  { label: 'gpt-5.1 (15x)', value: 'gpt-5.1', pro: true },
+  { label: 'gpt-5.1-codex (15x)', value: 'gpt-5.1-codex', pro: true },
+  { label: 'gpt-5.2 (20x)', value: 'gpt-5.2', pro: true },
+  { label: 'gpt-5.2-codex (20x)', value: 'gpt-5.2-codex', pro: true },
+  { label: 'gpt-5.4 (20x)', value: 'gpt-5.4', pro: true },
 ];
 
-function UsageRing({ used, limit, costLabel }: { used: number; limit: number; costLabel?: string }) {
-  const size = 22;
-  const stroke = 3;
+const IMAGE_MODELS = [
+  { label: 'gpt-image-1-mini (10x)', value: 'gpt-image-1-mini', pro: false },
+  { label: 'gpt-image-1.5 (30x)', value: 'gpt-image-1.5', pro: true },
+  { label: 'gpt-image-1 (50x)', value: 'gpt-image-1', pro: true },
+];
+
+function shortModelName(value: string): string {
+  return value.replace('gpt-', '').replace('image-', 'img');
+}
+
+function CreditsIndicator({ remaining, limit }: { remaining: number; limit: number }) {
+  const size = 18;
+  const stroke = 2.5;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
-  const ratio = Math.min(used / limit, 1);
+  const ratio = Math.min(remaining / limit, 1);
   const offset = circumference * (1 - ratio);
-  const color = ratio >= 1 ? 'var(--mantine-color-red-filled)' : ratio >= 0.8 ? 'var(--mantine-color-yellow-filled)' : 'var(--mantine-primary-color-filled)';
-  const label = `${used} / ${limit} requests today` + (costLabel ? `\n${costLabel}` : '');
+  const color = ratio <= 0 ? 'var(--mantine-color-red-filled)' : ratio <= 0.2 ? 'var(--mantine-color-yellow-filled)' : 'var(--mantine-primary-color-filled)';
+  const label = `${remaining} / ${limit} credits remaining`;
   return (
-    <Tooltip multiline label={label}>
+    <Tooltip label={label}>
       <svg width={size} height={size} style={{ display: 'block', cursor: 'default' }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--mantine-color-default-border)" strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-        <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
-          fill="var(--mantine-color-dimmed)" fontSize={8} fontWeight={600}>{used}</text>
       </svg>
     </Tooltip>
   );
@@ -85,9 +100,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
-  const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
-  const [dailyTokens, setDailyTokens] = useState<DailyTokenUsage | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
+  const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
+  const [modelPickerOpened, modelPicker] = useDisclosure(false);
+  const tier = credits?.tier ?? 'free';
+  const editModels = useMemo(() => EDIT_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
+  const imageModels = useMemo(() => IMAGE_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -113,12 +132,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       }
       loadedRef.current = true;
     });
-    // Fetch current usage + daily token totals
-    fetchUsage().then((data) => {
-      if (data) {
-        setUsage(data.usage);
-        setDailyTokens(data.dailyTokens);
-      }
+    // Fetch current credit balance
+    fetchCredits().then((data) => {
+      if (data) setCredits(data);
     });
   }, []);
 
@@ -159,14 +175,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         selectedElement,
         selectedLineRange,
         model,
+        imageModel,
         abort.signal,
         setProgressStatus,
       );
 
-      setUsage(response.usage);
-
-      // Store server-side daily totals
-      if (response.dailyTokens) setDailyTokens(response.dailyTokens);
+      setCredits(response.credits);
 
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
@@ -194,7 +208,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       setIsRunning(false);
       abortRef.current = null;
     }
-  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model]);
+  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -204,7 +218,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setInput('');
-    setUsage(null);
+    setCredits(null);
     onPreviewSvg(null);
     clearChatMessages(fileId);
   }, [onPreviewSvg, fileId]);
@@ -347,15 +361,15 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
               </div>);
             }
 
-            return (<>
+            return (<Fragment key={msgIdx}>
             {showCheckpoint && canUndo && (
-              <div key={`cp-${msgIdx}`} className="aui-checkpoint">
+              <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => handleRestore(msgIdx)}>Restore</button>
                 <div className="aui-checkpoint-line" />
               </div>
             )}
-            <div key={msgIdx} className={`aui-msg ${msg.role === 'user' ? 'aui-msg-user' : 'aui-msg-assistant'}`}>
+            <div className={`aui-msg ${msg.role === 'user' ? 'aui-msg-user' : 'aui-msg-assistant'}`}>
               {msg.role === 'user' && (
                 <div className="aui-msg-header">
                   <IconUser size={14} />
@@ -412,7 +426,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
               ))}
               {msg.tokens && <TokenInfo tokens={msg.tokens} />}
             </div>
-            </>);
+            </Fragment>);
           })}
 
           {isRunning && (
@@ -460,31 +474,36 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             />
           </div>
           <div className="aui-composer-footer">
-            <Select
-              size="xs"
-              variant="unstyled"
-              value={model}
-              onChange={v => {
-                if (v) {
-                  setModel(v);
-                  localStorage.setItem('esvg-model', v);
-                }
-              }}
-              data={MODELS}
-              allowDeselect={false}
-              comboboxProps={{ withinPortal: false }}
-            />
+            <Popover opened={modelPickerOpened} onClose={modelPicker.close} position="top-start" shadow="md" withinPortal={false}>
+              <Popover.Target>
+                <Text size="xs" c="dimmed" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={modelPicker.toggle}>
+                  {shortModelName(model)} · {shortModelName(imageModel)}
+                </Text>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Stack gap="md">
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Edit model</Text>
+                    <Radio.Group value={model} onChange={v => { setModel(v); localStorage.setItem('esvg-model', v); }}>
+                      <Stack gap={4}>
+                        {editModels.map(m => <Radio key={m.value} value={m.value} label={m.label} size="xs" />)}
+                      </Stack>
+                    </Radio.Group>
+                  </div>
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Image model</Text>
+                    <Radio.Group value={imageModel} onChange={v => { setImageModel(v); localStorage.setItem('esvg-image-model', v); }}>
+                      <Stack gap={4}>
+                        {imageModels.map(m => <Radio key={m.value} value={m.value} label={m.label} size="xs" />)}
+                      </Stack>
+                    </Radio.Group>
+                  </div>
+                </Stack>
+              </Popover.Dropdown>
+            </Popover>
             <div className="aui-composer-footer-actions">
-              {usage && (
-                <UsageRing used={usage.used} limit={usage.limit}
-                  costLabel={dailyTokens && dailyTokens.requests > 0
-                    ? formatCost(Object.entries(dailyTokens.by_model).reduce((sum, [m, u]) => {
-                        const isImg = m.startsWith('gpt-image');
-                        const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
-                        return sum + (isImg ? computeImageCost(t) : computeChatCost(t));
-                      }, 0)) + ' spent today'
-                    : undefined}
-                />
+              {credits && (
+                <CreditsIndicator remaining={credits.remaining} limit={credits.limit} />
               )}
               <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
                 <ActionIcon

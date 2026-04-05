@@ -11,6 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
  */
 export async function generateImage(
   prompt: string,
+  imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
 ): Promise<{ svg: string; credits: { remaining: number; limit: number }; tokens?: TokenUsage }> {
@@ -26,7 +27,7 @@ export async function generateImage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, model: imageModel }),
     signal,
   });
 
