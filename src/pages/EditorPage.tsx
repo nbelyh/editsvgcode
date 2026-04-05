@@ -3,7 +3,8 @@ import { Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
 import { IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Allotment } from 'allotment';
-import { DiffEditor } from '@monaco-editor/react';
+import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 import { Editor, type EditorHandle } from '../components/Editor';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
@@ -38,6 +39,18 @@ export function EditorPage() {
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [canUndo, setCanUndo] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
+  const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
+
+  /** Detach models from the DiffEditor widget, then clear the proposal. */
+  const clearProposal = useCallback(() => {
+    diffEditorRef.current?.setModel(null);
+    diffEditorRef.current = null;
+    setProposedSvg(null);
+  }, []);
+
+  const handleDiffMount: DiffOnMount = (ed) => {
+    diffEditorRef.current = ed;
+  };
 
   // Clear selection when SVG code changes (avoids stale reference)
   useEffect(() => {
@@ -152,20 +165,24 @@ export function EditorPage() {
   }, [svgCode]);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
-    setProposedSvg(svg);
-  }, []);
+    if (!svg) {
+      clearProposal();
+    } else {
+      setProposedSvg(svg);
+    }
+  }, [clearProposal]);
 
   const handleAcceptSvg = useCallback((svg: string) => {
     pushCheckpoint(svgCode, fileId).then(() => setCanUndo(true));
     setSvgCode(svg);
-    setProposedSvg(null);
-  }, [svgCode, fileId]);
+    clearProposal();
+  }, [svgCode, fileId, clearProposal]);
 
   const handleUndo = useCallback(async (popCount: number) => {
     const prev = await popCheckpoints(popCount, fileId);
     if (prev) {
       setSvgCode(prev);
-      setProposedSvg(null);
+      clearProposal();
     }
     setCanUndo(await hasCheckpoints(fileId));
   }, [fileId]);
@@ -212,6 +229,7 @@ export function EditorPage() {
                       language="xml"
                       theme="vs-dark"
                       options={{ readOnly: true, renderSideBySide: false }}
+                      onMount={handleDiffMount}
                     />
                   </div>
                 </div>
