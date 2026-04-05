@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, fetchCredits, type ChatMessage, type ChatToolCall, type ProgressStatus, type Credits } from '../lib/api-client';
-
+import { IconSparkles, IconUser, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import { sendChatRequest, fetchCredits, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
+import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../lib/models';
+import { ToolCallProposal, type StoredToolCall } from './ToolCallProposal';
+import { CreditsIndicator } from './CreditsIndicator';
 import './AiChat.css';
-
-interface StoredToolCall extends ChatToolCall {
-  status: 'pending' | 'accepted' | 'rejected';
-}
 
 interface DisplayMessage {
   role: 'user' | 'assistant';
@@ -26,52 +24,6 @@ interface AiChatProps {
   onAcceptSvg: (svg: string) => void;
   onRestore: (popCount: number) => void;
   canUndo: boolean;
-}
-
-const EDIT_MODELS = [
-  { label: 'gpt-4o-mini (1x)', value: 'gpt-4o-mini', pro: false },
-  { label: 'gpt-4.1-mini (1x)', value: 'gpt-4.1-mini', pro: false },
-  { label: 'gpt-5-mini (3x)', value: 'gpt-5-mini', pro: false },
-  { label: 'gpt-5.1-codex-mini (3x)', value: 'gpt-5.1-codex-mini', pro: false },
-  { label: 'gpt-5.4-mini (3x)', value: 'gpt-5.4-mini', pro: false },
-  { label: 'gpt-4.1 (5x)', value: 'gpt-4.1', pro: true },
-  { label: 'gpt-5 (15x)', value: 'gpt-5', pro: true },
-  { label: 'gpt-5.1 (15x)', value: 'gpt-5.1', pro: true },
-  { label: 'gpt-5.1-codex (15x)', value: 'gpt-5.1-codex', pro: true },
-  { label: 'gpt-5.2 (20x)', value: 'gpt-5.2', pro: true },
-  { label: 'gpt-5.2-codex (20x)', value: 'gpt-5.2-codex', pro: true },
-  { label: 'gpt-5.4 (20x)', value: 'gpt-5.4', pro: true },
-];
-
-const IMAGE_MODELS = [
-  { label: 'gpt-image-1-mini (10x)', value: 'gpt-image-1-mini', pro: false },
-  { label: 'gpt-image-1.5 (30x)', value: 'gpt-image-1.5', pro: true },
-  { label: 'gpt-image-1 (50x)', value: 'gpt-image-1', pro: true },
-];
-
-function shortModelName(value: string): string {
-  return value.replace('gpt-', '').replace('image-', 'img');
-}
-
-function CreditsIndicator({ remaining, limit }: { remaining: number; limit: number }) {
-  const size = 18;
-  const stroke = 2.5;
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const ratio = Math.min(remaining / limit, 1);
-  const offset = circumference * (1 - ratio);
-  const color = ratio <= 0 ? 'var(--mantine-color-red-filled)' : ratio <= 0.2 ? 'var(--mantine-color-yellow-filled)' : 'var(--mantine-primary-color-filled)';
-  const label = `${remaining} / ${limit} credits remaining`;
-  return (
-    <Tooltip label={label}>
-      <svg width={size} height={size} style={{ display: 'block', cursor: 'default' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--mantine-color-default-border)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      </svg>
-    </Tooltip>
-  );
 }
 
 
@@ -296,48 +248,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             if (msg.role === 'assistant' && msg.toolCalls?.length && !msg.content) {
               return (<div key={msgIdx}>
                 {msg.toolCalls.map((tc, tcIdx) => (
-                <div key={`${msgIdx}-${tcIdx}`} className="aui-proposal" style={{ marginBottom: 8 }}>
-                  <div className="aui-proposal-header">
-                    {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
-                    <span className="aui-proposal-summary">
-                      {(tc.arguments.summary as string) || (tc.name === 'edit_svg' ? 'Edit SVG' : 'Replace SVG')}
-                    </span>
-                  </div>
-                  {tc.status === 'pending' && (
-                    <div className="aui-proposal-actions">
-                      <button
-                        className="aui-composer-send"
-                        style={{ fontSize: 11, padding: '3px 10px', height: 26 }}
-                        onClick={() => handleAccept(msgIdx, tcIdx)}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        className="aui-composer-send"
-                        style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-4)' }}
-                        onClick={() => handleReject(msgIdx, tcIdx)}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                  {tc.status === 'accepted' && (
-                    <div className="aui-proposal-status aui-status-accepted">
-                      <IconCheck size={12} />&nbsp;Accepted
-                    </div>
-                  )}
-                  {tc.status === 'rejected' && (
-                    <div className="aui-proposal-status aui-status-rejected">
-                      <IconX size={12} />&nbsp;Dismissed
-                    </div>
-                  )}
-                  {'failedOperations' in tc.arguments && (
-                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
-                      ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
-                    </div>
-                  )}
-                </div>
-              ))}
+                  <ToolCallProposal
+                    key={`${msgIdx}-${tcIdx}`}
+                    tc={tc}
+                    onAccept={() => handleAccept(msgIdx, tcIdx)}
+                    onReject={() => handleReject(msgIdx, tcIdx)}
+                  />
+                ))}
               </div>);
             }
 
@@ -362,47 +279,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                 </div>
               )}
               {msg.toolCalls?.map((tc, tcIdx) => (
-                <div key={tcIdx} className="aui-proposal">
-                  <div className="aui-proposal-header">
-                    {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
-                    <span className="aui-proposal-summary">
-                      {(tc.arguments.summary as string) || (tc.name === 'edit_svg' ? 'Edit SVG' : 'Replace SVG')}
-                    </span>
-                  </div>
-                  {tc.status === 'pending' && (
-                    <div className="aui-proposal-actions">
-                      <button
-                        className="aui-composer-send"
-                        style={{ fontSize: 11, padding: '3px 10px', height: 26 }}
-                        onClick={() => handleAccept(msgIdx, tcIdx)}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        className="aui-composer-send"
-                        style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-4)' }}
-                        onClick={() => handleReject(msgIdx, tcIdx)}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                  {tc.status === 'accepted' && (
-                    <div className="aui-proposal-status aui-status-accepted">
-                      <IconCheck size={12} />&nbsp;Accepted
-                    </div>
-                  )}
-                  {tc.status === 'rejected' && (
-                    <div className="aui-proposal-status aui-status-rejected">
-                      <IconX size={12} />&nbsp;Dismissed
-                    </div>
-                  )}
-                  {'failedOperations' in tc.arguments && (
-                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
-                      ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
-                    </div>
-                  )}
-                </div>
+                <ToolCallProposal
+                  key={tcIdx}
+                  tc={tc}
+                  onAccept={() => handleAccept(msgIdx, tcIdx)}
+                  onReject={() => handleReject(msgIdx, tcIdx)}
+                />
               ))}
             </div>
             </Fragment>);
