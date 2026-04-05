@@ -3,11 +3,12 @@ import { ActionIcon, Group, SegmentedControl, Text, Tooltip } from '@mantine/cor
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import DOMPurify from 'dompurify';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
 interface PreviewProps {
   svgCode: string;
   onElementSelect?: (tagName: string, index: number) => void;
+  selectedXPath?: string;
 }
 
 type BgMode = 'checkerboard' | 'white' | 'black' | 'none';
@@ -76,7 +77,7 @@ function ensureFilters(svg: SVGSVGElement) {
   defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 0.8], 1.5));
 }
 
-export function Preview({ svgCode, onElementSelect }: PreviewProps) {
+export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProps) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -259,6 +260,20 @@ export function Preview({ svgCode, onElementSelect }: PreviewProps) {
       }
     }
   }, [debouncedSvg]);
+
+  // Sync external selection (from editor cursor) via xpath
+  useEffect(() => {
+    const svg = containerRef.current?.querySelector('svg');
+    if (!svg) return;
+
+    clearAllSelections();
+    if (!selectedXPath) return;
+
+    const target = resolveXPath(svg, selectedXPath);
+    if (target) {
+      applySelectionFilter(target, true);
+    }
+  }, [selectedXPath, debouncedSvg, clearAllSelections, applySelectionFilter]);
 
   // Apply zoom + background + border
   useEffect(() => {

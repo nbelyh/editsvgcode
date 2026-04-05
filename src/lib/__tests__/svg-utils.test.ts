@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripBom, findElementRange, getNewUniqueId, formatXml } from '../svg-utils';
+import { stripBom, findElementRange, findElementAtOffset, computeXPath, getNewUniqueId, formatXml } from '../svg-utils';
 
 // ---------------------------------------------------------------------------
 // stripBom
@@ -136,5 +136,110 @@ describe('formatXml', () => {
 
   it('handles empty string', () => {
     expect(formatXml('')).toBe('');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findElementAtOffset
+// ---------------------------------------------------------------------------
+describe('findElementAtOffset', () => {
+  const svg = `<svg>
+  <g id="group">
+    <rect width="100" />
+    <circle cx="50" />
+  </g>
+  <path d="M0 0" />
+</svg>`;
+
+  it('returns null for offset outside any element', () => {
+    expect(findElementAtOffset('', 0)).toBeNull();
+  });
+
+  it('returns null for invalid XML', () => {
+    expect(findElementAtOffset('<svg><not closed', 5)).toBeNull();
+  });
+
+  it('finds the root svg element', () => {
+    const result = findElementAtOffset(svg, 1);
+    expect(result).not.toBeNull();
+    expect(result!.xpath).toBe('/svg[1]');
+  });
+
+  it('finds a nested element at its offset', () => {
+    const rectOffset = svg.indexOf('<rect');
+    const result = findElementAtOffset(svg, rectOffset + 1);
+    expect(result).not.toBeNull();
+    expect(result!.xpath).toBe('/svg[1]/g[1]/rect[1]');
+    expect(result!.element).toContain('rect');
+  });
+
+  it('finds the tightest enclosing element', () => {
+    const circleOffset = svg.indexOf('<circle');
+    const result = findElementAtOffset(svg, circleOffset + 2);
+    expect(result).not.toBeNull();
+    expect(result!.xpath).toBe('/svg[1]/g[1]/circle[1]');
+  });
+
+  it('returns correct line range', () => {
+    const pathOffset = svg.indexOf('<path');
+    const result = findElementAtOffset(svg, pathOffset);
+    expect(result).not.toBeNull();
+    expect(result!.startLine).toBe(6);
+    expect(result!.endLine).toBe(6);
+  });
+
+  it('finds parent (g) when cursor is between children', () => {
+    // Place cursor on whitespace between rect and circle (inside g)
+    const afterRect = svg.indexOf('/>') + 2; // after first />
+    const result = findElementAtOffset(svg, afterRect + 2);
+    expect(result).not.toBeNull();
+    // Should be inside g since we're between children
+    expect(result!.xpath).toMatch(/\/svg\[1\]\/g\[1\]/);
+  });
+
+  it('handles self-closing elements', () => {
+    const pathOffset = svg.indexOf('<path');
+    const result = findElementAtOffset(svg, pathOffset);
+    expect(result).not.toBeNull();
+    expect(result!.element).toContain('<path');
+    expect(result!.element).toContain('/>');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeXPath
+// ---------------------------------------------------------------------------
+describe('computeXPath', () => {
+  it('computes xpath for root element', () => {
+    const doc = new DOMParser().parseFromString('<svg></svg>', 'text/xml');
+    expect(computeXPath(doc.documentElement)).toBe('/svg[1]');
+  });
+
+  it('computes xpath for nested element', () => {
+    const doc = new DOMParser().parseFromString('<svg><g><rect/></g></svg>', 'text/xml');
+    const rect = doc.querySelector('rect')!;
+    expect(computeXPath(rect)).toBe('/svg[1]/g[1]/rect[1]');
+  });
+
+  it('handles sibling indexing', () => {
+    const doc = new DOMParser().parseFromString(
+      '<svg><rect/><rect/><circle/><rect/></svg>',
+      'text/xml',
+    );
+    const rects = doc.querySelectorAll('rect');
+    expect(computeXPath(rects[0])).toBe('/svg[1]/rect[1]');
+    expect(computeXPath(rects[1])).toBe('/svg[1]/rect[2]');
+    expect(computeXPath(rects[2])).toBe('/svg[1]/rect[3]');
+    const circle = doc.querySelector('circle')!;
+    expect(computeXPath(circle)).toBe('/svg[1]/circle[1]');
+  });
+
+  it('handles deeply nested elements', () => {
+    const doc = new DOMParser().parseFromString(
+      '<svg><g><g><path/></g></g></svg>',
+      'text/xml',
+    );
+    const path = doc.querySelector('path')!;
+    expect(computeXPath(path)).toBe('/svg[1]/g[1]/g[1]/path[1]');
   });
 });

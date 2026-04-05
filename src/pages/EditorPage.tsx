@@ -37,6 +37,7 @@ export function EditorPage() {
   const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
+  const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
   const [canUndo, setCanUndo] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
@@ -51,12 +52,6 @@ export function EditorPage() {
   const handleDiffMount: DiffOnMount = (ed) => {
     diffEditorRef.current = ed;
   };
-
-  // Clear selection when SVG code changes (avoids stale reference)
-  useEffect(() => {
-    setSelectedElement(undefined);
-    setSelectedLineRange(undefined);
-  }, [svgCode]);
 
   // Persist SVG to IndexedDB so it matches chat history on reload
   useEffect(() => {
@@ -155,6 +150,7 @@ export function EditorPage() {
       editorRef.current?.clearSelection();
       setSelectedElement(undefined);
       setSelectedLineRange(undefined);
+      setSelectedXPath(undefined);
       return;
     }
     const range = findElementRange(svgCode, tagName, index);
@@ -162,7 +158,15 @@ export function EditorPage() {
     editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
     setSelectedElement(svgCode.substring(range.startOffset, range.endOffset));
     setSelectedLineRange({ start: range.startLine, end: range.endLine });
+    // Don't set xpath — selection came from Preview click, it's already highlighted there
+    setSelectedXPath(undefined);
   }, [svgCode]);
+
+  const handleCursorElement = useCallback((element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => {
+    setSelectedElement(element);
+    setSelectedLineRange(lineRange);
+    setSelectedXPath(xpath);
+  }, []);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
     if (!svg) {
@@ -235,13 +239,13 @@ export function EditorPage() {
                 </div>
               )}
               <div style={{ height: '100%', display: proposedSvg ? 'none' : 'block' }}>
-                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} onCursorElement={handleCursorElement} />
               </div>
             </div>
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%">
-          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} />
+          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="10%" minSize={250}>
           <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>

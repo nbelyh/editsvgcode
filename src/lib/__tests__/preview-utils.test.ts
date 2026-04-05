@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepUp, stepDown, isAbsoluteLength, LEVELS } from '../preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, resolveXPath, LEVELS } from '../preview-utils';
 
 // ---------------------------------------------------------------------------
 // stepUp / stepDown (zoom levels)
@@ -95,5 +95,69 @@ describe('isAbsoluteLength', () => {
   it('rejects non-numeric strings', () => {
     expect(isAbsoluteLength('auto')).toBe(false);
     expect(isAbsoluteLength('inherit')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveXPath
+// ---------------------------------------------------------------------------
+function makeSvg(html: string): SVGSVGElement {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.querySelector('svg') as SVGSVGElement;
+}
+
+describe('resolveXPath', () => {
+  const svgHtml = '<svg><g><rect/><circle/><rect/></g><path/></svg>';
+
+  it('resolves a direct child element', () => {
+    const svg = makeSvg(svgHtml);
+    const el = resolveXPath(svg, '/svg[1]/path[1]');
+    expect(el).not.toBeNull();
+    expect(el!.tagName.toLowerCase()).toBe('path');
+  });
+
+  it('resolves a nested element', () => {
+    const svg = makeSvg(svgHtml);
+    const el = resolveXPath(svg, '/svg[1]/g[1]/circle[1]');
+    expect(el).not.toBeNull();
+    expect(el!.tagName.toLowerCase()).toBe('circle');
+  });
+
+  it('resolves sibling by index', () => {
+    const svg = makeSvg(svgHtml);
+    const el = resolveXPath(svg, '/svg[1]/g[1]/rect[2]');
+    expect(el).not.toBeNull();
+    expect(el!.tagName.toLowerCase()).toBe('rect');
+    // Should be the second rect, which is the third child of g
+    const g = svg.querySelector('g')!;
+    expect(el).toBe(g.children[2]);
+  });
+
+  it('returns null for non-existent path', () => {
+    const svg = makeSvg(svgHtml);
+    expect(resolveXPath(svg, '/svg[1]/g[1]/ellipse[1]')).toBeNull();
+  });
+
+  it('returns null for out-of-range index', () => {
+    const svg = makeSvg(svgHtml);
+    expect(resolveXPath(svg, '/svg[1]/g[1]/rect[5]')).toBeNull();
+  });
+
+  it('returns null for root svg xpath', () => {
+    const svg = makeSvg(svgHtml);
+    expect(resolveXPath(svg, '/svg[1]')).toBeNull();
+  });
+
+  it('handles xpath without leading svg step', () => {
+    const svg = makeSvg(svgHtml);
+    const el = resolveXPath(svg, '/g[1]/rect[1]');
+    expect(el).not.toBeNull();
+    expect(el!.tagName.toLowerCase()).toBe('rect');
+  });
+
+  it('returns null for empty xpath', () => {
+    const svg = makeSvg(svgHtml);
+    expect(resolveXPath(svg, '')).toBeNull();
   });
 });

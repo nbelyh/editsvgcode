@@ -41,3 +41,35 @@ export function findSvgTarget(target: Element, svg: SVGSVGElement, container: HT
   }
   return null;
 }
+
+/**
+ * Resolve a positional xpath like "/svg[1]/g[2]/path[3]" against a rendered SVG element.
+ * Returns the matching element, or null if the path can't be resolved.
+ */
+export function resolveXPath(svg: SVGSVGElement, xpath: string): SVGElement | null {
+  const steps = xpath.split('/').filter(Boolean);
+  let current: Element = svg;
+
+  // Skip the first step if it matches the root svg
+  const firstStep = steps[0];
+  if (firstStep) {
+    const m = firstStep.match(/^([a-z][\w.-]*)\[(\d+)\]$/i);
+    if (m && m[1].toLowerCase() === current.tagName.toLowerCase()) {
+      steps.shift();
+    }
+  }
+
+  for (const step of steps) {
+    const m = step.match(/^([a-z][\w.-]*)\[(\d+)\]$/i);
+    if (!m) return null;
+    const tag = m[1].toLowerCase();
+    const idx = parseInt(m[2], 10);
+    const children = Array.from(current.children).filter(c => c.tagName.toLowerCase() === tag);
+    const child = children[idx - 1];
+    if (!child) return null;
+    current = child;
+  }
+
+  if (current === svg) return null;
+  return current instanceof SVGElement ? current : null;
+}

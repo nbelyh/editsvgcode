@@ -2,12 +2,13 @@ import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
 import { registerSvgProviders } from '../lib/completion-provider';
-import { formatXml } from '../lib/svg-utils';
+import { formatXml, findElementAtOffset } from '../lib/svg-utils';
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly: boolean;
+  onCursorElement?: (element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => void;
 }
 
 export interface EditorHandle {
@@ -16,8 +17,10 @@ export interface EditorHandle {
   openCommandPalette: () => void;
 }
 
-export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly }, ref) {
+export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly, onCursorElement }, ref) {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
+  const onCursorElementRef = useRef(onCursorElement);
+  onCursorElementRef.current = onCursorElement;
 
   useImperativeHandle(ref, () => ({
     selectRange(startLine: number, startCol: number, endLine: number, endCol: number) {
@@ -54,6 +57,21 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       registerSvgProviders(monaco);
       (monaco as any).__svgProvidersRegistered = true;
     }
+
+    editor.onDidChangeCursorPosition((e) => {
+      const cb = onCursorElementRef.current;
+      if (!cb) return;
+      const model = editor.getModel();
+      if (!model) return;
+      const offset = model.getOffsetAt(e.position);
+      const text = model.getValue();
+      const result = findElementAtOffset(text, offset);
+      if (result) {
+        cb(result.element, { start: result.startLine, end: result.endLine }, result.xpath);
+      } else {
+        cb(undefined, undefined, undefined);
+      }
+    });
   };
 
   // Keep editor readOnly in sync
