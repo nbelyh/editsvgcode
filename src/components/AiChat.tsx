@@ -37,6 +37,29 @@ const MODELS = [
   { label: 'GPT-5.4 nano', value: 'gpt-5.4-nano' },
 ];
 
+function UsageRing({ used, limit, costLabel }: { used: number; limit: number; costLabel?: string }) {
+  const size = 22;
+  const stroke = 3;
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const ratio = Math.min(used / limit, 1);
+  const offset = circumference * (1 - ratio);
+  const color = ratio >= 1 ? 'var(--mantine-color-red-filled)' : ratio >= 0.8 ? 'var(--mantine-color-yellow-filled)' : 'var(--mantine-primary-color-filled)';
+  const label = `${used} / ${limit} requests today` + (costLabel ? `\n${costLabel}` : '');
+  return (
+    <Tooltip multiline label={label}>
+      <svg width={size} height={size} style={{ display: 'block', cursor: 'default' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--mantine-color-default-border)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+        <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
+          fill="var(--mantine-color-dimmed)" fontSize={8} fontWeight={600}>{used}</text>
+      </svg>
+    </Tooltip>
+  );
+}
+
 function TokenInfo({ tokens }: { tokens: TokenUsage[] }) {
   const totalCost = tokens.reduce((sum, t) => {
     const isImage = t.model.startsWith('gpt-image');
@@ -453,25 +476,15 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             />
             <div className="aui-composer-footer-actions">
               {usage && (
-                <span className="aui-usage">{usage.used}/{usage.limit}</span>
-              )}
-              {dailyTokens && dailyTokens.requests > 0 && (
-                <Tooltip multiline w={220} label={
-                  Object.entries(dailyTokens.by_model).map(([m, u]) => {
-                    const isImg = m.startsWith('gpt-image');
-                    const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
-                    const cost = isImg ? computeImageCost(t) : computeChatCost(t);
-                    return `${m}: ↓${formatTokens(u.input_tokens)} ↑${formatTokens(u.output_tokens)} ${formatCost(cost)}`;
-                  }).join('\n')
-                }>
-                  <span className="aui-usage" style={{ marginLeft: 4, cursor: 'default', whiteSpace: 'pre-line' }}>
-                    {formatCost(Object.entries(dailyTokens.by_model).reduce((sum, [m, u]) => {
-                      const isImg = m.startsWith('gpt-image');
-                      const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
-                      return sum + (isImg ? computeImageCost(t) : computeChatCost(t));
-                    }, 0))} today
-                  </span>
-                </Tooltip>
+                <UsageRing used={usage.used} limit={usage.limit}
+                  costLabel={dailyTokens && dailyTokens.requests > 0
+                    ? formatCost(Object.entries(dailyTokens.by_model).reduce((sum, [m, u]) => {
+                        const isImg = m.startsWith('gpt-image');
+                        const t = { model: m, inputTokens: u.input_tokens, outputTokens: u.output_tokens, cachedTokens: u.cached_tokens };
+                        return sum + (isImg ? computeImageCost(t) : computeChatCost(t));
+                      }, 0)) + ' spent today'
+                    : undefined}
+                />
               )}
               <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
                 <ActionIcon
