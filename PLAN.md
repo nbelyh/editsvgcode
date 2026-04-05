@@ -20,13 +20,130 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 - **Auth:** Firebase Auth (email + Google sign-in, upgrade from anonymous)
 - **DB:** Firebase Firestore (existing, add user/subscription collections)
 
-## Pricing
+## Pricing & Monetization
 
-| Tier | Price | Features |
-|------|-------|----------|
-| Free | $0 | 5 AI edits/day, ads shown, basic exports, full editor |
-| Pro | $9/month or $79/year | Unlimited AI, no ads, all exports, priority model |
-| BYOL | Free or $3/month | Bring your own LLM provider + API key |
+### Cost Analysis (April 2026)
+
+**Azure OpenAI model costs (per 1M tokens, Global Standard):**
+
+| Model | Input | Cached Input | Output | Reasoning? |
+|-------|-------|-------------|--------|-----------|
+| gpt-4o-mini | $0.15 | $0.075 | $0.60 | No |
+| gpt-4.1-mini | $0.40 | $0.10 | $1.60 | No |
+| gpt-4.1 | $2.00 | $0.50 | $8.00 | No |
+| gpt-5-mini | $0.25 | $0.03 | $2.00 | Yes |
+| gpt-5 | $1.25 | $0.13 | $10.00 | Yes |
+| gpt-5.1 | $1.25 | $0.13 | $10.00 | Yes (defaults to none) |
+| gpt-5.1-codex-mini | $0.25 | $0.03 | $2.00 | Yes |
+| gpt-5.1-codex | $1.25 | $0.13 | $10.00 | Yes |
+| gpt-5.2 | $1.75 | $0.18 | $14.00 | Yes |
+| gpt-5.2-codex | $1.75 | $0.18 | $14.00 | Yes |
+| gpt-5.4-mini | ~$0.25 | ~$0.03 | ~$2.00 | Yes (pricing TBD) |
+| gpt-5.4 | TBD | TBD | TBD | Yes (pricing TBD) |
+| gpt-image-1-mini | $2.00 (text) | $0.25 | $8.00 (image) | — |
+| gpt-image-1.5 | $5.00 (text) | $1.25 | $32.00 (image) | — |
+| gpt-image-1 | $5.00 (text) | $1.25 | $40.00 (image) | — |
+
+**Notes on model families:**
+- All GPT-5.x models are **reasoning models** (adaptive thinking). GPT-4.x are non-reasoning.
+- All `-codex` models are **Responses API only** — our code already uses Responses API, so all models are available.
+- `gpt-5.1` has `reasoning_effort` defaulting to `none` — must explicitly set it for reasoning.
+- `gpt-5.2`, `gpt-5.4` require **limited access registration** on Azure.
+
+**Real SVG size data (500-doc Firestore sample):**
+
+| Metric | Characters | Est. Tokens (~4 chars/token) |
+|--------|-----------|------------------------------|
+| Median | 2,695 | ~674 |
+| Average | 20,479 | ~5,120 |
+| P90 | 28,051 | ~7,013 |
+| P95 | 49,292 | ~12,323 |
+| P99 | 525,494 | ~131K |
+| Max | 928,861 | ~232K |
+
+63% of SVGs are under 5K chars. Only 5% exceed 50K chars.
+
+**Actual cost per AI request (with system prompt ~500 tokens, ~1K output):**
+
+| Operation | Typical cost | Notes |
+|-----------|-------------|-------|
+| Chat edit (median SVG, mini model) | $0.001 | ~1.2K input tokens |
+| Chat edit (P90 SVG, mini model) | $0.004 | ~7.5K input tokens |
+| Chat edit (P99 SVG, mini model) | $0.035 | ~131K input tokens |
+| Chat edit (median SVG, full model) | $0.013 | ~1.2K input + reasoning overhead |
+| Image gen (gpt-image-1-mini) | $0.03 | ~1.2K text in, ~3K image out |
+| Image gen (gpt-image-1.5) | $0.10 | ~1.2K text in, ~3K image out |
+| Image gen (gpt-image-1) | $0.13 | ~1.2K text in, ~3K image out |
+
+### Credit System
+
+**Fixed credits per model** — simple for users to understand. More powerful models cost more credits.
+
+#### Free tier models (available to all signed-in users)
+
+| Model | Credits/request | Notes |
+|-------|----------------|-------|
+| gpt-4o-mini | 1 | Cheapest, fast, non-reasoning |
+| gpt-4.1-mini | 1 | Better at code, fast, non-reasoning |
+| gpt-5-mini | 3 | Entry-level reasoning |
+| gpt-5.1-codex-mini | 3 | Code-optimized reasoning |
+| gpt-5.4-mini | 3 | Latest reasoning mini |
+| gpt-image-1-mini | 10 | Image generation |
+
+#### Pro-only models (unlocked with Pro subscription)
+
+| Model | Credits/request | Notes |
+|-------|----------------|-------|
+| gpt-4.1 | 5 | Full-size non-reasoning |
+| gpt-5 | 15 | Full-size reasoning |
+| gpt-5.1 | 15 | Adaptive reasoning |
+| gpt-5.1-codex | 15 | Full-size code reasoning |
+| gpt-5.2 | 20 | Frontier reasoning |
+| gpt-5.2-codex | 20 | Frontier code reasoning |
+| gpt-5.4 | 20 | Latest frontier |
+| gpt-image-1.5 | 30 | Better image gen |
+| gpt-image-1 | 50 | Best image gen |
+
+**Design for extensibility:** Credit table is `Record<string, { credits: number, tier: "free"|"pro" }>`. Adding Claude or other providers later = add rows + provider routing.
+
+### Tiers
+
+| Tier | Price | Credits | Estimated cost ceiling | Margin |
+|------|-------|---------|----------------------|--------|
+| Free | $0 | 50/month | ~$3 | marketing cost |
+| Pro | $9/month or $79/year | 500/month | ~$15/month worst case | ~50%+ after PPG fees |
+| BYOL | $0 | ∞ (user's key) | $0 | free tier, drives engagement |
+
+Free user gets ~50 cheap edits, or ~16 reasoning edits, or 5 image gens, or a mix.
+Pro user gets enough for daily heavy use across all model tiers.
+
+### Top-up Credit Packs (via PPG one-time purchase)
+
+| Pack | Credits | Price | Markup |
+|------|---------|-------|--------|
+| Starter | 100 | $5 | 5x |
+| Value | 300 | $12 | 4x |
+| Bulk | 1,000 | $29 | 3x |
+
+### PayProGlobal Capabilities
+
+- [x] **Subscription billing:** Pro Monthly / Pro Annual — standard recurring product
+- [x] **Credit packs:** One-time purchase product + `OrderCharged` webhook → add credits to Firestore
+- [x] **Usage-based billing:** PPG has a dedicated usage-based billing page + API support
+- [x] **Reference charges:** `Orders/DoReferenceCharge` API allows charging stored payment methods for usage (documented use case: "you track usage and the customer pays based on that")
+- [x] **AI tools page:** PPG actively markets to AI tool vendors, supports hybrid billing
+- PPG does NOT have built-in metering — credit ledger lives in our Firestore, PPG is the payment rail
+
+### Key Decisions
+
+- [x] Launch at $9/month — prove demand first, raise to $12-15 after 3 months of data
+- [x] Fixed credits per model (not token-based) — simple UX, predictable for users
+- [x] Free tier gets mini models + 1 image model — enough to taste reasoning, upsell to Pro for full models
+- [x] Responses API for all models — already in use, enables `-codex` models too
+- [x] Top-up packs via PPG one-time purchase + webhook — no Stripe needed
+- [x] Free tier: 50 credits/month (enough to see value, not enough for daily use)
+- [x] No nano models — too risky for SVG quality (structured tool calls + XML generation)
+- [ ] Consider max SVG size limit for AI features (~100K chars) — P99 users consume 30x more tokens
 
 ## Open Decisions
 
@@ -321,20 +438,42 @@ Deploy Phase 2, monitor:
 
 ### 4.3 PayProGlobal integration
 
-- Create subscription products: Pro Monthly ($9/mo), Pro Annual ($79/yr)
-- "Upgrade to Pro" button → redirects to PayProGlobal checkout (pass Firebase UID)
+- Create PPG products:
+  - **Pro Monthly** ($9/mo subscription)
+  - **Pro Annual** ($79/yr subscription)
+  - **100 AI Credits** ($5 one-time)
+  - **300 AI Credits** ($12 one-time)
+  - **1,000 AI Credits** ($29 one-time)
+- "Upgrade to Pro" button → redirects to PayProGlobal checkout (pass Firebase UID as custom field)
+- "Buy Credits" button → redirects to PPG checkout for credit pack
 - Azure Function: POST /api/webhook/payproglobal
-  - Verify IPN signature
-  - On payment: write to Firestore users/{uid}/subscription
-  - On cancellation: update subscription status
-- Client reads subscription status from Firestore on load
+  - Verify IPN HASH + SIGNATURE
+  - Whitelist PPG IPs (198.199.123.239, 157.230.8.40)
+  - On `OrderCharged` (subscription): write to Firestore `users/{uid}` with tier=pro, subscription dates
+  - On `OrderCharged` (credit pack): increment `users/{uid}.credits` by pack amount
+  - On `SubscriptionChargeSucceed`: renew subscription, reset monthly credit allocation
+  - On `SubscriptionSuspended`/`SubscriptionTerminated`: downgrade to free tier
+  - On `OrderRefunded`: deduct credits or downgrade tier
+- Client reads subscription status + credit balance from Firestore on load
 
-### 4.4 Enforce tiers
+### 4.4 Credit system & tier enforcement
 
-- Azure Function: check subscription before processing AI request
-- Free: 5/day (server-enforced)
-- Pro: unlimited (soft cap 500/day for abuse)
-- BYOL: client-side calls, no server enforcement needed
+- Firestore `users/{uid}` document:
+  ```
+  { tier: "free"|"pro", credits: 50, creditsResetDate: "2026-05-01",
+    subscriptionId: "...", subscriptionStatus: "active"|"suspended"|... }
+  ```
+- Server-side model config: `MODEL_CONFIG: Record<string, { credits: number, tier: "free"|"pro" }>`
+  - Maps each model to its credit cost and minimum tier
+  - Unknown/disallowed models rejected with 400
+- Azure Function: before processing AI request:
+  1. Read user tier + credit balance
+  2. Validate requested model is allowed for user's tier
+  3. Check credits >= model's credit cost → if not, return 402 (Payment Required)
+  4. Process request, then deduct model's credit cost
+- Free: 50 credits/month (reset on calendar month), access to mini models + gpt-image-1-mini
+- Pro: 500 credits/month (reset on billing cycle) + all models + can buy top-up packs
+- BYOL: client-side calls, no server enforcement
 - Remove ads for Pro users
 
 ### 4.5 Usage dashboard
@@ -399,6 +538,7 @@ Phase 5: Growth                     search, SEO, PWA
 - [x] Create Azure OpenAI resource + deploy GPT-4.1 models
 - [x] Create Azure Function App in Azure Portal
 - [x] Enable Firebase Auth providers (Google, GitHub) in Firebase Console
-- [ ] Create PayProGlobal account + subscription products
+- [ ] Create PayProGlobal account + products (Pro Monthly, Pro Annual, credit packs x3)
+- [ ] Configure PPG webhook URL + IPN secret key
 - [ ] Monitor analytics after Phase 2 launch
 - [ ] Product Hunt / Hacker News launch post
