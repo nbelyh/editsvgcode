@@ -1,9 +1,6 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
-import type { TokenUsage } from './pricing';
-
-export type { TokenUsage } from './pricing';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -25,7 +22,6 @@ export interface ChatResponse {
   message: string;
   toolCalls?: ChatToolCall[];
   credits: Credits;
-  tokens: TokenUsage[];
 }
 
 export interface ChatErrorResponse {
@@ -150,16 +146,7 @@ export async function sendChatRequest(
   onProgress?.('thinking');
   let response = await callServer({ svgContext, messages, model }, idToken, signal);
 
-  // Accumulate token usage across all server round-trips
-  const allTokens: TokenUsage[] = [];
-  if (response.tokens) {
-    allTokens.push({
-      model: response.tokens.model,
-      inputTokens: response.tokens.input_tokens,
-      outputTokens: response.tokens.output_tokens,
-      cachedTokens: response.tokens.cached_tokens,
-    });
-  }
+
 
   // Agentic loop — execute read-only tools locally, send results back
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -178,14 +165,6 @@ export async function sendChatRequest(
     }
 
     response = await callServer({ svgContext, messages, model, continuation }, idToken, signal);
-    if (response.tokens) {
-      allTokens.push({
-        model: response.tokens.model,
-        inputTokens: response.tokens.input_tokens,
-        outputTokens: response.tokens.output_tokens,
-        cachedTokens: response.tokens.cached_tokens,
-      });
-    }
   }
 
   // Extract message + tool calls from final response
@@ -221,7 +200,6 @@ export async function sendChatRequest(
         const result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
         args.svg = result.svg;
         runningSvg = result.svg;
-        if (result.tokens) allTokens.push(result.tokens);
       }
       toolCalls.push({ name: item.name, arguments: args });
     }
@@ -231,6 +209,5 @@ export async function sendChatRequest(
     message,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     credits: response.credits,
-    tokens: allTokens,
   };
 }

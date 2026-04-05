@@ -18,7 +18,6 @@ export interface EditorHandle {
 
 export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly }, ref) {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
-  const providersRegistered = useRef(false);
 
   useImperativeHandle(ref, () => ({
     selectRange(startLine: number, startCol: number, endLine: number, endCol: number) {
@@ -51,9 +50,9 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       (window as any).__test_formatXml = formatXml;
     }
 
-    if (!providersRegistered.current) {
+    if (!(monaco as any).__svgProvidersRegistered) {
       registerSvgProviders(monaco);
-      providersRegistered.current = true;
+      (monaco as any).__svgProvidersRegistered = true;
     }
   };
 

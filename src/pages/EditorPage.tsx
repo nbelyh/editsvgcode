@@ -217,7 +217,7 @@ export function EditorPage() {
               </Tooltip>
             </Group>
             <div style={{ flex: 1 }}>
-              {proposedSvg ? (
+              {proposedSvg && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                   <Group gap="xs" p={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
                     <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
@@ -233,9 +233,10 @@ export function EditorPage() {
                     />
                   </div>
                 </div>
-              ) : (
-                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
               )}
+              <div style={{ height: '100%', display: proposedSvg ? 'none' : 'block' }}>
+                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} />
+              </div>
             </div>
           </div>
         </Allotment.Pane>

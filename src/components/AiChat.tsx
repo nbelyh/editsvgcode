@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconSparkles, IconUser, IconCode, IconCheck, IconX, IconPencil, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, fetchCredits, type ChatMessage, type ChatToolCall, type ProgressStatus, type TokenUsage, type Credits } from '../lib/api-client';
-import { computeChatCost, computeImageCost, formatCost, formatTokens } from '../lib/pricing';
+import { sendChatRequest, fetchCredits, type ChatMessage, type ChatToolCall, type ProgressStatus, type Credits } from '../lib/api-client';
+
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import './AiChat.css';
 
@@ -15,7 +15,6 @@ interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
   toolCalls?: StoredToolCall[];
-  tokens?: TokenUsage[];
 }
 
 interface AiChatProps {
@@ -75,25 +74,6 @@ function CreditsIndicator({ remaining, limit }: { remaining: number; limit: numb
   );
 }
 
-function TokenInfo({ tokens }: { tokens: TokenUsage[] }) {
-  const totalCost = tokens.reduce((sum, t) => {
-    const isImage = t.model.startsWith('gpt-image');
-    return sum + (isImage ? computeImageCost(t) : computeChatCost(t));
-  }, 0);
-  const totalInput = tokens.reduce((s, t) => s + t.inputTokens, 0);
-  const totalOutput = tokens.reduce((s, t) => s + t.outputTokens, 0);
-  const totalCached = tokens.reduce((s, t) => s + t.cachedTokens, 0);
-  const models = [...new Set(tokens.map(t => t.model))];
-
-  return (
-    <div className="aui-token-info">
-      <span>{models.join(', ')}</span>
-      <span>↓{formatTokens(totalInput)}{totalCached > 0 && ` (${formatTokens(totalCached)} cached)`}</span>
-      <span>↑{formatTokens(totalOutput)}</span>
-      <span>{formatCost(totalCost)}</span>
-    </div>
-  );
-}
 
 export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -124,19 +104,20 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     ta.style.overflowY = desired > maxH ? 'auto' : 'hidden';
   }, []);
 
-  // Load messages from IndexedDB on mount
+  // Load messages from IndexedDB on mount and when fileId changes
   useEffect(() => {
+    loadedRef.current = false;
+    setMessages([]);
+    onPreviewSvg(null);
     loadChatMessages<DisplayMessage>(fileId).then((stored) => {
-      if (stored.length > 0) {
-        setMessages(stored);
-      }
+      setMessages(stored);
       loadedRef.current = true;
     });
     // Fetch current credit balance
     fetchCredits().then((data) => {
       if (data) setCredits(data);
     });
-  }, []);
+  }, [fileId]);
 
   // Save messages to IndexedDB on change
   useEffect(() => {
@@ -189,7 +170,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           ...tc,
           status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
         })),
-        tokens: response.tokens.length > 0 ? response.tokens : undefined,
+
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -357,7 +338,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                   )}
                 </div>
               ))}
-              {msg.tokens && <TokenInfo tokens={msg.tokens} />}
               </div>);
             }
 
@@ -424,7 +404,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                   )}
                 </div>
               ))}
-              {msg.tokens && <TokenInfo tokens={msg.tokens} />}
             </div>
             </Fragment>);
           })}
