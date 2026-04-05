@@ -15,25 +15,22 @@ export interface ChatToolCall {
   arguments: Record<string, unknown>;
 }
 
-export interface DailyTokenUsage {
-  input_tokens: number;
-  output_tokens: number;
-  cached_tokens: number;
-  requests: number;
-  by_model: Record<string, { input_tokens: number; output_tokens: number; cached_tokens: number; requests: number }>;
+export interface Credits {
+  remaining: number;
+  limit: number;
+  tier?: "free" | "pro";
 }
 
 export interface ChatResponse {
   message: string;
   toolCalls?: ChatToolCall[];
-  usage: { used: number; limit: number };
+  credits: Credits;
   tokens: TokenUsage[];
-  dailyTokens?: DailyTokenUsage;
 }
 
 export interface ChatErrorResponse {
   error: string;
-  used?: number;
+  remaining?: number;
   limit?: number;
 }
 
@@ -48,20 +45,19 @@ interface ServerResponse {
     arguments?: string;
     content?: Array<{ type: string; text?: string }>;
   }>;
-  usage: { used: number; limit: number };
+  credits: Credits;
   tokens?: {
     model: string;
     input_tokens: number;
     output_tokens: number;
     cached_tokens: number;
   };
-  daily_tokens?: DailyTokenUsage;
 }
 
 const MAX_TOOL_ROUNDS = 10;
 
-/** Fetch current usage and daily token totals (read-only, no increment). */
-export async function fetchUsage(): Promise<{ usage: { used: number; limit: number }; dailyTokens: DailyTokenUsage } | null> {
+/** Fetch current credit balance (read-only). */
+export async function fetchCredits(): Promise<Credits | null> {
   const auth = getAuth();
 
   // Wait for auth to be ready (anonymous sign-in may not have completed yet)
@@ -77,7 +73,7 @@ export async function fetchUsage(): Promise<{ usage: { used: number; limit: numb
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return { usage: data.usage, dailyTokens: data.daily_tokens };
+  return data.credits as Credits;
 }
 
 async function callServer(
@@ -100,9 +96,9 @@ async function callServer(
   if (!res.ok) {
     const err = data as ChatErrorResponse;
     const error = new Error(err.error ?? `Request failed (${res.status})`);
-    if (res.status === 429) {
-      (error as Error & { used?: number; limit?: number }).used = err.used;
-      (error as Error & { used?: number; limit?: number }).limit = err.limit;
+    if (res.status === 402 || res.status === 403) {
+      (error as Error & { remaining?: number; limit?: number }).remaining = err.remaining;
+      (error as Error & { remaining?: number; limit?: number }).limit = err.limit;
     }
     throw error;
   }
@@ -233,8 +229,7 @@ export async function sendChatRequest(
   return {
     message,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    usage: response.usage,
+    credits: response.credits,
     tokens: allTokens,
-    dailyTokens: response.daily_tokens,
   };
 }

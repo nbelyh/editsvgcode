@@ -13,7 +13,7 @@ export async function generateImage(
   prompt: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
-): Promise<{ svg: string; usage: { used: number; limit: number }; tokens?: TokenUsage }> {
+): Promise<{ svg: string; credits: { remaining: number; limit: number }; tokens?: TokenUsage }> {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
@@ -35,9 +35,9 @@ export async function generateImage(
     throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
   }
 
-  const usage = {
-    used: Number(res.headers.get('X-Usage-Used') ?? 0),
-    limit: Number(res.headers.get('X-Usage-Limit') ?? 0),
+  const credits = {
+    remaining: Number(res.headers.get('X-Credits-Remaining') ?? 0),
+    limit: Number(res.headers.get('X-Credits-Limit') ?? 0),
   };
 
   const tokensModel = res.headers.get('X-Tokens-Model');
@@ -55,7 +55,7 @@ export async function generateImage(
   onProgress?.('vectorizing');
   try {
     const svg = await vectorizeInBrowser(imageUrl);
-    return { svg, usage, tokens };
+    return { svg, credits, tokens };
   } finally {
     URL.revokeObjectURL(imageUrl);
   }
