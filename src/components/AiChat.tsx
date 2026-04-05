@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { IconSparkles, IconUser, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
 import { sendChatRequest, fetchCredits, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
@@ -35,7 +34,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
-  const [modelPickerOpened, modelPicker] = useDisclosure(false);
   const tier = credits?.tier ?? 'free';
   const editModels = useMemo(() => EDIT_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
   const imageModels = useMemo(() => IMAGE_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
@@ -335,9 +333,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             />
           </div>
           <div className="aui-composer-footer">
-            <Popover opened={modelPickerOpened} onClose={modelPicker.close} position="top-start" shadow="md" withinPortal={false}>
+            <Popover position="top-start" shadow="md">
               <Popover.Target>
-                <Text size="xs" c="dimmed" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={modelPicker.toggle}>
+                <Text size="xs" c="dimmed" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   {shortModelName(model)} · {shortModelName(imageModel)}
                 </Text>
               </Popover.Target>
