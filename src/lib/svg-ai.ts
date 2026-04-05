@@ -134,7 +134,7 @@ export function executeReadTool(
 }
 
 /**
- * Apply edit_svg operations to the SVG, returning the result and any failed operations.
+ * Apply find_replace operations to the SVG, returning the result and any failed operations.
  */
 export function applyEditSvg(
   currentSvg: string,

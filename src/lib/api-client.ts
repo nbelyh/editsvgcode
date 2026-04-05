@@ -181,10 +181,10 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'edit_svg' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image')) {
+    } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image')) {
       const args = JSON.parse(item.arguments!);
-      // Apply edit_svg operations locally, chaining from previous tool call result
-      if (item.name === 'edit_svg') {
+      // Apply find_replace operations locally, chaining from previous tool call result
+      if (item.name === 'find_replace') {
         const { svg, failed } = applyEditSvg(runningSvg, args.operations);
         args.svg = svg;
         runningSvg = svg;

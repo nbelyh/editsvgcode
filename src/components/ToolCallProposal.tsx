@@ -15,9 +15,9 @@ export function ToolCallProposal({ tc, onAccept, onReject }: ToolCallProposalPro
   return (
     <div className="aui-proposal" style={{ marginBottom: 8 }}>
       <div className="aui-proposal-header">
-        {tc.name === 'edit_svg' ? <IconPencil size={14} /> : <IconCode size={14} />}
+        {tc.name === 'find_replace' ? <IconPencil size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">
-          {(tc.arguments.summary as string) || (tc.name === 'edit_svg' ? 'Edit SVG' : 'Replace SVG')}
+          {(tc.arguments.summary as string) || (tc.name === 'find_replace' ? 'Find & replace' : 'Replace SVG')}
         </span>
       </div>
       {tc.status === 'pending' && (
