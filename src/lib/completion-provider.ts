@@ -275,6 +275,14 @@ export function registerSvgProviders(monaco: Monaco) {
     },
   });
 
+/** Format a schema description for multi-line hover display. */
+function formatHoverDescription(desc: string): string {
+  // Split before *Value*/*Value type*/*Default*/*Animatable* fields and [more...] links
+  return desc
+    .replace(/;\s*\*(Value|Default|Animatable)/g, '  \n*$1')
+    .replace(/\s*\[more\.\.\.\]/g, '  \n[more...]');
+}
+
   // Hover provider
   monaco.languages.registerHoverProvider('xml', {
     provideHover(model: editor.ITextModel, position: Position) {
@@ -287,7 +295,7 @@ export function registerSvgProviders(monaco: Monaco) {
         if (info) {
           const prefix = info.deprecated ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*' : `**${wordInfo.word}**`;
           return {
-            contents: [{ value: prefix }, { value: info.description }],
+            contents: [{ value: prefix }, { value: formatHoverDescription(info.description) }],
             range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
           };
         }
@@ -310,7 +318,7 @@ export function registerSvgProviders(monaco: Monaco) {
                   ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*'
                   : `**${wordInfo.word}**`;
                 const parts = [{ value: prefix }];
-                if (attribute.description) parts.push({ value: attribute.description });
+                if (attribute.description) parts.push({ value: formatHoverDescription(attribute.description) });
                 if (attribute.options) {
                   parts.push({ value: 'Values: `' + attribute.options.join('` | `') + '`' });
                 }
