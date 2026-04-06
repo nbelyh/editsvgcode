@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
-import { IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
+import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
@@ -164,9 +164,10 @@ export function EditorPage() {
   }, [svgCode]);
 
   const handleCursorElement = useCallback((element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => {
-    setSelectedElement(element);
-    setSelectedLineRange(lineRange);
-    setSelectedXPath(xpath);
+    const isRootSvg = xpath && /^\/svg\[\d+\]$/.test(xpath);
+    setSelectedElement(isRootSvg ? undefined : element);
+    setSelectedLineRange(isRootSvg ? undefined : lineRange);
+    setSelectedXPath(isRootSvg ? undefined : xpath);
   }, []);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
@@ -205,6 +206,11 @@ export function EditorPage() {
         <Allotment.Pane preferredSize="45%">
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0 }}>
+              <Tooltip label="Create a blank SVG document">
+                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={() => setSvgCode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">\n\n</svg>')}>
+                  New
+                </Button>
+              </Tooltip>
               <Tooltip label="Open an SVG file from your computer">
                 <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFolderOpen size={14} />} onClick={handleUpload}>
                   Open
