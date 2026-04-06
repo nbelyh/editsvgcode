@@ -8,6 +8,7 @@ import type { editor } from 'monaco-editor';
 import { Editor, type EditorHandle } from '../components/Editor';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
+import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/AiChat';
 import { EditSvgCodeDb } from '../lib/firebase';
 import { getNewUniqueId, stripBom, findElementRange, formatXml } from '../lib/svg-utils';
@@ -278,15 +279,17 @@ export function EditorPage() {
                 </ActionIcon>
               </Tooltip>
               <Tooltip label="AI Chat" position="left">
-                <ActionIcon
-                  variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
-                  color={sidebarTab === 'ai' ? 'blue' : 'gray'}
-                  size="lg"
-                  onClick={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }}
-                >
-                  <IconSparkles size={20} />
-                </ActionIcon>
-              </Tooltip>
+                  <ActionIcon
+                    data-teaching-anchor="ai-chat"
+                    variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
+                    color={sidebarTab === 'ai' ? 'blue' : 'gray'}
+                    size="lg"
+                    onClick={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }}
+                  >
+                    <IconSparkles size={20} />
+                  </ActionIcon>
+                </Tooltip>
+              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' />
             </div>
           </div>
         </Allotment.Pane>
