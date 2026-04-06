@@ -11,6 +11,20 @@ export default defineConfig({
   build: {
     target: 'es2022',
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('svg-schema'))
+            return 'svg-schema';
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase'))
+              return 'firebase';
+            if (id.includes('@mantine') || id.includes('@tabler') || id.includes('monaco-editor') || id.includes('@monaco-editor') || id.includes('react-dom') || id.includes('react-router') || id.includes('/react/'))
+              return 'ui';
+          }
+        },
+      },
+    },
   },
   server: {
     port: 3000,
