@@ -199,6 +199,7 @@ export async function sendChatRequest(
         onProgress?.('generating-image');
         const result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
         args.svg = result.svg;
+        args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;
       }
       toolCalls.push({ name: item.name, arguments: args });

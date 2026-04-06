@@ -2,6 +2,32 @@ import { getAuth } from 'firebase/auth';
 
 export type ImageProgressStatus = 'generating-image' | 'vectorizing';
 
+export interface VectorizerParams {
+  mode: 'spline' | 'polygon' | 'pixel';
+  clusteringMode: 'color' | 'binary';
+  hierarchical: 'stacked' | 'cutout';
+  filterSpeckle: number;     // 1–16
+  colorPrecision: number;    // 1–8
+  layerDifference: number;   // 0–64
+  cornerThreshold: number;   // 0–180 degrees
+  lengthThreshold: number;   // 1–20
+  spliceThreshold: number;   // 0–180 degrees
+  pathPrecision: number;     // 1–16
+}
+
+export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
+  mode: 'spline',
+  clusteringMode: 'color',
+  hierarchical: 'stacked',
+  filterSpeckle: 4,
+  colorPrecision: 6,
+  layerDifference: 16,
+  cornerThreshold: 60,
+  lengthThreshold: 4,
+  spliceThreshold: 45,
+  pathPrecision: 8,
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 /**
@@ -13,7 +39,7 @@ export async function generateImage(
   imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
-): Promise<{ svg: string; credits: { remaining: number; limit: number } }> {
+): Promise<{ svg: string; pngDataUrl: string; credits: { remaining: number; limit: number } }> {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
@@ -41,23 +67,36 @@ export async function generateImage(
   };
 
   const blob = await res.blob();
-  const imageUrl = URL.createObjectURL(blob);
+
+  // Convert to base64 data URL so it persists (not revoked) for preview and re-vectorization
+  const pngDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read image blob'));
+    reader.readAsDataURL(blob);
+  });
 
   // Vectorize in the browser using vtracer-webapp (same as visioncortex.org/vtracer)
   onProgress?.('vectorizing');
-  try {
-    const svg = await vectorizeInBrowser(imageUrl);
-    return { svg, credits };
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
+  const svg = await vectorize(pngDataUrl);
+  return { svg, pngDataUrl, credits };
+}
+
+/**
+ * Vectorize a PNG image URL (data URL or object URL) to SVG with the given params.
+ */
+export async function vectorize(
+  imageUrl: string,
+  params: VectorizerParams = DEFAULT_VECTORIZER_PARAMS,
+): Promise<string> {
+  return vectorizeInBrowser(imageUrl, params);
 }
 
 /**
  * Load base64 PNG into a canvas, then vectorize with vtracer-webapp (same engine as visioncortex.org/vtracer).
  * The converter reads pixels from a canvas DOM element and writes SVG paths to an SVG DOM element.
  */
-async function vectorizeInBrowser(imageUrl: string): Promise<string> {
+async function vectorizeInBrowser(imageUrl: string, params: VectorizerParams = DEFAULT_VECTORIZER_PARAMS): Promise<string> {
   const img = await loadImage(imageUrl);
 
   // Create temporary DOM elements — the WASM converter accesses them by ID
@@ -98,23 +137,23 @@ async function vectorizeInBrowser(imageUrl: string): Promise<string> {
     // Parameters match the official webapp presets.
     // Note: color_precision is inverted (8 - value), filter_speckle is squared,
     // and angle thresholds are in radians.
-    const params = JSON.stringify({
+    const vtracerParams = JSON.stringify({
       canvas_id: canvasId,
       svg_id: svgId,
-      mode: 'spline',
-      clustering_mode: 'color',
-      hierarchical: 'stacked',
-      filter_speckle: 4 * 4,
-      color_precision: 8 - 6,
-      layer_difference: 16,
-      corner_threshold: deg2rad(60),
-      length_threshold: 4.0,
-      splice_threshold: deg2rad(45),
-      path_precision: 8,
+      mode: params.mode,
+      clustering_mode: params.clusteringMode,
+      hierarchical: params.hierarchical,
+      filter_speckle: params.filterSpeckle * params.filterSpeckle,
+      color_precision: 8 - params.colorPrecision,
+      layer_difference: params.layerDifference,
+      corner_threshold: deg2rad(params.cornerThreshold),
+      length_threshold: params.lengthThreshold,
+      splice_threshold: deg2rad(params.spliceThreshold),
+      path_precision: params.pathPrecision,
       max_iterations: 10,
     });
 
-    const converter = ColorImageConverter.new_with_string(params);
+    const converter = ColorImageConverter.new_with_string(vtracerParams);
     converter.init();
 
     // tick() returns true when conversion is complete

@@ -206,6 +206,158 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* Vectorizer preview + controls */
+.aui-vectorizer {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.aui-vectorizer-preview {
+  flex-shrink: 0;
+}
+
+.aui-vectorizer-preview a {
+  display: block;
+  line-height: 0;
+}
+
+.aui-vectorizer-preview img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.aui-vectorizer-preview img:hover {
+  opacity: 0.85;
+}
+
+.aui-vectorizer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.aui-vectorizer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.aui-vectorizer-label {
+  width: 72px;
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-vectorizer-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--mantine-primary-color-filled);
+  cursor: pointer;
+}
+
+.aui-vectorizer-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  background: var(--mantine-color-dark-6, var(--mantine-color-gray-1));
+  color: var(--mantine-color-text);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+/* Segmented control */
+.aui-vectorizer-seg {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+}
+
+.aui-vectorizer-seg-btn {
+  flex: 1;
+  font-size: 10px;
+  padding: 1px 4px;
+  border: none;
+  background: var(--mantine-color-dark-6, var(--mantine-color-gray-1));
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.aui-vectorizer-seg-btn + .aui-vectorizer-seg-btn {
+  border-left: 1px solid var(--mantine-color-default-border);
+}
+
+.aui-vectorizer-seg-btn.active {
+  background: var(--mantine-primary-color-filled);
+  color: #fff;
+}
+
+.aui-vectorizer-seg-btn:hover:not(.active) {
+  background: var(--mantine-color-dark-5, var(--mantine-color-gray-2));
+}
+
+/* Toggle for advanced settings */
+.aui-vectorizer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--mantine-color-dimmed);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.aui-vectorizer-toggle:hover {
+  color: var(--mantine-color-text);
+}
+
+/* Advanced section */
+.aui-vectorizer-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aui-vectorizer-btn {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 11px;
+  padding: 2px 10px;
+  height: 22px;
+  background: var(--mantine-primary-color-filled);
+  color: #fff;
+  border: none;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.aui-vectorizer-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.aui-vectorizer-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Checkpoint divider */
 .aui-checkpoint {
   display: flex;

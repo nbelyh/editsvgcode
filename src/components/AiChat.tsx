@@ -202,6 +202,18 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     ));
   }, [messages, onAcceptSvg, onPreviewSvg]);
 
+  const handleUpdateToolCallSvg = useCallback((msgIndex: number, tcIndex: number, newSvg: string) => {
+    setMessages(prev => prev.map((m, i) =>
+      i !== msgIndex ? m : {
+        ...m,
+        toolCalls: m.toolCalls?.map((t, j) =>
+          j !== tcIndex ? t : { ...t, arguments: { ...t.arguments, svg: newSvg } }
+        ),
+      }
+    ));
+    onPreviewSvg(newSvg);
+  }, [onPreviewSvg]);
+
   const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
     onPreviewSvg(null);
 
@@ -252,6 +264,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                     tc={tc}
                     onAccept={() => handleAccept(msgIdx, tcIdx)}
                     onReject={() => handleReject(msgIdx, tcIdx)}
+                    onUpdateSvg={(svg) => handleUpdateToolCallSvg(msgIdx, tcIdx, svg)}
                   />
                 ))}
               </div>);
@@ -283,6 +296,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                   tc={tc}
                   onAccept={() => handleAccept(msgIdx, tcIdx)}
                   onReject={() => handleReject(msgIdx, tcIdx)}
+                  onUpdateSvg={(svg) => handleUpdateToolCallSvg(msgIdx, tcIdx, svg)}
                 />
               ))}
             </div>
