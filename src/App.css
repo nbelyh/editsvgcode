@@ -27,6 +27,12 @@
   animation: allotment-fade-in 0s ease-in 0.1s both;
 }
 
+/* Ensure Monaco hover/suggest widgets (with fixedOverflowWidgets) render above
+   the Preview toolbar and Allotment sash. */
+.overflowingContentWidgets {
+  z-index: 1000 !important;
+}
+
 /* Activity bar — thin vertical icon strip (VS Code style) */
 .activity-bar {
   display: flex;
