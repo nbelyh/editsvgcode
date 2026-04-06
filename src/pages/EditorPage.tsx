@@ -264,7 +264,7 @@ export function EditorPage() {
                 />
               </div>
               <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
-                <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} />
+                <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} onOpenAiChat={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
               </div>
             </div>
             <div className="activity-bar">

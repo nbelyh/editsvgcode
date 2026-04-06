@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 
 interface SidebarProps {
   onOpenCommandPalette?: () => void;
+  onOpenAiChat?: () => void;
 }
 
-export function Sidebar({ onOpenCommandPalette }: SidebarProps) {
+export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
   const adsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,6 +37,11 @@ export function Sidebar({ onOpenCommandPalette }: SidebarProps) {
           Press <Kbd>F1</Kbd> to open the{' '}
           <Anchor component="button" size="sm" onClick={onOpenCommandPalette}>Command Palette</Anchor>
           {' '}for additional editor actions.
+        </Text>
+        <Text size="sm" mt="xs">
+          Use{' '}
+          <Anchor component="button" size="sm" onClick={onOpenAiChat}>AI Chat</Anchor>
+          {' '}to edit your SVG with natural language. Describe what you want to change and the AI will propose edits you can accept or reject.
         </Text>
       </div>
       <div ref={adsRef} />
