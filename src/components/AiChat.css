@@ -334,30 +334,6 @@
   gap: 4px;
 }
 
-.aui-vectorizer-btn {
-  align-self: flex-start;
-  margin-top: 2px;
-  font-size: 11px;
-  padding: 2px 10px;
-  height: 22px;
-  background: var(--mantine-primary-color-filled);
-  color: #fff;
-  border: none;
-  border-radius: var(--mantine-radius-sm);
-  cursor: pointer;
-  opacity: 1;
-  transition: opacity 0.15s;
-}
-
-.aui-vectorizer-btn:hover:not(:disabled) {
-  opacity: 0.85;
-}
-
-.aui-vectorizer-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 /* Checkpoint divider */
 .aui-checkpoint {
   display: flex;

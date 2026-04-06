@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import type { ChatToolCall } from '../lib/api-client';
 import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
@@ -46,22 +46,32 @@ function SliderRow({ label, value, min, max, step, onChange }: { label: string; 
 
 function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: string; onUpdateSvg?: (svg: string) => void }) {
   const [params, setParams] = useState<VectorizerParams>(DEFAULT_VECTORIZER_PARAMS);
-  const [isRevectorizing, setIsRevectorizing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const set = <K extends keyof VectorizerParams>(key: K, val: VectorizerParams[K]) =>
     setParams(p => ({ ...p, [key]: val }));
 
-  const handleRevectorize = async () => {
-    if (isRevectorizing) return;
-    setIsRevectorizing(true);
-    try {
-      const svg = await vectorize(pngDataUrl, params);
-      onUpdateSvg?.(svg);
-    } finally {
-      setIsRevectorizing(false);
+  const revectorizeRef = useRef(0);
+  const onUpdateSvgRef = useRef(onUpdateSvg);
+  onUpdateSvgRef.current = onUpdateSvg;
+
+  // Auto re-vectorize on param change (debounced)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  };
+    const id = ++revectorizeRef.current;
+    const timer = setTimeout(async () => {
+      const svg = await vectorize(pngDataUrl, params);
+      if (revectorizeRef.current === id) {
+        onUpdateSvgRef.current?.(svg);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   return (
     <div className="aui-vectorizer">
@@ -125,13 +135,6 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
           </div>
         )}
 
-        <button
-          className="aui-vectorizer-btn"
-          disabled={isRevectorizing}
-          onClick={handleRevectorize}
-        >
-          {isRevectorizing ? 'Vectorizing…' : 'Re-vectorize'}
-        </button>
       </div>
     </div>
   );

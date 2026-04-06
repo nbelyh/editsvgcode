@@ -25,7 +25,7 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
   cornerThreshold: 60,
   lengthThreshold: 4,
   spliceThreshold: 45,
-  pathPrecision: 8,
+  pathPrecision: 3,
 };
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
