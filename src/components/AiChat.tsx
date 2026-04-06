@@ -35,8 +35,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
   const tier = credits?.tier ?? 'free';
-  const editModels = useMemo(() => EDIT_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
-  const imageModels = useMemo(() => IMAGE_MODELS.filter(m => tier === 'pro' || !m.pro), [tier]);
+  const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const editModels = useMemo(() => EDIT_MODELS.filter(m => isDebug || tier === 'pro' || !m.pro), [tier, isDebug]);
+  const imageModels = useMemo(() => IMAGE_MODELS.filter(m => isDebug || tier === 'pro' || !m.pro), [tier, isDebug]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
