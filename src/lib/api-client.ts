@@ -1,6 +1,7 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
+import { config } from './config';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -30,7 +31,7 @@ export interface ChatErrorResponse {
   limit?: number;
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = config.API_URL;
 
 /** Raw response shape from the server (thin AI proxy) */
 interface ServerResponse {

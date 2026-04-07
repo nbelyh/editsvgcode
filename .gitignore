@@ -10,12 +10,8 @@ firestore-debug.log
 firebase-debug.log
 test-results
 playwright-report
-.env
-.env.*
-!.env.example
-!.env.production
-!.env.beta
 api/local.settings.json
+api/local.settings.beta.json
 api/dist
 api/node_modules
 __azurite_*

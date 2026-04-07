@@ -28,7 +28,9 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
   pathPrecision: 3,
 };
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+import { config } from './config';
+
+const API_URL = config.API_URL;
 
 /**
  * Generate an SVG from a text prompt.
