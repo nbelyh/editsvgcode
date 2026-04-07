@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth",
     "ship": "tsc && vitest run && vite build && playwright test && firebase deploy",
+    "build:beta": "vite build --mode beta",
+    "deploy:beta": "npm run build:beta && firebase deploy --only hosting -P beta",
     "preview:deploy": "tsc && vitest run && vite build && firebase hosting:channel:deploy preview --expires 7d",
     "test": "vitest",
     "test:run": "vitest run",

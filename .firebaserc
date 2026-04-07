@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "editsvgcode-db"
+    "default": "editsvgcode-db",
+    "beta": "editsvgcode-beta"
   }
 }

@@ -29,14 +29,14 @@ import {
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyDFV9DY9TO1wKlKa4JNlG-J3XPh162X6tk',
-  authDomain: 'editsvgcode-db.firebaseapp.com',
-  databaseURL: 'https://editsvgcode-db.firebaseio.com',
-  projectId: 'editsvgcode-db',
-  storageBucket: 'editsvgcode-db.appspot.com',
-  messagingSenderId: '112195396800',
-  appId: '1:112195396800:web:2d89974b60aacf6ac3b925',
-  measurementId: 'G-EZ58N4GC8Z',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase eagerly at module level so getAuth() works from any module
