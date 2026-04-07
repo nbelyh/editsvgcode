@@ -3,7 +3,7 @@ import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
 import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser } from '@tabler/icons-react';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle, signInWithGithub, signOutUser } from '../lib/firebase';
+import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
 
 interface UserInfo {
   uid: string;
@@ -33,7 +33,7 @@ export function UserMenu() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      console.error('Sign-in failed:', err);
+      logError('signInWithGoogle', err);
     }
   };
 
@@ -41,7 +41,7 @@ export function UserMenu() {
     try {
       await signInWithGithub();
     } catch (err) {
-      console.error('Sign-in failed:', err);
+      logError('signInWithGithub', err);
     }
   };
 
@@ -49,7 +49,7 @@ export function UserMenu() {
     try {
       await signOutUser();
     } catch (err) {
-      console.error('Sign-out failed:', err);
+      logError('signOut', err);
     }
   };
 

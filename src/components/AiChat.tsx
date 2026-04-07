@@ -5,13 +5,14 @@ import { sendChatRequest, fetchCredits, type ChatMessage, type ProgressStatus, t
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../lib/models';
 import { ToolCallProposal, type StoredToolCall } from './ToolCallProposal';
-import { CreditsIndicator } from './CreditsIndicator';
+import { CreditsIndicator, BUY_CREDITS_URL } from './CreditsIndicator';
 import './AiChat.css';
 
 interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
   toolCalls?: StoredToolCall[];
+  buyCredits?: true;
 }
 
 interface AiChatProps {
@@ -131,9 +132,17 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       if (firstSvg) onPreviewSvg(firstSvg);
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
+      const errMsg = (err as Error).message;
+      const isCreditsError = errMsg.includes('Insufficient credits') || errMsg.includes('Pro subscription');
+      // Update credits indicator from error response if available
+      const errObj = err as Error & { remaining?: number; limit?: number };
+      if (isCreditsError && errObj.remaining != null && errObj.limit != null) {
+        setCredits({ remaining: errObj.remaining, limit: errObj.limit });
+      }
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
-        content: `Error: ${(err as Error).message}`,
+        content: isCreditsError ? errMsg : `Error: ${errMsg}`,
+        buyCredits: isCreditsError || undefined,
       };
       setMessages(prev => [...prev, assistantMsg]);
     } finally {
@@ -150,9 +159,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setInput('');
-    setCredits(null);
     onPreviewSvg(null);
     clearChatMessages(fileId);
+    fetchCredits().then((data) => { if (data) setCredits(data); });
   }, [onPreviewSvg, fileId]);
 
   const handleRestore = useCallback((msgIdx: number) => {
@@ -247,7 +256,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             <div className="aui-empty">
               <IconSparkles size={32} className="aui-empty-icon" />
               <p>Ask AI to edit your SVG</p>
-              <p className="aui-empty-hint">e.g. &quot;Change the fill to blue&quot;</p>
+              <p className="aui-empty-hint">e.g. select an item and tell it to &quot;change the fill to blue&quot;</p>
             </div>
           )}
 
@@ -288,6 +297,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
               {msg.content && (
                 <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
                   {msg.content}
+                  {msg.buyCredits && (
+                    <> — <a href={BUY_CREDITS_URL} target="_blank" rel="noopener noreferrer">Buy Credits</a></>
+                  )}
                 </div>
               )}
               {msg.toolCalls?.map((tc, tcIdx) => (

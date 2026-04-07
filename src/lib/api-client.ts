@@ -56,15 +56,36 @@ const MAX_TOOL_ROUNDS = 10;
 export async function fetchCredits(): Promise<Credits | null> {
   const auth = getAuth();
 
-  // Wait for auth to be ready (anonymous sign-in may not have completed yet)
+  // Wait for auth to be ready — anonymous sign-in may not have completed yet.
+  // Listen until we get a non-null user (skip the initial null event).
   const user = await new Promise<import('firebase/auth').User | null>((resolve) => {
     if (auth.currentUser) return resolve(auth.currentUser);
-    const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u); });
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) { unsub(); resolve(u); }
+    });
+    // Timeout: if no user arrives in 5s, give up
+    setTimeout(() => resolve(null), 5000);
   });
   if (!user) return null;
 
   const idToken = await user.getIdToken();
   const res = await fetch(`${API_URL}/api/usage`, {
+    headers: { 'Authorization': `Bearer ${idToken}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.credits as Credits;
+}
+
+/** Provision credits for a newly signed-up user. Resets to full allowance if exhausted. */
+export async function provisionCredits(): Promise<Credits | null> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  const idToken = await user.getIdToken();
+  const res = await fetch(`${API_URL}/api/usage`, {
+    method: 'POST',
     headers: { 'Authorization': `Bearer ${idToken}` },
   });
   if (!res.ok) return null;
@@ -170,6 +191,7 @@ export async function sendChatRequest(
   // Extract message + tool calls from final response
   let message = '';
   const toolCalls: ChatToolCall[] = [];
+  let latestCredits: Credits = response.credits;
 
   // Track running SVG state so multiple tool calls chain correctly
   let runningSvg = normalizedSvg;
@@ -201,6 +223,8 @@ export async function sendChatRequest(
         args.svg = result.svg;
         args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;
+        // Image gen deducts credits separately — use its updated count
+        latestCredits = result.credits;
       }
       toolCalls.push({ name: item.name, arguments: args });
     }
@@ -209,6 +233,6 @@ export async function sendChatRequest(
   return {
     message,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    credits: response.credits,
+    credits: latestCredits,
   };
 }

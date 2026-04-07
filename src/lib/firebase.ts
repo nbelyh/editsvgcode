@@ -26,7 +26,7 @@ import {
   type AuthProvider,
   type User,
 } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDFV9DY9TO1wKlKa4JNlG-J3XPh162X6tk',
@@ -48,12 +48,31 @@ const isLocalhost =
   window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1';
 
+let firebaseAnalytics: Analytics | null = null;
+
 if (isLocalhost) {
   console.log('Running on localhost - using Firebase Emulators');
   connectFirestoreEmulator(firebaseDb, 'localhost', 8080);
   connectAuthEmulator(firebaseAuth, 'http://localhost:9099');
 } else {
-  getAnalytics(firebaseApp);
+  firebaseAnalytics = getAnalytics(firebaseApp);
+}
+
+/** Log an error to Firebase Analytics (production) and console. */
+export function logError(context: string, err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  const auth = getAuth();
+  const uid = auth.currentUser?.uid ?? 'unknown';
+  const isAnon = auth.currentUser?.isAnonymous ?? true;
+  console.error(`[${context}] uid=${uid} anon=${isAnon}`, err);
+  if (firebaseAnalytics) {
+    logEvent(firebaseAnalytics, 'exception', {
+      description: `${context}: ${message}`.slice(0, 150),
+      fatal: false,
+      uid,
+      anonymous: isAnon,
+    });
+  }
 }
 
 onAuthStateChanged(firebaseAuth, (user) => {
@@ -61,7 +80,7 @@ onAuthStateChanged(firebaseAuth, (user) => {
     document.dispatchEvent(new Event('dbinit'));
   } else {
     signInAnonymously(firebaseAuth).catch((error) => {
-      console.error('Unable to authenticate: ' + error.message);
+      logError('auth', error);
     });
   }
 });
@@ -79,7 +98,7 @@ export class EditSvgCodeDb {
     if (snap.exists()) {
       return snap.data().text;
     }
-    console.warn('file id does not exist: ' + uniqueId);
+    logError('loadDocument', 'file id does not exist: ' + uniqueId);
     return '';
   }
 
@@ -114,6 +133,8 @@ export class EditSvgCodeDb {
   }
 }
 
+import { provisionCredits } from './api-client';
+
 /** Sign in with a provider. If anonymous, link the account to preserve data. */
 async function signInWithProvider(provider: AuthProvider): Promise<User> {
   const auth = getAuth();
@@ -141,6 +162,10 @@ async function signInWithProvider(provider: AuthProvider): Promise<User> {
 
   // Refresh token so onIdTokenChanged fires in UI components
   await user.getIdToken(true);
+
+  // Provision credits for the newly signed-up user
+  provisionCredits().catch((err) => logError('provisionCredits', err));
+
   return user;
 }
 
