@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
-import { IconSparkles, IconUser, IconPlus, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
 import { sendChatRequest, fetchCredits, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../lib/models';
@@ -239,11 +239,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   return (
     <div className="aui-root">
       <div className="aui-header">
-        <Tooltip label="New Chat">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending}>
-            <IconPlus size={16} />
-          </ActionIcon>
-        </Tooltip>
         <Tooltip label="Clear Chat">
           <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0}>
             <IconTrash size={16} />
