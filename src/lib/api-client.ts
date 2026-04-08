@@ -17,6 +17,7 @@ export interface Credits {
   remaining: number;
   limit: number;
   tier?: "free" | "pro";
+  creditsByModel?: Record<string, number>;
 }
 
 export interface ChatResponse {
