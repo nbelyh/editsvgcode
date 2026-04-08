@@ -16,4 +16,4 @@ api/dist
 api/node_modules
 __azurite_*
 __blobstorage__/*
-
+.emulator-data
