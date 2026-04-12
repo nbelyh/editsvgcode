@@ -29,6 +29,7 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
 };
 
 import { config } from './config';
+import type { CreditsError } from './api-client';
 
 const API_URL = config.API_URL;
 
@@ -60,7 +61,15 @@ export async function generateImage(
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
+    const errData = data as { error?: string; code?: 'INSUFFICIENT_CREDITS' | 'PRO_REQUIRED' | 'UNKNOWN_MODEL'; remaining?: number; limit?: number };
+    const error = new Error(errData.error ?? `Request failed (${res.status})`) as CreditsError;
+    if (res.status === 402) {
+      error.code = 'CREDITS_ERROR';
+      error.creditCode = errData.code;
+      error.remaining = errData.remaining;
+      error.limit = errData.limit;
+    }
+    throw error;
   }
 
   const credits = {

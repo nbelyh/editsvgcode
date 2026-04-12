@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build:api && concurrently -n vite,firebase,api-watch,api -c cyan,yellow,green,magenta \"vite\" \"firebase emulators:start --only firestore,auth --import .emulator-data --export-on-exit\" \"cd api && npm run watch\" \"cd api && func start\"",
+    "dev": "npm run build:api && concurrently -n vite,firebase,api-watch,api -c cyan,yellow,green,magenta \"vite\" \"firebase emulators:start --only firestore,auth --import .emulator-data --export-on-exit\" \"cd api && npm run watch\" \"cd api && npx nodemon --watch dist --ext js --exec func start\"",
     "dev:vite": "vite",
     "build": "tsc && vitest run && vite build",
     "build:api": "cd api && npm run build",

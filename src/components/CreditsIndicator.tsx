@@ -1,9 +1,8 @@
 import { Text, Tooltip } from '@mantine/core';
 
-/** Placeholder — replace with real PayProGlobal / pricing page URL. */
 export const BUY_CREDITS_URL = '/pricing';
 
-export function CreditsIndicator({ remaining, limit, creditsByModel }: { remaining: number; limit: number; creditsByModel?: Record<string, number> }) {
+export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous }: { remaining: number; limit: number; creditsByModel?: Record<string, number>; isAnonymous?: boolean }) {
   const size = 18;
   const stroke = 2.5;
   const r = (size - stroke) / 2;
@@ -22,7 +21,7 @@ export function CreditsIndicator({ remaining, limit, creditsByModel }: { remaini
       <Text size="sm" fw={600}>{remaining} / {limit} credits remaining</Text>
       {modelEntries.length > 0 && (
         <>
-          <Text size="sm" c="dimmed" mt={4}>Spent this month:</Text>
+          <Text size="sm" c="dimmed" mt={4}>{isAnonymous ? 'Spent (trial):' : 'Spent this month:'}</Text>
           {modelEntries.map(([model, spent]) => (
             <Text size="sm" key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <span>{model}</span>

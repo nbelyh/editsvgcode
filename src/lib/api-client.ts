@@ -1,9 +1,7 @@
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
 import { config } from './config';
-import { firebaseDb } from './firebase';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -32,6 +30,19 @@ export interface ChatErrorResponse {
   error: string;
   remaining?: number;
   limit?: number;
+  code?: 'INSUFFICIENT_CREDITS' | 'PRO_REQUIRED' | 'UNKNOWN_MODEL';
+}
+
+/** Extended Error with credits-specific fields. */
+export interface CreditsError extends Error {
+  code: 'CREDITS_ERROR';
+  creditCode?: 'INSUFFICIENT_CREDITS' | 'PRO_REQUIRED' | 'UNKNOWN_MODEL';
+  remaining?: number;
+  limit?: number;
+}
+
+export function isCreditsError(err: unknown): err is CreditsError {
+  return err instanceof Error && (err as CreditsError).code === 'CREDITS_ERROR';
 }
 
 const API_URL = config.API_URL;
@@ -56,42 +67,6 @@ interface ServerResponse {
 
 const MAX_TOOL_ROUNDS = 10;
 
-const FREE_MONTHLY_CREDITS = 50;
-const PRO_MONTHLY_CREDITS = 500;
-
-/** Fetch current credit balance directly from Firestore (no server round-trip). */
-export async function fetchCredits(): Promise<Credits | null> {
-  const auth = getAuth();
-
-  // Wait for auth to be ready — anonymous sign-in may not have completed yet.
-  const user = await new Promise<import('firebase/auth').User | null>((resolve) => {
-    if (auth.currentUser) return resolve(auth.currentUser);
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) { unsub(); resolve(u); }
-    });
-    setTimeout(() => resolve(null), 5000);
-  });
-  if (!user) return null;
-
-  const month = new Date().toISOString().slice(0, 7);
-
-  const [userSnap, usageSnap] = await Promise.all([
-    getDoc(doc(firebaseDb, 'users', user.uid)),
-    getDoc(doc(firebaseDb, 'usage', user.uid)),
-  ]);
-
-  const userData = userSnap.data();
-  const tier: 'free' | 'pro' =
-    userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
-  const limit = tier === 'pro' ? PRO_MONTHLY_CREDITS : FREE_MONTHLY_CREDITS;
-
-  const usageData = usageSnap.data();
-  const remaining = (!usageData || usageData.month !== month) ? limit : (usageData.credits ?? 0);
-  const creditsByModel = usageData?.month === month ? usageData.credits_by_model : undefined;
-
-  return { remaining, limit, tier, creditsByModel };
-}
-
 async function callServer(
   body: { svgContext: string; messages: ChatMessage[]; model?: string; continuation?: unknown[] },
   idToken: string,
@@ -111,10 +86,12 @@ async function callServer(
 
   if (!res.ok) {
     const err = data as ChatErrorResponse;
-    const error = new Error(err.error ?? `Request failed (${res.status})`);
-    if (res.status === 402 || res.status === 403) {
-      (error as Error & { remaining?: number; limit?: number }).remaining = err.remaining;
-      (error as Error & { remaining?: number; limit?: number }).limit = err.limit;
+    const error = new Error(err.error ?? `Request failed (${res.status})`) as CreditsError;
+    if (res.status === 402) {
+      error.code = 'CREDITS_ERROR';
+      error.creditCode = err.code;
+      error.remaining = err.remaining;
+      error.limit = err.limit;
     }
     throw error;
   }
@@ -218,7 +195,14 @@ export async function sendChatRequest(
       } else if (item.name === 'generate_image') {
         // Call server to generate raster image and vectorize to SVG
         onProgress?.('generating-image');
-        const result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
+        let result;
+        try {
+          result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
+        } catch (err) {
+          // Re-throw credits errors as-is so the caller can detect them correctly
+          if (isCreditsError(err)) throw err;
+          throw err instanceof Error ? err : new Error(String(err));
+        }
         args.svg = result.svg;
         args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;

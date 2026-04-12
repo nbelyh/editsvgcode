@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
+import { getAuth } from 'firebase/auth';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
 import { IconSparkles, IconUser, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, fetchCredits, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
+import { sendChatRequest, isCreditsError, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
+import { subscribeCredits } from '../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../lib/models';
 import { ToolCallProposal, type StoredToolCall } from './ToolCallProposal';
@@ -36,6 +38,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
   const tier = credits?.tier ?? 'free';
+  const isAnonymous = getAuth().currentUser?.isAnonymous ?? true;
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const editModels = useMemo(() => EDIT_MODELS, []);
   const imageModels = useMemo(() => IMAGE_MODELS, []);
@@ -57,6 +60,11 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     ta.style.overflowY = desired > maxH ? 'auto' : 'hidden';
   }, []);
 
+  // Subscribe to real-time credit balance from Firestore
+  useEffect(() => {
+    return subscribeCredits(setCredits);
+  }, []);
+
   // Load messages from IndexedDB on mount and when fileId changes
   useEffect(() => {
     loadedRef.current = false;
@@ -65,10 +73,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     loadChatMessages<DisplayMessage>(fileId).then((stored) => {
       setMessages(stored);
       loadedRef.current = true;
-    });
-    // Fetch current credit balance
-    fetchCredits().then((data) => {
-      if (data) setCredits(data);
     });
   }, [fileId]);
 
@@ -114,8 +118,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         setProgressStatus,
       );
 
-      setCredits(response.credits);
-
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: response.message,
@@ -133,17 +135,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       if (firstSvg) onPreviewSvg(firstSvg);
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
+      const creditsErr = isCreditsError(err);
       const errMsg = (err as Error).message;
-      const isCreditsError = errMsg.includes('Insufficient credits') || errMsg.includes('Pro subscription');
-      // Update credits indicator from error response if available
-      const errObj = err as Error & { remaining?: number; limit?: number };
-      if (isCreditsError && errObj.remaining != null && errObj.limit != null) {
-        setCredits({ remaining: errObj.remaining, limit: errObj.limit });
-      }
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
-        content: isCreditsError ? errMsg : `Error: ${errMsg}`,
-        buyCredits: isCreditsError || undefined,
+        content: creditsErr ? errMsg : `Error: ${errMsg}`,
+        buyCredits: creditsErr || undefined,
       };
       setMessages(prev => [...prev, assistantMsg]);
     } finally {
@@ -162,7 +159,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setInput('');
     onPreviewSvg(null);
     clearChatMessages(fileId);
-    fetchCredits().then((data) => { if (data) setCredits(data); });
   }, [onPreviewSvg, fileId]);
 
   const handleRestore = useCallback((msgIdx: number) => {
@@ -393,7 +389,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             </Popover>
             <div className="aui-composer-footer-actions">
               {credits && (
-                <CreditsIndicator remaining={credits.remaining} limit={credits.limit} creditsByModel={credits.creditsByModel} />
+                <CreditsIndicator remaining={credits.remaining} limit={credits.limit} creditsByModel={credits.creditsByModel} isAnonymous={isAnonymous} />
               )}
               <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
                 <ActionIcon

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
-import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser } from '@tabler/icons-react';
+import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard } from '@tabler/icons-react';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
@@ -83,6 +83,9 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate('/profile')}>
               Profile &amp; Files
             </Menu.Item>
+            <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
+              Pricing &amp; Credits
+            </Menu.Item>
             <Menu.Item leftSection={<IconBrandGoogle size={14} />} onClick={handleGoogleSignIn}>
               Sign in with Google
             </Menu.Item>
@@ -104,6 +107,9 @@ export function UserMenu() {
             <Menu.Divider />
             <Menu.Item leftSection={<IconUser size={14} />} onClick={() => navigate('/profile')}>
               Profile &amp; Files
+            </Menu.Item>
+            <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
+              Pricing &amp; Credits
             </Menu.Item>
             <Menu.Item leftSection={<IconLogout size={14} />} onClick={handleSignOut}>
               Sign out

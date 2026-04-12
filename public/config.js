@@ -4,7 +4,7 @@ window.__CONFIG__ = {
   FIREBASE_API_KEY: 'local-dev-key',
   FIREBASE_AUTH_DOMAIN: 'localhost',
   FIREBASE_DATABASE_URL: 'http://localhost:8080',
-  FIREBASE_PROJECT_ID: 'local-dev',
+  FIREBASE_PROJECT_ID: 'editsvgcode-db',
   FIREBASE_STORAGE_BUCKET: '',
   FIREBASE_MESSAGING_SENDER_ID: '',
   FIREBASE_APP_ID: 'local-dev',
