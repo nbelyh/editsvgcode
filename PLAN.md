@@ -111,19 +111,19 @@ Transform editsvgcode.com from a free SVG code editor ($15/month ads) into an AI
 | Tier | Price | Credits | Estimated cost ceiling | Margin |
 |------|-------|---------|----------------------|--------|
 | Free | $0 | 50/month | ~$3 | marketing cost |
-| Pro | $9/month or $79/year | 500/month | ~$15/month worst case | ~50%+ after PPG fees |
+| Pro | $9/month or $79/year | 1000/month | ~$30/month worst case | ~50%+ after PPG fees |
 | BYOL | $0 | ∞ (user's key) | $0 | free tier, drives engagement |
 
 Free user gets ~50 cheap edits, or ~16 reasoning edits, or 5 image gens, or a mix.
 Pro user gets enough for daily heavy use across all model tiers.
 
-### Top-up Credit Packs (via PPG one-time purchase)
+### Top-up Credit Pack (via PPG one-time purchase)
 
-| Pack | Credits | Price | Markup |
-|------|---------|-------|--------|
-| Starter | 100 | $5 | 5x |
-| Value | 300 | $12 | 4x |
-| Bulk | 1,000 | $29 | 3x |
+| Pack | Credits | Price |
+|------|---------|-------|
+| Bulk | 1,000 | $15 |
+
+One-time alternative to subscription for occasional users.
 
 ### PayProGlobal Capabilities
 
