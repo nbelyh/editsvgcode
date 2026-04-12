@@ -1,7 +1,9 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
 import { config } from './config';
+import { firebaseDb } from './firebase';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -54,45 +56,40 @@ interface ServerResponse {
 
 const MAX_TOOL_ROUNDS = 10;
 
-/** Fetch current credit balance (read-only). */
+const FREE_MONTHLY_CREDITS = 50;
+const PRO_MONTHLY_CREDITS = 500;
+
+/** Fetch current credit balance directly from Firestore (no server round-trip). */
 export async function fetchCredits(): Promise<Credits | null> {
   const auth = getAuth();
 
   // Wait for auth to be ready — anonymous sign-in may not have completed yet.
-  // Listen until we get a non-null user (skip the initial null event).
   const user = await new Promise<import('firebase/auth').User | null>((resolve) => {
     if (auth.currentUser) return resolve(auth.currentUser);
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u) { unsub(); resolve(u); }
     });
-    // Timeout: if no user arrives in 5s, give up
     setTimeout(() => resolve(null), 5000);
   });
   if (!user) return null;
 
-  const idToken = await user.getIdToken();
-  const res = await fetch(`${API_URL}/api/usage`, {
-    headers: { 'Authorization': `Bearer ${idToken}` },
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.credits as Credits;
-}
+  const month = new Date().toISOString().slice(0, 7);
 
-/** Provision credits for a newly signed-up user. Resets to full allowance if exhausted. */
-export async function provisionCredits(): Promise<Credits | null> {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  if (!user) return null;
+  const [userSnap, usageSnap] = await Promise.all([
+    getDoc(doc(firebaseDb, 'users', user.uid)),
+    getDoc(doc(firebaseDb, 'usage', user.uid)),
+  ]);
 
-  const idToken = await user.getIdToken();
-  const res = await fetch(`${API_URL}/api/usage`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${idToken}` },
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.credits as Credits;
+  const userData = userSnap.data();
+  const tier: 'free' | 'pro' =
+    userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
+  const limit = tier === 'pro' ? PRO_MONTHLY_CREDITS : FREE_MONTHLY_CREDITS;
+
+  const usageData = usageSnap.data();
+  const remaining = (!usageData || usageData.month !== month) ? limit : (usageData.credits ?? 0);
+  const creditsByModel = usageData?.month === month ? usageData.credits_by_model : undefined;
+
+  return { remaining, limit, tier, creditsByModel };
 }
 
 async function callServer(

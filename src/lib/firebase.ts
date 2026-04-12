@@ -43,6 +43,7 @@ const firebaseConfig = {
 // Initialize Firebase eagerly at module level so getAuth() works from any module
 const firebaseApp = initializeApp(firebaseConfig);
 const firebaseDb = getFirestore(firebaseApp);
+export { firebaseDb };
 const firebaseAuth = getAuth(firebaseApp);
 
 const isLocalhost =
@@ -134,8 +135,6 @@ export class EditSvgCodeDb {
   }
 }
 
-import { provisionCredits } from './api-client';
-
 /** Sign in with a provider. If anonymous, link the account to preserve data. */
 async function signInWithProvider(provider: AuthProvider): Promise<User> {
   const auth = getAuth();
@@ -163,9 +162,6 @@ async function signInWithProvider(provider: AuthProvider): Promise<User> {
 
   // Refresh token so onIdTokenChanged fires in UI components
   await user.getIdToken(true);
-
-  // Provision credits for the newly signed-up user
-  provisionCredits().catch((err) => logError('provisionCredits', err));
 
   return user;
 }
