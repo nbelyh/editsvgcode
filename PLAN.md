@@ -150,6 +150,7 @@ One-time alternative to subscription for occasional users.
 - [x] AI Chat UI library: **assistant-ui** — headless primitives, custom runtime via useExternalStoreRuntime, dark theme CSS
 - [x] BYOL: direct client-to-provider calls (skip proxy) — decided, keys stay in localStorage, never touch server
 - [x] Auth for AI endpoint: Firebase ID tokens from Phase 2 (anonymous auth already exists), server-side Firestore rate limiting
+- [ ] **Mid-tier credit option:** Gap between free (50) and pro (1000) is large. A user wanting ~200 credits must choose between $15 one-time pack or $9/month subscription. Revisit after launch with real usage data — consider a $5/month "Lite" tier (200 credits) or smaller top-up pack.
 
 ---
 

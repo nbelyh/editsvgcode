@@ -37,8 +37,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
   const tier = credits?.tier ?? 'free';
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const editModels = useMemo(() => EDIT_MODELS.filter(m => isDebug || tier === 'pro' || !m.pro), [tier, isDebug]);
-  const imageModels = useMemo(() => IMAGE_MODELS.filter(m => isDebug || tier === 'pro' || !m.pro), [tier, isDebug]);
+  const editModels = useMemo(() => EDIT_MODELS, []);
+  const imageModels = useMemo(() => IMAGE_MODELS, []);
+  const isModelDisabled = (m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro;
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -367,7 +368,11 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                     <Text size="xs" fw={600} mb={4}>Edit model</Text>
                     <Radio.Group value={model} onChange={v => { setModel(v); localStorage.setItem('esvg-model', v); }}>
                       <Stack gap={4}>
-                        {editModels.map(m => <Radio key={m.value} value={m.value} label={m.label} size="xs" />)}
+                        {editModels.map(m => (
+                          <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
+                            <div><Radio value={m.value} label={m.label} size="xs" disabled={isModelDisabled(m)} /></div>
+                          </Tooltip>
+                        ))}
                       </Stack>
                     </Radio.Group>
                   </div>
@@ -375,7 +380,11 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                     <Text size="xs" fw={600} mb={4}>Image model</Text>
                     <Radio.Group value={imageModel} onChange={v => { setImageModel(v); localStorage.setItem('esvg-image-model', v); }}>
                       <Stack gap={4}>
-                        {imageModels.map(m => <Radio key={m.value} value={m.value} label={m.label} size="xs" />)}
+                        {imageModels.map(m => (
+                          <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
+                            <div><Radio value={m.value} label={m.label} size="xs" disabled={isModelDisabled(m)} /></div>
+                          </Tooltip>
+                        ))}
                       </Stack>
                     </Radio.Group>
                   </div>
