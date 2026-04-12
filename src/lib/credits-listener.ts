@@ -41,9 +41,26 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
           userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
         const limit = tier === 'pro' ? pricing.proMonthlyCredits : pricing.freeMonthlyCredits;
         const month = new Date().toISOString().slice(0, 7);
-        const remaining = (!usageData || usageData.month !== month) ? limit : (usageData.credits ?? 0);
-        const creditsByModel = usageData?.month === month ? usageData.credits_by_model : undefined;
-        onChange({ remaining, limit, tier, creditsByModel });
+
+        let remaining: number;
+        let creditsByModel: Record<string, number> | undefined;
+        let rechargeAt: string | undefined;
+
+        if (tier === 'pro') {
+          // Pro: no auto-reset — use stored credits as-is
+          remaining = usageData?.credits ?? 0;
+          creditsByModel = usageData?.credits_by_model;
+        } else {
+          // Free: auto-reset on new month
+          remaining = (!usageData || usageData.month !== month) ? limit : (usageData.credits ?? 0);
+          creditsByModel = usageData?.month === month ? usageData.credits_by_model : undefined;
+          // Next recharge = first day of next month
+          const [y, m] = month.split('-').map(Number);
+          const nextMonth = new Date(y, m, 1); // month is 0-indexed, so m (1-12) gives next month
+          rechargeAt = nextMonth.toISOString();
+        }
+
+        onChange({ remaining, limit, tier, creditsByModel, rechargeAt });
       },
       (error) => {
         console.warn('Credits snapshot error:', error.message);

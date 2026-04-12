@@ -18,6 +18,8 @@ export interface Credits {
   limit: number;
   tier?: "free" | "pro";
   creditsByModel?: Record<string, number>;
+  /** ISO date string of next monthly recharge (free signed-in users only). */
+  rechargeAt?: string;
 }
 
 export interface ChatResponse {

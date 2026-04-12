@@ -389,7 +389,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             </Popover>
             <div className="aui-composer-footer-actions">
               {credits && (
-                <CreditsIndicator remaining={credits.remaining} limit={credits.limit} creditsByModel={credits.creditsByModel} isAnonymous={isAnonymous} />
+                <CreditsIndicator remaining={credits.remaining} limit={credits.limit} creditsByModel={credits.creditsByModel} isAnonymous={isAnonymous} rechargeAt={credits.rechargeAt} />
               )}
               <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
                 <ActionIcon

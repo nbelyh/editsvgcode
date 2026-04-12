@@ -2,7 +2,7 @@ import { Text, Tooltip } from '@mantine/core';
 
 export const BUY_CREDITS_URL = '/pricing';
 
-export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous }: { remaining: number; limit: number; creditsByModel?: Record<string, number>; isAnonymous?: boolean }) {
+export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous, rechargeAt }: { remaining: number; limit: number; creditsByModel?: Record<string, number>; isAnonymous?: boolean; rechargeAt?: string }) {
   const size = 18;
   const stroke = 2.5;
   const r = (size - stroke) / 2;
@@ -19,6 +19,9 @@ export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous
   ) : (
     <div>
       <Text size="sm" fw={600}>{remaining} / {limit} credits remaining</Text>
+      {rechargeAt && (
+        <Text size="sm" c="dimmed" mt={2}>Recharges {new Date(rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</Text>
+      )}
       {modelEntries.length > 0 && (
         <>
           <Text size="sm" c="dimmed" mt={4}>{isAnonymous ? 'Spent (trial):' : 'Spent this month:'}</Text>
