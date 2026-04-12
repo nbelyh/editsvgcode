@@ -77,6 +77,20 @@ export function logError(context: string, err: unknown): void {
   }
 }
 
+/** Return a human-readable message for common Firebase errors. */
+export function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes('PERMISSION_DENIED') || msg.includes('permission-denied'))
+    return 'Permission denied. You may not own this file.';
+  if (msg.includes('NOT_FOUND') || msg.includes('not-found'))
+    return 'File not found.';
+  if (msg.includes('UNAUTHENTICATED') || msg.includes('unauthenticated'))
+    return 'You are not signed in.';
+  if (msg.includes('UNAVAILABLE') || msg.includes('unavailable'))
+    return 'Service temporarily unavailable. Please try again.';
+  return msg;
+}
+
 onAuthStateChanged(firebaseAuth, (user) => {
   if (user) {
     document.dispatchEvent(new Event('dbinit'));
@@ -94,21 +108,28 @@ export class EditSvgCodeDb {
     this.db = firebaseDb;
   }
 
-  async loadDocument(uniqueId: string): Promise<string> {
+  async loadDocument(uniqueId: string): Promise<{ text: string; private: boolean } | null> {
     const ref = doc(this.db, 'files', uniqueId);
     const snap = await getDoc(ref);
     if (snap.exists()) {
-      return snap.data().text;
+      const data = snap.data();
+      return { text: data.text ?? '', private: data.private ?? false };
     }
     logError('loadDocument', 'file id does not exist: ' + uniqueId);
-    return '';
+    return null;
   }
 
-  async saveDocument(uniqueId: string, text: string): Promise<void> {
+  async saveDocument(uniqueId: string, text: string, isPrivate: boolean): Promise<void> {
     const ref = doc(this.db, 'files', uniqueId);
     const auth = getAuth();
     const uid = auth.currentUser?.uid ?? null;
-    await setDoc(ref, { text, modified: new Date(), uid });
+    await setDoc(ref, { text, modified: new Date(), uid, private: isPrivate });
+  }
+
+  async setPrivate(uniqueId: string, isPrivate: boolean): Promise<void> {
+    const { updateDoc } = await import('firebase/firestore');
+    const ref = doc(this.db, 'files', uniqueId);
+    await updateDoc(ref, { private: isPrivate });
   }
 
   async deleteDocument(uniqueId: string): Promise<void> {
@@ -116,7 +137,7 @@ export class EditSvgCodeDb {
     await deleteDoc(ref);
   }
 
-  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string }>> {
+  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean }>> {
     const auth = getAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return [];
@@ -131,6 +152,7 @@ export class EditSvgCodeDb {
       id: d.id,
       modified: d.data().modified?.toDate?.() ?? new Date(),
       text: d.data().text ?? '',
+      public: !(d.data().private ?? false),
     }));
   }
 }

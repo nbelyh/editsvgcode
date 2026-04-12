@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
-import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle, IconLock, IconWorld } from '@tabler/icons-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
@@ -10,7 +11,7 @@ import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
 import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/AiChat';
-import { EditSvgCodeDb } from '../lib/firebase';
+import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { getNewUniqueId, stripBom, findElementRange, formatXml } from '../lib/svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from '../lib/chat-storage';
 import { getAuth } from 'firebase/auth';
@@ -27,6 +28,7 @@ export function EditorPage() {
   const [svgCode, setSvgCode] = useState('Loading please wait...');
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
   const [fileId, setFileId] = useState(() => routeFileId || sessionStorage.getItem('esvg-local-id') || (() => {
     const id = '_local_' + getNewUniqueId();
     sessionStorage.setItem('esvg-local-id', id);
@@ -79,19 +81,39 @@ export function EditorPage() {
       const uniqueId = routeFileId || '';
       if (uniqueId) setFileId(uniqueId);
       const currentFileId = uniqueId || sessionStorage.getItem('esvg-local-id') || fileId;
-      // Try restoring SVG from IndexedDB (matches chat history)
-      const savedSvg = await loadSvgCode(currentFileId);
-      setCanUndo(await hasCheckpoints(currentFileId));
-      if (savedSvg && savedSvg.includes('<svg')) {
-        setSvgCode(formatXml(savedSvg));
+
+      if (uniqueId) {
+        // URL-based file: always verify Firestore access first
+        try {
+          const result = await db.loadDocument(uniqueId);
+          if (result) {
+            setIsPrivate(result.private);
+            // Prefer local edits (chat history) if available
+            const savedSvg = await loadSvgCode(currentFileId);
+            setCanUndo(await hasCheckpoints(currentFileId));
+            if (savedSvg && savedSvg.includes('<svg')) {
+              setSvgCode(formatXml(savedSvg));
+            } else {
+              setSvgCode(formatXml(result.text || DEFAULT_SVG));
+            }
+          } else {
+            setSvgCode(DEFAULT_SVG);
+          }
+        } catch (err) {
+          // Access denied — do not load content
+          setSvgCode(DEFAULT_SVG);
+          notifications.show({ title: 'Access denied', message: 'This file is private or does not exist.', color: 'red' });
+        }
         setReadOnly(false);
-      } else if (uniqueId) {
-        db.loadDocument(uniqueId).then((text) => {
-          setSvgCode(formatXml(text || DEFAULT_SVG));
-          setReadOnly(false);
-        });
       } else {
-        setSvgCode(DEFAULT_SVG);
+        // Local file: use IndexedDB directly
+        const savedSvg = await loadSvgCode(currentFileId);
+        setCanUndo(await hasCheckpoints(currentFileId));
+        if (savedSvg && savedSvg.includes('<svg')) {
+          setSvgCode(formatXml(savedSvg));
+        } else {
+          setSvgCode(DEFAULT_SVG);
+        }
         setReadOnly(false);
       }
     };
@@ -110,12 +132,30 @@ export function EditorPage() {
     const uniqueId = routeFileId || getNewUniqueId();
     setSaving(true);
     setFileId(uniqueId);
-    db.saveDocument(uniqueId, svgCode)
+    db.saveDocument(uniqueId, svgCode, isPrivate)
       .then(() => {
         navigate('/' + uniqueId, { replace: true });
+        notifications.show({ title: 'Saved', message: 'File saved successfully.', color: 'green' });
+      })
+      .catch((err) => {
+        notifications.show({ title: 'Save failed', message: friendlyError(err), color: 'red' });
       })
       .finally(() => setSaving(false));
-  }, [svgCode, routeFileId, navigate]);
+  }, [svgCode, routeFileId, navigate, isPrivate]);
+
+  const handleTogglePrivate = useCallback(async () => {
+    const db = dbRef.current;
+    if (!db || !routeFileId) return;
+    const newValue = !isPrivate;
+    setIsPrivate(newValue);
+    try {
+      await db.setPrivate(routeFileId, newValue);
+      notifications.show({ title: newValue ? 'Private' : 'Public', message: newValue ? 'Only you can view this file.' : 'Anyone with the link can view this file.', color: 'blue' });
+    } catch (err) {
+      setIsPrivate(isPrivate);
+      notifications.show({ title: 'Failed to update privacy', message: friendlyError(err), color: 'red' });
+    }
+  }, [routeFileId, isPrivate]);
 
   const handleUpload = useCallback(() => {
     fileInputRef.current?.click();
@@ -221,11 +261,18 @@ export function EditorPage() {
                   Download
                 </Button>
               </Tooltip>
-              <Tooltip label={routeFileId ? "Save changes to the shared file" : "Save to the cloud and get a shareable link"}>
+              <Tooltip label={routeFileId ? "Save changes" : "Save to the cloud"}>
                 <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={handleSave} loading={saving}>
-                  {routeFileId ? 'Save' : 'Share'}
+                  Save
                 </Button>
               </Tooltip>
+              {routeFileId && (
+                <Tooltip label={isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
+                  <ActionIcon variant="subtle" color={isPrivate ? 'gray' : 'blue'} size="sm" onClick={handleTogglePrivate}>
+                    {isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
+                  </ActionIcon>
+                </Tooltip>
+              )}
             </Group>
             <div style={{ flex: 1 }}>
               {proposedSvg && (

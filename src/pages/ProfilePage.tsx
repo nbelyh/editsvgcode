@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Container, Title, Text, Table, Anchor, Loader, Group, Avatar, Badge, ActionIcon, Tooltip } from '@mantine/core';
-import { IconTrash } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconTrash, IconLock, IconWorld } from '@tabler/icons-react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { Link } from 'react-router-dom';
-import { EditSvgCodeDb } from '../lib/firebase';
+import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 
 interface FileEntry {
   id: string;
   modified: Date;
   text: string;
+  public: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -44,9 +46,28 @@ export function ProfilePage() {
 
   const handleDelete = useCallback(async (id: string) => {
     const db = new EditSvgCodeDb();
-    await db.deleteDocument(id);
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    try {
+      await db.deleteDocument(id);
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      notifications.show({ title: 'Deleted', message: `File ${id} deleted.`, color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Delete failed', message: friendlyError(err), color: 'red' });
+    }
   }, []);
+
+  const handleTogglePrivate = useCallback(async (id: string) => {
+    const db = new EditSvgCodeDb();
+    const file = files.find((f) => f.id === id);
+    if (!file) return;
+    const newPrivate = file.public;
+    try {
+      await db.setPrivate(id, newPrivate);
+      setFiles((prev) => prev.map((f) => f.id === id ? { ...f, public: !newPrivate } : f));
+      notifications.show({ title: newPrivate ? 'Private' : 'Public', message: newPrivate ? 'Only you can view this file.' : 'Anyone with the link can view.', color: 'blue' });
+    } catch (err) {
+      notifications.show({ title: 'Failed to update privacy', message: friendlyError(err), color: 'red' });
+    }
+  }, [files]);
 
   return (
     <Container size="sm" py="xl">
@@ -78,6 +99,7 @@ export function ProfilePage() {
               <Table.Th>Size</Table.Th>
               <Table.Th>Modified</Table.Th>
               <Table.Th w={40} />
+              <Table.Th w={40} />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -96,6 +118,13 @@ export function ProfilePage() {
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Tooltip label={f.public ? 'Public — click to make private' : 'Private — click to make public'}>
+                    <ActionIcon variant="subtle" color={f.public ? 'blue' : 'gray'} size="sm" onClick={() => handleTogglePrivate(f.id)}>
+                      {f.public ? <IconWorld size={14} /> : <IconLock size={14} />}
+                    </ActionIcon>
+                  </Tooltip>
                 </Table.Td>
                 <Table.Td>
                   <Tooltip label="Delete">
