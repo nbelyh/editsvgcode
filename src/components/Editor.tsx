@@ -15,6 +15,8 @@ export interface EditorHandle {
   selectRange: (startLine: number, startCol: number, endLine: number, endCol: number) => void;
   clearSelection: () => void;
   openCommandPalette: () => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly, onCursorElement }, ref) {
@@ -41,6 +43,18 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       ed.focus();
       // Delay trigger until after focus lands
       setTimeout(() => ed.trigger('sidebar', 'editor.action.quickCommand', null), 0);
+    },
+    undo() {
+      const ed = editorRef.current;
+      if (!ed) return;
+      ed.focus();
+      ed.trigger('preview', 'undo', null);
+    },
+    redo() {
+      const ed = editorRef.current;
+      if (!ed) return;
+      ed.focus();
+      ed.trigger('preview', 'redo', null);
     },
   }), []);
 

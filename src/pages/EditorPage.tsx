@@ -15,11 +15,7 @@ import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { getNewUniqueId, stripBom, findElementRange, formatXml } from '../lib/svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from '../lib/chat-storage';
 import { getAuth } from 'firebase/auth';
-
-const DEFAULT_SVG = `<!-- sample rectangle -->
-<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100" height="100" x="50" y="50" fill="red" />
-</svg>`;
+import DEFAULT_SVG from '../assets/default.svg?raw';
 
 export function EditorPage() {
   const { fileId: routeFileId } = useParams<{ fileId?: string }>();
@@ -233,6 +229,16 @@ export function EditorPage() {
     setCanUndo(await hasCheckpoints(fileId));
   }, [fileId]);
 
+  const handleDeleteElement = useCallback(() => {
+    if (!selectedLineRange) return;
+    const lines = svgCode.split('\n');
+    lines.splice(selectedLineRange.start - 1, selectedLineRange.end - selectedLineRange.start + 1);
+    setSvgCode(lines.join('\n'));
+    setSelectedElement(undefined);
+    setSelectedLineRange(undefined);
+    setSelectedXPath(undefined);
+  }, [svgCode, selectedLineRange]);
+
   return (
     <>
       <input
@@ -299,7 +305,7 @@ export function EditorPage() {
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%">
-          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} />
+          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={() => editorRef.current?.undo()} onRedo={() => editorRef.current?.redo()} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="10%" minSize={250}>
           <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>

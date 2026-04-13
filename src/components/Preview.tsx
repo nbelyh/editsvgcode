@@ -1,7 +1,7 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { ActionIcon, Group, SegmentedControl, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
-import { IconArrowsMaximize, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
+import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import DOMPurify from 'dompurify';
 import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
@@ -9,6 +9,13 @@ interface PreviewProps {
   svgCode: string;
   onElementSelect?: (tagName: string, index: number) => void;
   selectedXPath?: string;
+  onDeleteElement?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+}
+
+export interface PreviewHandle {
+  focus: () => void;
 }
 
 type BgMode = 'checkerboard' | 'white' | 'black' | 'none';
@@ -77,7 +84,7 @@ function ensureFilters(svg: SVGSVGElement) {
   defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 0.8], 1.5));
 }
 
-export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProps) {
+export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -90,6 +97,10 @@ export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProp
   const fittedSvgRef = useRef<string | null>(null);
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
+  useImperativeHandle(ref, () => ({
+    focus() { scrollRef.current?.focus(); },
+  }), []);
 
   const clearAllSelections = useCallback(() => {
     const svg = containerRef.current?.querySelector('svg');
@@ -122,6 +133,20 @@ export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProp
     onElementSelect?.(tagName, allSameTag.indexOf(last));
   }, [onElementSelect]);
 
+  // DEL key: delete selected element when the preview pane is focused
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && onDeleteElement) {
+      e.preventDefault();
+      onDeleteElement();
+    } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      e.preventDefault();
+      onUndo?.();
+    } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+      e.preventDefault();
+      onRedo?.();
+    }
+  }, [onDeleteElement, onUndo, onRedo]);
+
   // Click-to-select handler
   const handleClick = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current;
@@ -147,6 +172,8 @@ export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProp
       applySelectionFilter(target, true);
     }
     notifySelection();
+    // Give focus to the scroll pane so DEL key works without extra click
+    scrollRef.current?.focus();
   }, [clearAllSelections, applySelectionFilter, notifySelection]);
 
   // Hover highlight + right-mouse-button pan
@@ -327,39 +354,50 @@ export function Preview({ svgCode, onElementSelect, selectedXPath }: PreviewProp
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Group
-        gap="xs" px="xs" py={4}
+        justify="space-between"
+        px="xs" py={4}
         style={{ backgroundColor: '#252526', borderBottom: '1px solid #3c3c3c', flexShrink: 0 }}
       >
-        <Tooltip label="Zoom in (Ctrl+Scroll)">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomIn} aria-label="Zoom in"><IconZoomIn size={16} /></ActionIcon>
-        </Tooltip>
-        <Tooltip label="Zoom out (Ctrl+Scroll)">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomOut} aria-label="Zoom out"><IconZoomOut size={16} /></ActionIcon>
-        </Tooltip>
-        <Tooltip label="Reset zoom to 100%">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomReset} aria-label="Reset zoom"><IconZoomReset size={16} /></ActionIcon>
-        </Tooltip>
-        <Tooltip label="Fit to window">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit} aria-label="Fit to window"><IconArrowsMaximize size={16} /></ActionIcon>
-        </Tooltip>
-        <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{zoomPct}%</Text>
-        <SegmentedControl
-          size="xs" value={bgMode} onChange={(v) => setBgMode(v as BgMode)}
-          data={[
-            { label: '▦', value: 'checkerboard' },
-            { label: '□', value: 'white' },
-            { label: '■', value: 'black' },
-            { label: '∅', value: 'none' },
-          ]}
-          styles={{ root: { backgroundColor: '#1e1e1e' }, label: { padding: '2px 8px', fontSize: 12 } }}
-        />
+        <Group gap="xs">
+          <Tooltip label="Zoom in (Ctrl+Scroll)">
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomIn} aria-label="Zoom in"><IconZoomIn size={16} /></ActionIcon>
+          </Tooltip>
+          <Tooltip label="Zoom out (Ctrl+Scroll)">
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomOut} aria-label="Zoom out"><IconZoomOut size={16} /></ActionIcon>
+          </Tooltip>
+          <Tooltip label="Reset zoom to 100%">
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomReset} aria-label="Reset zoom"><IconZoomReset size={16} /></ActionIcon>
+          </Tooltip>
+          <Tooltip label="Fit to window">
+            <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit} aria-label="Fit to window"><IconArrowsMaximize size={16} /></ActionIcon>
+          </Tooltip>
+          <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{zoomPct}%</Text>
+          <SegmentedControl
+            size="xs" value={bgMode} onChange={(v) => setBgMode(v as BgMode)}
+            data={[
+              { label: '▦', value: 'checkerboard' },
+              { label: '□', value: 'white' },
+              { label: '■', value: 'black' },
+              { label: '∅', value: 'none' },
+            ]}
+            styles={{ root: { backgroundColor: '#1e1e1e' }, label: { padding: '2px 8px', fontSize: 12 } }}
+          />
+        </Group>
+        <Group gap="xs">
+          {onDeleteElement && (
+            <Tooltip label="Delete selected element (Del)">
+              <ActionIcon variant="subtle" color="red" size="sm" onClick={onDeleteElement} aria-label="Delete element"><IconTrash size={16} /></ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
       </Group>
 
-      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto' }} onClick={handleClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
+      <div ref={scrollRef} tabIndex={0} style={{ flex: 1, overflow: 'auto', outline: 'none' }} onClick={handleClick} onKeyDown={handleKeyDown} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
         <div style={{ minWidth: '100%', minHeight: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair' }} />
         </div>
       </div>
     </div>
   );
-}
+});
+
