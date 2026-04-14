@@ -33,11 +33,7 @@ export function EditorPage() {
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
-  const [sidebarTab, setSidebarTab] = useState<string>(() => {
-    const user = getAuth().currentUser;
-    if (!user || user.isAnonymous) return 'info';
-    return localStorage.getItem('esvg-sidebar-tab') || 'info';
-  });
+  const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
