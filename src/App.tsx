@@ -36,11 +36,11 @@ export default function App() {
             <Text size="xs" c="dimmed">v{__APP_VERSION__}</Text>
             <Text size="xs" c="dimmed">
               <Text component="a" href="https://unmanagedvisio.com" target="_blank" size="xs" c="dimmed" td="underline">
-                Nikolay Belykh
+                UnmanagedVisio
               </Text>
             </Text>
             <Text component="a" href="/privacy-policy.md" target="_blank" size="xs" c="dimmed" td="underline">
-              Privacy
+              Privacy Policy
             </Text>
           </Group>
           <Group gap="xs">

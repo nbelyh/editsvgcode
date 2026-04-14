@@ -348,7 +348,7 @@ export function EditorPage() {
                     <IconSparkles size={20} />
                   </ActionIcon>
                 </Tooltip>
-              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' onActivate={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
+              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' active={sidebarTab === 'ai'} onActivate={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
             </div>
           </div>
         </Allotment.Pane>
