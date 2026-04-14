@@ -33,7 +33,11 @@ export function EditorPage() {
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
-  const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
+  const [sidebarTab, setSidebarTab] = useState<string>(() => {
+    const user = getAuth().currentUser;
+    if (!user || user.isAnonymous) return 'info';
+    return localStorage.getItem('esvg-sidebar-tab') || 'info';
+  });
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
@@ -348,7 +352,7 @@ export function EditorPage() {
                     <IconSparkles size={20} />
                   </ActionIcon>
                 </Tooltip>
-              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' />
+              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' onActivate={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
             </div>
           </div>
         </Allotment.Pane>

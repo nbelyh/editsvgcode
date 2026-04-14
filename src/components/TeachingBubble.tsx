@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Paper, Text, CloseButton, Group, Stack, ThemeIcon } from '@mantine/core';
+import { Paper, Text, CloseButton, Group, Stack, ThemeIcon, Anchor } from '@mantine/core';
 import { IconCode, IconSparkles } from '@tabler/icons-react';
 
 const DISMISSED_KEY = 'esvg-teaching-bubble-dismissed';
 
 interface TeachingBubbleProps {
   anchorSelector: string;
+  onActivate?: () => void;
 }
 
-export function TeachingBubble({ anchorSelector }: TeachingBubbleProps) {
+export function TeachingBubble({ anchorSelector, onActivate }: TeachingBubbleProps) {
   const [visible, setVisible] = useState(() => !localStorage.getItem(DISMISSED_KEY));
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -79,7 +80,7 @@ export function TeachingBubble({ anchorSelector }: TeachingBubbleProps) {
         }}
       />
       <Group justify="space-between" align="flex-start" wrap="nowrap" mb={4}>
-        <Text size="sm" fw={700} c="blue.4">Try AI Chat</Text>
+        <Anchor size="sm" fw={700} c="blue.4" component="button" onClick={() => { onActivate?.(); dismiss(); }}>Try AI Chat →</Anchor>
         <CloseButton size="sm" onClick={dismiss} aria-label="Dismiss" />
       </Group>
       <Stack gap={6}>
