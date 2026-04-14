@@ -72,7 +72,7 @@ interface ServerResponse {
 const MAX_TOOL_ROUNDS = 10;
 
 async function callServer(
-  body: { input: unknown[]; model?: string; effort?: string },
+  body: { input: unknown[]; model?: string; effort?: string; skipCredits?: boolean },
   idToken: string,
   signal?: AbortSignal,
   _retried?: boolean,
@@ -195,7 +195,7 @@ export async function sendChatRequest(
     // Send continuation: full input so far + intermediate outputs + tool results
     onProgress?.('thinking');
     const continuationInput = [...input, ...allRawOutput];
-    response = await callServer({ input: continuationInput, model, effort }, idToken, signal);
+    response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
   }
 
   // Final output
