@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { getAuth } from 'firebase/auth';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
-import { IconSparkles, IconUser, IconTrash, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconEraser, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
 import { subscribeCredits } from '../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
@@ -238,7 +238,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       <div className="aui-header">
         <Tooltip label="Clear Chat">
           <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0}>
-            <IconTrash size={16} />
+            <IconEraser size={16} />
           </ActionIcon>
         </Tooltip>
       </div>

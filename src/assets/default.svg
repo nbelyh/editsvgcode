@@ -1,34 +1,4 @@
-<!-- sample scene — try editing shapes, colors and gradients! -->
+<!-- sample rectangle -->
 <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#bae6fd" />
-    </linearGradient>
-    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fde68a" />
-      <stop offset="100%" stop-color="#f59e0b" />
-    </radialGradient>
-  </defs>
-  <!-- Sky -->
-  <rect width="200" height="140" fill="url(#sky)" />
-  <!-- Hills -->
-  <ellipse cx="55" cy="143" rx="75" ry="22" fill="#4ade80" />
-  <!-- Sun -->
-  <circle cx="158" cy="42" r="20" fill="url(#sunGlow)" />
-  <!-- Cloud -->
-  <g fill="white" opacity="0.92">
-    <ellipse cx="62" cy="52" rx="26" ry="11" />
-    <ellipse cx="46" cy="57" rx="18" ry="9" />
-    <ellipse cx="80" cy="57" rx="19" ry="9" />
-  </g>
-  <!-- Tree trunk -->
-  <rect x="94" y="112" width="12" height="32" rx="3" fill="#92400e" />
-  <!-- Tree canopy (layered triangles) -->
-  <polygon points="100,52 128,112 72,112" fill="#16a34a" />
-  <polygon points="100,68 124,108 76,108" fill="#15803d" />
-  <!-- Flowers -->
-  <circle cx="35" cy="158" r="5" fill="#f43f5e" />
-  <circle cx="48" cy="164" r="4" fill="#fb923c" />
-  <!-- Label -->
+  <rect width="100" height="100" x="50" y="50" fill="red" />
 </svg>

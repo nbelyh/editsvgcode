@@ -80,8 +80,8 @@ function ensureFilters(svg: SVGSVGElement) {
   };
 
   const defs = makeDefs();
-  defs.appendChild(buildFilter(SELECTION_FILTER_ID, [0, 0.2, 0.8], 3));
-  defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 0.8], 1.5));
+  defs.appendChild(buildFilter(SELECTION_FILTER_ID, [0, 0.5, 1], 1.5));
+  defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.5, 1], 1));
 }
 
 export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
@@ -386,7 +386,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
         <Group gap="xs">
           {onDeleteElement && (
             <Tooltip label="Delete selected element (Del)">
-              <ActionIcon variant="subtle" color="red" size="sm" onClick={onDeleteElement} aria-label="Delete element"><IconTrash size={16} /></ActionIcon>
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={onDeleteElement} aria-label="Delete element"><IconTrash size={16} /></ActionIcon>
             </Tooltip>
           )}
         </Group>
