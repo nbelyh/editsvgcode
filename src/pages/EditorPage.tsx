@@ -33,7 +33,9 @@ export function EditorPage() {
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
-  const [sidebarTab, setSidebarTab] = useState<string>(() => localStorage.getItem('esvg-sidebar-tab') || 'info');
+  const [sidebarTab, setSidebarTab] = useState<string>(() =>
+    localStorage.getItem('esvg-sidebar-tab') || sessionStorage.getItem('esvg-sidebar-tab') || 'info'
+  );
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
@@ -239,6 +241,42 @@ export function EditorPage() {
     setSelectedXPath(undefined);
   }, [svgCode, selectedLineRange]);
 
+  const handleNew = useCallback(() => {
+    setSvgCode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">\n\n</svg>');
+  }, []);
+
+  const handleOpenCommandPalette = useCallback(() => {
+    editorRef.current?.openCommandPalette();
+  }, []);
+
+  const handleEditorUndo = useCallback(() => {
+    editorRef.current?.undo();
+  }, []);
+
+  const handleEditorRedo = useCallback(() => {
+    editorRef.current?.redo();
+  }, []);
+
+  const persistTab = useCallback((tab: string) => {
+    sessionStorage.setItem('esvg-sidebar-tab', tab);
+    const user = getAuth().currentUser;
+    if (user && !user.isAnonymous) {
+      localStorage.setItem('esvg-sidebar-tab', tab);
+    } else {
+      localStorage.removeItem('esvg-sidebar-tab');
+    }
+  }, []);
+
+  const switchToInfo = useCallback(() => {
+    setSidebarTab('info');
+    persistTab('info');
+  }, [persistTab]);
+
+  const switchToAi = useCallback(() => {
+    setSidebarTab('ai');
+    persistTab('ai');
+  }, [persistTab]);
+
   return (
     <>
       <input
@@ -253,7 +291,7 @@ export function EditorPage() {
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0 }}>
               <Tooltip label="Create a blank SVG document">
-                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={() => setSvgCode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">\n\n</svg>')}>
+                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={handleNew}>
                   New
                 </Button>
               </Tooltip>
@@ -305,7 +343,7 @@ export function EditorPage() {
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%">
-          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={() => editorRef.current?.undo()} onRedo={() => editorRef.current?.redo()} />
+          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="15%" minSize={320}>
           <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
@@ -323,7 +361,7 @@ export function EditorPage() {
                 />
               </div>
               <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
-                <Sidebar onOpenCommandPalette={() => editorRef.current?.openCommandPalette()} onOpenAiChat={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
+                <Sidebar onOpenCommandPalette={handleOpenCommandPalette} onOpenAiChat={switchToAi} />
               </div>
             </div>
             <div className="activity-bar">
@@ -332,7 +370,7 @@ export function EditorPage() {
                   variant={sidebarTab === 'info' ? 'light' : 'subtle'}
                   color={sidebarTab === 'info' ? 'blue' : 'gray'}
                   size="lg"
-                  onClick={() => { setSidebarTab('info'); localStorage.setItem('esvg-sidebar-tab', 'info'); }}
+                  onClick={switchToInfo}
                 >
                   <IconInfoCircle size={20} />
                 </ActionIcon>
@@ -343,12 +381,12 @@ export function EditorPage() {
                     variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
                     color={sidebarTab === 'ai' ? 'blue' : 'gray'}
                     size="lg"
-                    onClick={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }}
+                    onClick={switchToAi}
                   >
                     <IconSparkles size={20} />
                   </ActionIcon>
                 </Tooltip>
-              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' active={sidebarTab === 'ai'} onActivate={() => { setSidebarTab('ai'); localStorage.setItem('esvg-sidebar-tab', 'ai'); }} />
+              <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' active={sidebarTab === 'ai'} onActivate={switchToAi} />
             </div>
           </div>
         </Allotment.Pane>
