@@ -73,6 +73,7 @@ async function callServer(
   body: { svgContext: string; messages: ChatMessage[]; model?: string; continuation?: unknown[] },
   idToken: string,
   signal?: AbortSignal,
+  _retried?: boolean,
 ): Promise<ServerResponse> {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: 'POST',
@@ -83,6 +84,15 @@ async function callServer(
     body: JSON.stringify(body),
     signal,
   });
+
+  // If 401 (token revoked/expired), force-refresh and retry once
+  if (res.status === 401 && !_retried) {
+    const user = getAuth().currentUser;
+    if (user) {
+      const freshToken = await user.getIdToken(true);
+      return callServer(body, freshToken, signal, true);
+    }
+  }
 
   const data = await res.json();
 

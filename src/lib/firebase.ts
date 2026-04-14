@@ -88,6 +88,8 @@ export function friendlyError(err: unknown): string {
     return 'You are not signed in.';
   if (msg.includes('UNAVAILABLE') || msg.includes('unavailable'))
     return 'Service temporarily unavailable. Please try again.';
+  if (msg.includes('revoked') || msg.includes('user-disabled'))
+    return 'Your session has expired. Please sign in again.';
   return msg;
 }
 

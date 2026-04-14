@@ -1,5 +1,3 @@
-import { getAuth } from 'firebase/auth';
-
 export type ImageProgressStatus = 'generating-image' | 'vectorizing';
 
 export interface VectorizerParams {
@@ -28,6 +26,7 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
   pathPrecision: 3,
 };
 
+import { getAuth } from 'firebase/auth';
 import { config } from './config';
 import type { CreditsError } from './api-client';
 
@@ -47,9 +46,9 @@ export async function generateImage(
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
 
-  const idToken = await user.getIdToken();
+  let idToken = await user.getIdToken();
 
-  const res = await fetch(`${API_URL}/api/generate-image`, {
+  let res = await fetch(`${API_URL}/api/generate-image`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,6 +57,20 @@ export async function generateImage(
     body: JSON.stringify({ prompt, model: imageModel }),
     signal,
   });
+
+  // If 401 (token revoked/expired), force-refresh and retry once
+  if (res.status === 401) {
+    idToken = await user.getIdToken(true);
+    res = await fetch(`${API_URL}/api/generate-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ prompt, model: imageModel }),
+      signal,
+    });
+  }
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
