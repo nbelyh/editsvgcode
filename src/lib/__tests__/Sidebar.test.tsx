@@ -3,6 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { Sidebar } from '../../components/Sidebar';
 
+vi.mock('../credits-listener', () => ({
+  subscribeCredits: (cb: (c: { tier: string }) => void) => {
+    cb({ tier: 'free' });
+    return () => {};
+  },
+}));
+
 function renderWithMantine(ui: React.ReactElement) {
   return render(<MantineProvider>{ui}</MantineProvider>);
 }

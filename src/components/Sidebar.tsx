@@ -1,5 +1,6 @@
 import { Stack, Title, Text, Anchor, Kbd } from '@mantine/core';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { subscribeCredits } from '../lib/credits-listener';
 
 interface SidebarProps {
   onOpenCommandPalette?: () => void;
@@ -8,11 +9,17 @@ interface SidebarProps {
 
 export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
   const adsRef = useRef<HTMLDivElement>(null);
+  const [showAds, setShowAds] = useState(false);
 
   useEffect(() => {
-    // Load Carbon Ads script (skip on localhost)
+    return subscribeCredits((credits) => {
+      setShowAds(credits.tier !== 'pro');
+    });
+  }, []);
+
+  useEffect(() => {
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (!isLocal && adsRef.current && !adsRef.current.querySelector('#_carbonads_js')) {
+    if (!isLocal && showAds && adsRef.current && !adsRef.current.querySelector('#_carbonads_js')) {
       const script = document.createElement('script');
       script.id = '_carbonads_js';
       script.async = true;
@@ -20,7 +27,7 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
       script.src = '//cdn.carbonads.com/carbon.js?serve=CWYICK37&placement=editsvgcodecom';
       adsRef.current.appendChild(script);
     }
-  }, []);
+  }, [showAds]);
 
   return (
     <Stack
