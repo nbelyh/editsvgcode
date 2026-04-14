@@ -17,8 +17,10 @@ import {
   getAuth,
   signInAnonymously,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
   GithubAuthProvider,
+  OAuthProvider,
   linkWithPopup,
   updateProfile,
   onAuthStateChanged,
@@ -178,7 +180,9 @@ async function signInWithProvider(provider: AuthProvider): Promise<User> {
       user = result.user;
     } catch (err: unknown) {
       if ((err as { code?: string }).code !== 'auth/credential-already-in-use') throw err;
-      user = (await signInWithPopup(auth, provider)).user;
+      const credential = OAuthProvider.credentialFromError(err as Parameters<typeof OAuthProvider.credentialFromError>[0]);
+      if (!credential) throw err;
+      user = (await signInWithCredential(auth, credential)).user;
     }
   } else {
     user = (await signInWithPopup(auth, provider)).user;
