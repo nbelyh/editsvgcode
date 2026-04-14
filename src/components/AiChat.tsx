@@ -36,6 +36,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
+  const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
   const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
@@ -336,9 +337,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             <div className="aui-msg aui-msg-assistant">
               <div className="aui-status-indicator">
                 <span className="aui-spinner" />
-                {progressStatus === 'thinking' && 'Thinking…'}
-                {progressStatus === 'generating-image' && 'Generating image…'}
-                {progressStatus === 'vectorizing' && 'Vectorizing…'}
+                {progressLabel === 'thinking' && 'Thinking…'}
+                {progressLabel === 'generating-image' && 'Generating image…'}
+                {progressLabel === 'vectorizing' && 'Vectorizing…'}
+                {typeof progressStatus === 'object' && `Calling ${progressStatus.tool}… (round ${progressStatus.round})`}
               </div>
             </div>
           )}

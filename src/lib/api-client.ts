@@ -113,7 +113,11 @@ async function callServer(
   return data as ServerResponse;
 }
 
-export type ProgressStatus = 'thinking' | 'generating-image' | 'vectorizing';
+export type ProgressStatus =
+  | 'thinking'
+  | 'generating-image'
+  | 'vectorizing'
+  | { tool: string; round: number };
 
 export async function sendChatRequest(
   conversationHistory: unknown[],
@@ -172,6 +176,11 @@ export async function sendChatRequest(
 
     if (readCalls.length === 0) break;
 
+    // Report which tools are being called this round
+    for (const call of readCalls) {
+      onProgress?.({ tool: call.name!, round: round + 1 });
+    }
+
     // Accumulate intermediate output + tool results into input for next round
     allRawOutput.push(...response.output);
     const toolResults: unknown[] = [];
@@ -184,6 +193,7 @@ export async function sendChatRequest(
     allRawOutput.push(...toolResults);
 
     // Send continuation: full input so far + intermediate outputs + tool results
+    onProgress?.('thinking');
     const continuationInput = [...input, ...allRawOutput];
     response = await callServer({ input: continuationInput, model, effort }, idToken, signal);
   }
