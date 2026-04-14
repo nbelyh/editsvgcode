@@ -307,7 +307,7 @@ export function EditorPage() {
         <Allotment.Pane preferredSize="45%">
           <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={() => editorRef.current?.undo()} onRedo={() => editorRef.current?.redo()} />
         </Allotment.Pane>
-        <Allotment.Pane preferredSize="10%" minSize={250}>
+        <Allotment.Pane preferredSize="15%" minSize={320}>
           <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
               <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
