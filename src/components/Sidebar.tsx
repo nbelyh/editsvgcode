@@ -51,6 +51,7 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
           {' '}to edit your SVG with natural language. Describe what you want to change and the AI will propose edits you can accept or reject.
         </Text>
       </div>
+      <div style={{ flex: 1 }} />
       <div ref={adsRef} />
     </Stack>
   );
