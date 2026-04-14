@@ -145,20 +145,11 @@ export async function sendChatRequest(
   // Build budgeted context on the client
   const svgContext = buildSvgContext(normalizedSvg, selectedElement, selectedLineRange);
 
-  // Build user message with optional selection note
-  let userContent = userText;
-  if (selectedElement) {
-    const selectionNote = selectedLineRange
-      ? `\n\n[Currently selected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\`]`
-      : `\n\n[Currently selected element:\n\`\`\`svg\n${selectedElement}\n\`\`\`]`;
-    userContent += selectionNote;
-  }
-
   // Build input: previous history + svgContext (refreshed each turn) + new user message
   const input: unknown[] = [
     ...conversationHistory,
     { role: 'developer', content: svgContext },
-    { role: 'user', content: userContent },
+    { role: 'user', content: userText },
   ];
 
   // First call

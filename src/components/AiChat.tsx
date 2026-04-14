@@ -147,7 +147,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           ...tc,
           status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
         })),
-        // Store the user message + raw API output for replay on subsequent turns
+        // Store the user message + raw API output for replay
         rawItems: [
           { role: 'user', content: text },
           ...response.rawOutput,
