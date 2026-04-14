@@ -80,8 +80,8 @@ function ensureFilters(svg: SVGSVGElement) {
   };
 
   const defs = makeDefs();
-  defs.appendChild(buildFilter(SELECTION_FILTER_ID, [0, 0.5, 1], 1.5));
-  defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.5, 1], 1));
+  defs.appendChild(buildFilter(SELECTION_FILTER_ID, [0, 0.2, 1], 1.5));
+  defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 1], 1));
 }
 
 export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
