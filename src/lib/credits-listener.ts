@@ -1,6 +1,6 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { firebaseDb } from './firebase';
+import { firebaseDb, logError } from './firebase';
 import { fetchPricing } from './pricing';
 import type { Credits } from './api-client';
 
@@ -28,26 +28,27 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
     unsubSnapshot = onSnapshot(
       doc(firebaseDb, 'usage', user.uid),
       async (snap) => {
-        // Fetch pricing + tier once, then reuse
-        if (!cachedPricing) cachedPricing = await fetchPricing();
-        const pricing = cachedPricing;
+        try {
+          // Fetch pricing + tier once, then reuse
+          if (!cachedPricing) cachedPricing = await fetchPricing();
+          const pricing = cachedPricing;
 
-        if (user.isAnonymous) {
-          const remaining = snap.data()?.credits ?? pricing.anonymousTrialCredits;
-          const creditsByModel = snap.data()?.credits_by_model;
-          onChange({ remaining, limit: pricing.anonymousTrialCredits, tier: 'free', creditsByModel });
-          return;
-        }
+          if (user.isAnonymous) {
+            const remaining = snap.data()?.credits ?? pricing.anonymousTrialCredits;
+            const creditsByModel = snap.data()?.credits_by_model;
+            onChange({ remaining, limit: pricing.anonymousTrialCredits, tier: 'free', creditsByModel });
+            return;
+          }
 
-        if (cachedTier === null) {
-          const userSnap = await getDoc(doc(firebaseDb, 'users', user.uid));
-          const userData = userSnap.data();
-          cachedTier = userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
-        }
+          if (cachedTier === null) {
+            const userSnap = await getDoc(doc(firebaseDb, 'users', user.uid));
+            const userData = userSnap.data();
+            cachedTier = userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
+          }
 
-        const usageData = snap.data();
-        const tier = cachedTier;
-        const limit = tier === 'pro' ? pricing.proMonthlyCredits : pricing.freeMonthlyCredits;
+          const usageData = snap.data();
+          const tier = cachedTier;
+          const limit = tier === 'pro' ? pricing.proMonthlyCredits : pricing.freeMonthlyCredits;
         const month = new Date().toISOString().slice(0, 7);
 
         let remaining: number;
@@ -69,9 +70,12 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
         }
 
         onChange({ remaining, limit, tier, creditsByModel, rechargeAt });
+        } catch (err) {
+          logError('credits-listener', err);
+        }
       },
       (error) => {
-        console.warn('Credits snapshot error:', error.message);
+        logError('credits-snapshot', error);
       },
     );
   });
