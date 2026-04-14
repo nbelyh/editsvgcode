@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import { getAuth } from 'firebase/auth';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Group } from '@mantine/core';
 import { IconSparkles, IconUser, IconEraser, IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits } from '../lib/api-client';
 import { subscribeCredits } from '../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName, type ReasoningEffort } from '../lib/models';
@@ -15,6 +15,8 @@ interface DisplayMessage {
   content: string;
   toolCalls?: StoredToolCall[];
   buyCredits?: true;
+  /** Raw API input/output items for this turn — replayed on subsequent requests. */
+  rawItems?: unknown[];
 }
 
 interface AiChatProps {
@@ -116,12 +118,17 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     abortRef.current = abort;
 
     try {
-      const apiMessages: ChatMessage[] = newMessages
-        .filter(m => m.role === 'user' || m.content)
-        .map(m => ({ role: m.role, content: m.content }));
+      // Build conversation history from raw items stored in previous turns
+      const conversationHistory: unknown[] = [];
+      for (const m of messages) {
+        if (m.rawItems) {
+          conversationHistory.push(...m.rawItems);
+        }
+      }
 
       const response = await sendChatRequest(
-        apiMessages,
+        conversationHistory,
+        text,
         svgCode,
         selectedElement,
         selectedLineRange,
@@ -139,7 +146,11 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           ...tc,
           status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
         })),
-
+        // Store the user message + raw API output for replay on subsequent turns
+        rawItems: [
+          { role: 'user', content: text },
+          ...response.rawOutput,
+        ],
       };
 
       setMessages(prev => [...prev, assistantMsg]);

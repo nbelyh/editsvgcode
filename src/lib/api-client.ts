@@ -26,6 +26,8 @@ export interface ChatResponse {
   message: string;
   toolCalls?: ChatToolCall[];
   credits: Credits;
+  /** Raw API output items — store these and replay on the next turn. */
+  rawOutput: unknown[];
 }
 
 export interface ChatErrorResponse {
@@ -70,7 +72,7 @@ interface ServerResponse {
 const MAX_TOOL_ROUNDS = 10;
 
 async function callServer(
-  body: { svgContext: string; messages: ChatMessage[]; model?: string; effort?: string; continuation?: unknown[] },
+  body: { input: unknown[]; model?: string; effort?: string },
   idToken: string,
   signal?: AbortSignal,
   _retried?: boolean,
@@ -114,7 +116,8 @@ async function callServer(
 export type ProgressStatus = 'thinking' | 'generating-image' | 'vectorizing';
 
 export async function sendChatRequest(
-  inputMessages: ChatMessage[],
+  conversationHistory: unknown[],
+  userText: string,
   currentSvg: string,
   selectedElement?: string,
   selectedLineRange?: { start: number; end: number },
@@ -124,7 +127,6 @@ export async function sendChatRequest(
   onProgress?: (status: ProgressStatus) => void,
   effort?: string,
 ): Promise<ChatResponse> {
-  let messages = inputMessages;
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) {
@@ -136,27 +138,31 @@ export async function sendChatRequest(
   // Normalize line endings — Monaco on Windows uses \r\n, models always output \n
   const normalizedSvg = currentSvg.replace(/\r\n/g, '\n');
 
-  // Build budgeted context on the client — only this small string goes to the server
+  // Build budgeted context on the client
   const svgContext = buildSvgContext(normalizedSvg, selectedElement, selectedLineRange);
 
-  // Append current selection to the last user message so the model sees it in context
-  if (selectedElement && messages.length > 0) {
-    const lastIdx = messages.length - 1;
-    if (messages[lastIdx].role === 'user') {
-      const selectionNote = selectedLineRange
-        ? `\n\n[Currently selected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\`]`
-        : `\n\n[Currently selected element:\n\`\`\`svg\n${selectedElement}\n\`\`\`]`;
-      messages = messages.map((m, i) =>
-        i === lastIdx ? { ...m, content: m.content + selectionNote } : m
-      );
-    }
+  // Build user message with optional selection note
+  let userContent = userText;
+  if (selectedElement) {
+    const selectionNote = selectedLineRange
+      ? `\n\n[Currently selected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\`]`
+      : `\n\n[Currently selected element:\n\`\`\`svg\n${selectedElement}\n\`\`\`]`;
+    userContent += selectionNote;
   }
+
+  // Build input: previous history + svgContext (refreshed each turn) + new user message
+  const input: unknown[] = [
+    ...conversationHistory,
+    { role: 'developer', content: svgContext },
+    { role: 'user', content: userContent },
+  ];
 
   // First call
   onProgress?.('thinking');
-  let response = await callServer({ svgContext, messages, model, effort }, idToken, signal);
+  let response = await callServer({ input, model, effort }, idToken, signal);
 
-
+  // Collect all raw output items across agentic rounds for the caller to store
+  const allRawOutput: unknown[] = [];
 
   // Agentic loop — execute read-only tools locally, send results back
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -166,16 +172,24 @@ export async function sendChatRequest(
 
     if (readCalls.length === 0) break;
 
-    // Build continuation: previous AI output + local tool results
-    const continuation: unknown[] = [...response.output];
+    // Accumulate intermediate output + tool results into input for next round
+    allRawOutput.push(...response.output);
+    const toolResults: unknown[] = [];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
       const result = executeReadTool(call.name!, args, normalizedSvg);
-      continuation.push({ type: 'function_call_output', call_id: call.call_id, output: result ?? '' });
+      const output = { type: 'function_call_output', call_id: call.call_id, output: result ?? '' };
+      toolResults.push(output);
     }
+    allRawOutput.push(...toolResults);
 
-    response = await callServer({ svgContext, messages, model, effort, continuation }, idToken, signal);
+    // Send continuation: full input so far + intermediate outputs + tool results
+    const continuationInput = [...input, ...allRawOutput];
+    response = await callServer({ input: continuationInput, model, effort }, idToken, signal);
   }
+
+  // Final output
+  allRawOutput.push(...response.output);
 
   // Extract message + tool calls from final response
   let message = '';
@@ -194,35 +208,37 @@ export async function sendChatRequest(
       }
     } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image')) {
       const args = JSON.parse(item.arguments!);
-      // Apply find_replace operations locally, chaining from previous tool call result
+      let toolOutput = 'OK';
       if (item.name === 'find_replace') {
         const { svg, failed } = applyEditSvg(runningSvg, args.operations);
         args.svg = svg;
         runningSvg = svg;
-        if (failed.length) args.failedOperations = failed;
+        if (failed.length) {
+          args.failedOperations = failed;
+          toolOutput = `Applied with ${failed.length} failed operation(s)`;
+        }
       } else if (item.name === 'replace_lines') {
         args.svg = applyReplaceLines(runningSvg, args.start, args.end, args.content);
         runningSvg = args.svg;
       } else if (item.name === 'replace_svg') {
         runningSvg = args.svg;
       } else if (item.name === 'generate_image') {
-        // Call server to generate raster image and vectorize to SVG
         onProgress?.('generating-image');
         let result;
         try {
           result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
         } catch (err) {
-          // Re-throw credits errors as-is so the caller can detect them correctly
           if (isCreditsError(err)) throw err;
           throw err instanceof Error ? err : new Error(String(err));
         }
         args.svg = result.svg;
         args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;
-        // Image gen deducts credits separately — use its updated count
         latestCredits = result.credits;
       }
       toolCalls.push({ name: item.name, arguments: args });
+      // Add function_call_output so the API sees completed tool calls on replay
+      allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: toolOutput });
     }
   }
 
@@ -230,5 +246,6 @@ export async function sendChatRequest(
     message,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     credits: latestCredits,
+    rawOutput: allRawOutput,
   };
 }
