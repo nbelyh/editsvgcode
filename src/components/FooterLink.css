@@ -1,0 +1,8 @@
+.footer-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.footer-link:hover {
+  text-decoration: underline;
+}
