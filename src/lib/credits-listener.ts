@@ -21,24 +21,32 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
 
     if (!user) return;
 
+    // Cache user tier + pricing so we don't re-fetch on every snapshot event
+    let cachedTier: 'free' | 'pro' | null = null;
+    let cachedPricing: Awaited<ReturnType<typeof fetchPricing>> | null = null;
+
     unsubSnapshot = onSnapshot(
       doc(firebaseDb, 'usage', user.uid),
       async (snap) => {
-        const usageData = snap.data();
-        const pricing = await fetchPricing();
+        // Fetch pricing + tier once, then reuse
+        if (!cachedPricing) cachedPricing = await fetchPricing();
+        const pricing = cachedPricing;
 
         if (user.isAnonymous) {
-          const remaining = usageData?.credits ?? pricing.anonymousTrialCredits;
-          const creditsByModel = usageData?.credits_by_model;
+          const remaining = snap.data()?.credits ?? pricing.anonymousTrialCredits;
+          const creditsByModel = snap.data()?.credits_by_model;
           onChange({ remaining, limit: pricing.anonymousTrialCredits, tier: 'free', creditsByModel });
           return;
         }
 
-        // For signed-in users we also need the user profile for tier
-        const userSnap = await getDoc(doc(firebaseDb, 'users', user.uid));
-        const userData = userSnap.data();
-        const tier: 'free' | 'pro' =
-          userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
+        if (cachedTier === null) {
+          const userSnap = await getDoc(doc(firebaseDb, 'users', user.uid));
+          const userData = userSnap.data();
+          cachedTier = userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
+        }
+
+        const usageData = snap.data();
+        const tier = cachedTier;
         const limit = tier === 'pro' ? pricing.proMonthlyCredits : pricing.freeMonthlyCredits;
         const month = new Date().toISOString().slice(0, 7);
 
