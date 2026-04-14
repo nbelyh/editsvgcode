@@ -70,7 +70,7 @@ interface ServerResponse {
 const MAX_TOOL_ROUNDS = 10;
 
 async function callServer(
-  body: { svgContext: string; messages: ChatMessage[]; model?: string; continuation?: unknown[] },
+  body: { svgContext: string; messages: ChatMessage[]; model?: string; effort?: string; continuation?: unknown[] },
   idToken: string,
   signal?: AbortSignal,
   _retried?: boolean,
@@ -122,6 +122,7 @@ export async function sendChatRequest(
   imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ProgressStatus) => void,
+  effort?: string,
 ): Promise<ChatResponse> {
   let messages = inputMessages;
   const auth = getAuth();
@@ -153,7 +154,7 @@ export async function sendChatRequest(
 
   // First call
   onProgress?.('thinking');
-  let response = await callServer({ svgContext, messages, model }, idToken, signal);
+  let response = await callServer({ svgContext, messages, model, effort }, idToken, signal);
 
 
 
@@ -173,7 +174,7 @@ export async function sendChatRequest(
       continuation.push({ type: 'function_call_output', call_id: call.call_id, output: result ?? '' });
     }
 
-    response = await callServer({ svgContext, messages, model, continuation }, idToken, signal);
+    response = await callServer({ svgContext, messages, model, effort, continuation }, idToken, signal);
   }
 
   // Extract message + tool calls from final response

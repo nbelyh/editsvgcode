@@ -5,7 +5,7 @@ import { IconSparkles, IconUser, IconEraser, IconArrowUp, IconPlayerStop } from 
 import { sendChatRequest, isCreditsError, type ChatMessage, type ProgressStatus, type Credits } from '../lib/api-client';
 import { subscribeCredits } from '../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../lib/chat-storage';
-import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, shortModelName, type ReasoningEffort } from '../lib/models';
 import { ToolCallProposal, type StoredToolCall } from './ToolCallProposal';
 import { CreditsIndicator, BUY_CREDITS_URL } from './CreditsIndicator';
 import './AiChat.css';
@@ -37,6 +37,19 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
   const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
+  const [effortByModel, setEffortByModel] = useState<Record<string, ReasoningEffort>>(() => {
+    try { return JSON.parse(localStorage.getItem('esvg-effort-by-model') || '{}'); } catch { return {}; }
+  });
+  const currentModelDef = useMemo(() => EDIT_MODELS.find(m => m.value === model), [model]);
+  const supportedEfforts = currentModelDef?.efforts;
+  const effort: ReasoningEffort | undefined = supportedEfforts ? (effortByModel[model] ?? 'high') : undefined;
+  const setEffort = useCallback((v: ReasoningEffort) => {
+    setEffortByModel(prev => {
+      const next = { ...prev, [model]: v };
+      localStorage.setItem('esvg-effort-by-model', JSON.stringify(next));
+      return next;
+    });
+  }, [model]);
   const tier = credits?.tier ?? 'free';
   const isAnonymous = getAuth().currentUser?.isAnonymous ?? true;
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -116,6 +129,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         imageModel,
         abort.signal,
         setProgressStatus,
+        effort,
       );
 
       const assistantMsg: DisplayMessage = {
@@ -147,7 +161,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       setIsRunning(false);
       abortRef.current = null;
     }
-  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel]);
+  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -355,7 +369,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
             <Popover position="top-start" shadow="md">
               <Popover.Target>
                 <Text size="xs" c="dimmed" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {shortModelName(model)} · {shortModelName(imageModel)}
+                  {shortModelName(model)}{effort ? ` · ${effort}` : ''} · {shortModelName(imageModel)}
                 </Text>
               </Popover.Target>
               <Popover.Dropdown>
@@ -372,6 +386,18 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
                       </Stack>
                     </Radio.Group>
                   </div>
+                  {supportedEfforts && (
+                    <div>
+                      <Text size="xs" fw={600} mb={4}>Thinking effort</Text>
+                      <Radio.Group value={effort ?? 'high'} onChange={v => setEffort(v as ReasoningEffort)}>
+                        <Stack gap={4}>
+                          {supportedEfforts.map(e => (
+                            <Radio key={e} value={e} label={e[0].toUpperCase() + e.slice(1)} size="xs" />
+                          ))}
+                        </Stack>
+                      </Radio.Group>
+                    </div>
+                  )}
                   <div>
                     <Text size="xs" fw={600} mb={4}>Image model</Text>
                     <Radio.Group value={imageModel} onChange={v => { setImageModel(v); localStorage.setItem('esvg-image-model', v); }}>
