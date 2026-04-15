@@ -17,7 +17,7 @@ export const DEFAULT_PRICING: PricingConfig = {
   freeMonthlyCredits: 100,
   proMonthlyCredits: 1000,
   proMonthlyPriceUsd: 10,
-  proAnnualPriceUsd: 80,
+  proAnnualPriceUsd: 96,
   bulkPackCredits: 300,
   bulkPackPriceUsd: 10,
 };

@@ -46,7 +46,7 @@ Top up your Edit SVG Code AI credits with a one-time bulk purchase. Credits are 
 | Field | Value |
 |-------|-------|
 | **Base pricing currency** | USD |
-| **Price** | $29.00 |
+| **Price** | $15.00 |
 
 ---
 

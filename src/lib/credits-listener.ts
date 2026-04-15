@@ -4,6 +4,24 @@ import { firebaseDb, logError } from './firebase';
 import { fetchPricing } from './pricing';
 import type { Credits } from './api-client';
 
+/** Compute the next date credits will reset, mirroring the backend billingPeriodKey logic. */
+function nextRechargeDate(today: Date, startDay?: number): Date {
+  if (!startDay) {
+    return new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  }
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-based
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const resetDayThisMonth = Math.min(startDay, daysInMonth);
+  if (today.getDate() >= resetDayThisMonth) {
+    const nextMonthIdx = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const daysInNext = new Date(nextYear, nextMonthIdx + 1, 0).getDate();
+    return new Date(nextYear, nextMonthIdx, Math.min(startDay, daysInNext));
+  }
+  return new Date(year, month, resetDayThisMonth);
+}
+
 /**
  * Subscribe to real-time credit balance updates.
  * Listens to `usage/{uid}` via onSnapshot so credits update instantly
@@ -21,8 +39,8 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
 
     if (!user) return;
 
-    // Cache user tier + pricing so we don't re-fetch on every snapshot event
-    let cachedTier: 'free' | 'pro' | null = null;
+    // Cache user tier + startDay + pricing so we don't re-fetch on every snapshot event
+    let cached: { tier: 'free' | 'pro'; startDay?: number } | null = null;
     let cachedPricing: Awaited<ReturnType<typeof fetchPricing>> | null = null;
 
     unsubSnapshot = onSnapshot(
@@ -40,36 +58,47 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
             return;
           }
 
-          if (cachedTier === null) {
+          if (cached === null) {
             const userSnap = await getDoc(doc(firebaseDb, 'users', user.uid));
             const userData = userSnap.data();
-            cachedTier = userData?.tier === 'pro' && userData?.subscriptionStatus === 'active' ? 'pro' : 'free';
+            const isPro = userData?.tier === 'pro' && userData?.subscriptionStatus === 'active';
+            const startDay = isPro
+              ? userData?.subscriptionStartDay
+              : (user.metadata.creationTime ? new Date(user.metadata.creationTime).getUTCDate() : undefined);
+            cached = { tier: isPro ? 'pro' : 'free', startDay };
           }
 
           const usageData = snap.data();
-          const tier = cachedTier;
+          const { tier, startDay } = cached;
           const limit = tier === 'pro' ? pricing.proMonthlyCredits : pricing.freeMonthlyCredits;
-        const month = new Date().toISOString().slice(0, 7);
+          const today = new Date();
+          const rechargeAt = nextRechargeDate(today, startDay).toISOString();
 
-        let remaining: number;
-        let creditsByModel: Record<string, number> | undefined;
-        let rechargeAt: string | undefined;
+          let remaining: number;
+          let creditsByModel: Record<string, number> | undefined;
 
-        if (tier === 'pro') {
-          // Pro: no auto-reset — use stored credits as-is
-          remaining = usageData?.credits ?? 0;
-          creditsByModel = usageData?.credits_by_model;
-        } else {
-          // Free: auto-reset on new month
-          remaining = (!usageData || usageData.month !== month) ? limit : (usageData.credits ?? 0);
-          creditsByModel = usageData?.month === month ? usageData.credits_by_model : undefined;
-          // Next recharge = first day of next month
-          const [y, m] = month.split('-').map(Number);
-          const nextMonth = new Date(y, m, 1); // month is 0-indexed, so m (1-12) gives next month
-          rechargeAt = nextMonth.toISOString();
-        }
+          if (tier === 'pro') {
+            remaining = usageData?.credits ?? 0;
+            creditsByModel = usageData?.credits_by_model;
+          } else {
+            const month = today.toISOString().slice(0, 7);
+            if (!usageData) {
+              // No usage doc yet — fresh user, full monthly allowance
+              remaining = limit;
+            } else if (usageData.month === month) {
+              // Current billing period
+              remaining = usageData.credits ?? 0;
+              creditsByModel = usageData.credits_by_model;
+            } else if (!usageData.month) {
+              // No month field — credit pack credits added before any monthly reset
+              remaining = usageData.credits ?? limit;
+            } else {
+              // Stale month from a previous billing period — new period started, full allowance
+              remaining = limit;
+            }
+          }
 
-        onChange({ remaining, limit, tier, creditsByModel, rechargeAt });
+          onChange({ remaining, limit, tier, creditsByModel, rechargeAt });
         } catch (err) {
           logError('credits-listener', err);
         }
@@ -85,3 +114,4 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
     unsubSnapshot?.();
   };
 }
+

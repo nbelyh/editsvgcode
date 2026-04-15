@@ -1,143 +1,214 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Container, Title, Text, Table, Anchor, Loader, Group, Avatar, Badge, ActionIcon, Tooltip } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconTrash, IconLock, IconWorld } from '@tabler/icons-react';
+import { useState, useEffect } from 'react';
+import { Container, Title, Text, Loader, Group, Avatar, Badge, Stack, Table, Anchor, Divider } from '@mantine/core';
+import { IconExternalLink } from '@tabler/icons-react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
+import { firebaseDb } from '../lib/firebase';
+import { subscribeCredits } from '../lib/credits-listener';
+import type { Credits } from '../lib/api-client';
 
-interface FileEntry {
-  id: string;
-  modified: Date;
-  text: string;
-  public: boolean;
+interface UserDoc {
+  tier?: 'free' | 'pro';
+  subscriptionStatus?: string;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+interface Transaction {
+  orderId: string;
+  type: string;
+  sku: string | null;
+  amount: string | null;
+  currency: string | null;
+  date: string | null;
+  testMode: boolean;
 }
 
-function SvgThumb({ text }: { text: string }) {
-  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-  return <img src={url} alt="preview" width={40} height={40} style={{ objectFit: 'contain', background: '#f8f8f8', borderRadius: 4 }} />;
+const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  subscription_charged:  { label: 'Subscription started', color: 'green' },
+  subscription_renewed:  { label: 'Renewal',              color: 'blue' },
+  subscription_refunded: { label: 'Refunded',             color: 'red' },
+  credits_purchased:     { label: 'Credits purchased',    color: 'teal' },
+  credits_refunded:      { label: 'Credits refunded',     color: 'red' },
+};
+
+function TypeBadge({ type }: { type: string }) {
+  const meta = TYPE_LABELS[type] ?? { label: type, color: 'gray' };
+  return <Badge color={meta.color} variant="light" size="sm">{meta.label}</Badge>;
 }
 
 export function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
-  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getAuth();
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (u) {
-        const db = new EditSvgCodeDb();
-        db.listUserDocuments()
-          .then(setFiles)
-          .finally(() => setLoading(false));
+      if (u && !u.isAnonymous) {
+        try {
+          const [uSnap, txSnap] = await Promise.all([
+            getDoc(doc(firebaseDb, 'users', u.uid)),
+            getDocs(query(collection(firebaseDb, 'users', u.uid, 'transactions'), orderBy('createdAt', 'desc'))),
+          ]);
+          setUserDoc(uSnap.data() as UserDoc ?? null);
+          setTransactions(txSnap.docs.map((d) => ({ orderId: d.id, ...d.data() } as Transaction)));
+        } finally {
+          setLoading(false);
+        }
       } else {
         setLoading(false);
       }
     });
   }, []);
 
-  const handleDelete = useCallback(async (id: string) => {
-    const db = new EditSvgCodeDb();
-    try {
-      await db.deleteDocument(id);
-      setFiles((prev) => prev.filter((f) => f.id !== id));
-      notifications.show({ title: 'Deleted', message: `File ${id} deleted.`, color: 'green' });
-    } catch (err) {
-      notifications.show({ title: 'Delete failed', message: friendlyError(err), color: 'red' });
-    }
+  useEffect(() => {
+    return subscribeCredits(setCredits);
   }, []);
 
-  const handleTogglePrivate = useCallback(async (id: string) => {
-    const db = new EditSvgCodeDb();
-    const file = files.find((f) => f.id === id);
-    if (!file) return;
-    const newPrivate = file.public;
-    try {
-      await db.setPrivate(id, newPrivate);
-      setFiles((prev) => prev.map((f) => f.id === id ? { ...f, public: !newPrivate } : f));
-      notifications.show({ title: newPrivate ? 'Private' : 'Public', message: newPrivate ? 'Only you can view this file.' : 'Anyone with the link can view.', color: 'blue' });
-    } catch (err) {
-      notifications.show({ title: 'Failed to update privacy', message: friendlyError(err), color: 'red' });
-    }
-  }, [files]);
+  const tier = credits?.tier ?? userDoc?.tier ?? 'free';
+  const isPro = tier === 'pro';
+
+  function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
+    if (!user) return;
+    window.open(buildCheckoutUrl(product, { uid: user.uid, email: user.email, displayName: user.displayName }), '_blank');
+  }
 
   return (
     <Container size="sm" py="xl">
       <Title order={2} mb="md">Profile</Title>
 
-      {user && (
-        <Group mb="xl" gap="md">
-          <Avatar src={user.photoURL} size={48} radius="xl" />
-          <div>
-            <Text fw={500}>{user.displayName || 'Anonymous'}</Text>
-            <Text size="sm" c="dimmed">{user.email ?? user.uid}</Text>
-            {user.isAnonymous && <Badge size="xs" variant="light" color="yellow">Anonymous</Badge>}
-          </div>
-        </Group>
-      )}
-
-      <Title order={4} mb="sm">Shared files</Title>
-
       {loading ? (
         <Loader size="sm" />
-      ) : files.length === 0 ? (
-        <Text c="dimmed" size="sm">No shared files yet. Use &quot;Share&quot; in the editor to save a file.</Text>
+      ) : !user ? (
+        <Text c="dimmed">Not signed in.</Text>
       ) : (
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th w={50} />
-              <Table.Th>File ID</Table.Th>
-              <Table.Th>Size</Table.Th>
-              <Table.Th>Modified</Table.Th>
-              <Table.Th w={40} />
-              <Table.Th w={40} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {files.map((f) => (
-              <Table.Tr key={f.id}>
-                <Table.Td>
-                  <SvgThumb text={f.text} />
-                </Table.Td>
-                <Table.Td>
-                  <Anchor component={Link} to={`/${f.id}`} size="sm">
-                    {f.id}
-                  </Anchor>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">{formatSize(new Blob([f.text]).size)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Tooltip label={f.public ? 'Public — click to make private' : 'Private — click to make public'}>
-                    <ActionIcon variant="subtle" color={f.public ? 'blue' : 'gray'} size="sm" onClick={() => handleTogglePrivate(f.id)}>
-                      {f.public ? <IconWorld size={14} /> : <IconLock size={14} />}
-                    </ActionIcon>
-                  </Tooltip>
-                </Table.Td>
-                <Table.Td>
-                  <Tooltip label="Delete">
-                    <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleDelete(f.id)}>
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+        <Stack gap="xl">
+
+          {/* User info */}
+          <Group gap="md" align="flex-start">
+            <Avatar src={user.photoURL} size={56} radius="xl" />
+            <Stack gap={4}>
+              <Text fw={600} size="lg">{user.displayName || 'Anonymous'}</Text>
+              <Text size="sm" c="dimmed">{user.email}</Text>
+              <Text size="xs" c="dimmed" style={{ opacity: 0.5 }}>ID: {user.uid}</Text>
+              <Group gap="xs">
+                {user.isAnonymous
+                  ? <Badge size="sm" variant="light" color="yellow">Anonymous</Badge>
+                  : <Badge size="sm" variant="light" color={isPro ? 'violet' : 'gray'}>{isPro ? 'Pro' : 'Free'}</Badge>
+                }
+                {userDoc?.subscriptionStatus && userDoc.subscriptionStatus !== 'active' && (
+                  <Badge size="sm" variant="outline" color="orange">{userDoc.subscriptionStatus}</Badge>
+                )}
+              </Group>
+            </Stack>
+          </Group>
+
+          {!user.isAnonymous && (
+            <>
+              <Divider />
+
+              {/* Credits */}
+              {credits != null && (
+                <Group gap="xl">
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Credits remaining</Text>
+                    <Text fw={700} size="xl">{credits.remaining.toLocaleString()}</Text>
+                  </Stack>
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Monthly limit</Text>
+                    <Text fw={700} size="xl">{credits.limit.toLocaleString()}</Text>
+                  </Stack>
+                  {credits.rechargeAt && (
+                    <Stack gap={2}>
+                      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges on</Text>
+                      <Text fw={500}>
+                        {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
+                      </Text>
+                    </Stack>
+                  )}
+                </Group>
+              )}
+
+              <Divider />
+
+              {/* Purchase link */}
+              <Anchor component={Link} to="/pricing" size="sm">
+                View pricing &amp; upgrade options →
+              </Anchor>
+
+              {/* Manage subscription */}
+              <Group>
+                <Anchor
+                  href="https://cc.payproglobal.com/Customer/Account/Login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  size="sm"
+                >
+                  Manage subscription (PayPro Global portal) <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
+                </Anchor>
+              </Group>
+
+              <Divider />
+
+              {/* Transaction history */}
+              <div>
+                <Title order={4} mb="sm">Transaction history</Title>
+                {transactions.length === 0 ? (
+                  <Text c="dimmed" size="sm">No transactions yet.</Text>
+                ) : (
+                  <Table striped highlightOnHover>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Date</Table.Th>
+                        <Table.Th>Type</Table.Th>
+                        <Table.Th>Amount</Table.Th>
+                        <Table.Th>Order</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {transactions.map((t) => (
+                        <Table.Tr key={t.orderId}>
+                          <Table.Td>
+                            <Text size="sm" c="dimmed">
+                              {t.date ? new Date(t.date).toLocaleDateString() : '—'}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Group gap={6}>
+                              <TypeBadge type={t.type} />
+                              {t.testMode && <Badge color="yellow" variant="outline" size="xs">test</Badge>}
+                            </Group>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">
+                              {t.amount && t.currency ? `${t.currency} ${t.amount}` : '—'}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Anchor
+                              href={`https://cc.payproglobal.com/Orders/Details/${t.orderId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              size="sm"
+                            >
+                              #{t.orderId}
+                            </Anchor>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                )}
+              </div>
+            </>
+          )}
+
+        </Stack>
       )}
     </Container>
   );
 }
+

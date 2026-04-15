@@ -1,24 +1,26 @@
 import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box } from '@mantine/core';
 import { IconCheck, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { signInWithGoogle, signInWithGithub, logError } from '../lib/firebase';
 import { fetchPricing, DEFAULT_PRICING, type PricingConfig } from '../lib/pricing';
+import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
-export const BUY_PRO_URL = 'https://editsvgcode.com/pricing'; // replace with real PPG URL
+interface PlanCta {
+  label: string;
+  onClick?: () => void;
+  variant?: 'filled' | 'default' | 'light';
+}
 
 function PlanCard({
-  title, price, period, badge, credits, features, cta, onCta, highlight
+  title, badge, credits, features, ctas, highlight
 }: {
   title: string;
-  price: string;
-  period?: string;
   badge?: string;
   credits: string;
   features: string[];
-  cta: string;
-  onCta?: () => void;
+  ctas: PlanCta[];
   highlight?: boolean;
 }) {
   return (
@@ -31,6 +33,8 @@ function PlanCard({
         minWidth: 220,
         maxWidth: 320,
         position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {badge && (
@@ -38,30 +42,25 @@ function PlanCard({
           {badge}
         </Badge>
       )}
-      <Stack gap="md">
-        <div>
-          <Text fw={700} size="lg">{title}</Text>
-          <Group gap={4} align="baseline">
-            <Text fw={800} size="2rem" lh={1}>{price}</Text>
-            {period && <Text size="sm" c="dimmed">/{period}</Text>}
-          </Group>
-        </div>
+      <Stack gap="md" style={{ flex: 1 }}>
+        <Text fw={700} size="lg">{title}</Text>
         <Text size="sm" c="dimmed" fw={500}>{credits}</Text>
         <Divider />
         <List
           spacing={6}
           size="sm"
+          style={{ flex: 1 }}
           icon={<ThemeIcon size={16} radius="xl" color="teal" variant="light"><IconCheck size={10} /></ThemeIcon>}
         >
           {features.map(f => <List.Item key={f}>{f}</List.Item>)}
         </List>
-        <Button
-          variant={highlight ? 'filled' : 'default'}
-          onClick={onCta}
-          fullWidth
-        >
-          {cta}
-        </Button>
+        <Stack gap="xs" mt="auto">
+          {ctas.map(({ label, onClick, variant }) => (
+            <Button key={label} variant={variant ?? 'default'} onClick={onClick} fullWidth>
+              {label}
+            </Button>
+          ))}
+        </Stack>
       </Stack>
     </Box>
   );
@@ -69,15 +68,25 @@ function PlanCard({
 
 export function PricingPage() {
   const navigate = useNavigate();
-  const auth = getAuth();
-  const user = auth.currentUser;
-  const isAnonymous = !user || user.isAnonymous;
-  const isPro = false; // TODO: read from credits context once available
+  const [user, setUser] = useState<User | null>(null);
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
+
+  useEffect(() => {
+    const auth = getAuth();
+    setUser(auth.currentUser);
+    return onAuthStateChanged(auth, setUser);
+  }, []);
 
   useEffect(() => {
     fetchPricing().then(setPricing);
   }, []);
+
+  const isAnonymous = !user || user.isAnonymous;
+  const isPro = false; // TODO: read from credits context once available
+
+  function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
+    window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
+  }
 
   const handleSignInGoogle = async () => {
     try { await signInWithGoogle(); navigate('/'); }
@@ -99,68 +108,62 @@ export function PricingPage() {
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         <PlanCard
           title="Trial"
-          price="Free"
           credits={`${pricing.anonymousTrialCredits} credits, one-time`}
           features={[
-            'No sign-in',
+            'No sign-in required',
             'All free-tier models',
             `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor(pricing.anonymousTrialCredits / 10)} image gens`,
-
             'Credits never reset',
           ]}
-          cta="Start editing"
-          onCta={() => navigate('/')}
+          ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
         />
 
         <PlanCard
           title="Free"
-          price="Free"
-          credits={`${pricing.freeMonthlyCredits} credits / month`}
           badge="Sign in required"
+          credits={`${pricing.freeMonthlyCredits} credits / month`}
           features={[
             'Google or GitHub sign-in',
             'All free-tier models',
             `~${pricing.freeMonthlyCredits} AI edits or ${Math.floor(pricing.freeMonthlyCredits / 10)} image gens`,
-
             'Credits reset monthly',
             'Save files to cloud',
           ]}
-          cta={isAnonymous ? 'Sign in with Google' : 'Current plan'}
-          onCta={isAnonymous ? handleSignInGoogle : undefined}
-          highlight={false}
+          ctas={isAnonymous
+            ? [{ label: 'Sign in with Google', onClick: handleSignInGoogle }]
+            : [{ label: 'Current plan' }]
+          }
         />
 
         <PlanCard
           title="Pro"
-          price={`$${pricing.proMonthlyPriceUsd}`}
-          period="month"
-          badge="Best value"
+          badge="Most popular"
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
           features={[
             'Everything in Free',
             'Latest models (gpt-5.4, gpt-5.2-codex, etc.)',
             'Better image generation',
-            `~${pricing.proMonthlyCredits.toLocaleString()} AI edits / month`,
-
             'Priority support',
           ]}
-          cta={isPro ? 'Current plan' : 'Upgrade to Pro'}
-          onCta={isPro ? undefined : () => window.open(BUY_PRO_URL, '_blank')}
           highlight
+          ctas={isPro ? [{ label: 'Current plan' }] : [
+            { label: `Monthly — $${pricing.proMonthlyPriceUsd}/mo`, variant: 'filled', onClick: () => checkout('pro-monthly') },
+            { label: `Annual — $8/mo ($96/yr)`, variant: 'light', onClick: () => checkout('pro-annual') },
+          ]}
         />
 
         <PlanCard
-          title="Credit Pack"
-          price={`$${pricing.bulkPackPriceUsd}`}
-          credits={`${pricing.bulkPackCredits.toLocaleString()} credits, one-time`}
+          title="Credit Packs"
+          credits="One-time, never expire"
           features={[
             'No subscription needed',
             'All pro models',
-            'Never expire',
             'Top up any time',
           ]}
-          cta="Buy credits"
-          onCta={() => window.open(BUY_PRO_URL, '_blank')}
+          ctas={[
+            { label: `300 credits — $10`, onClick: () => checkout('credits-300') },
+            { label: `1,000 credits — $15`, onClick: () => checkout('credits-1000') },
+          ]}
         />
       </Group>
 
@@ -179,7 +182,7 @@ export function PricingPage() {
       )}
 
       <Text size="xs" c="dimmed">
-        Annual plan: ${pricing.proAnnualPriceUsd}/year (save 2 months). Credits do not roll over. No hidden fees.
+        Credits do not roll over. No hidden fees.
       </Text>
     </Stack>
   );

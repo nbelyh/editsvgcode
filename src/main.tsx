@@ -10,6 +10,7 @@ import './lib/firebase'; // Initialize Firebase before anything else
 import App from './App';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { FilesPage } from './pages/FilesPage';
 import { PricingPage } from './pages/PricingPage';
 import { theme } from './theme';
 
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
           <Route element={<App />}>
             <Route index element={<EditorPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="files" element={<FilesPage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path=":fileId" element={<EditorPage />} />
           </Route>
