@@ -206,6 +206,64 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* Collapsible turn groups */
+.aui-turn-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+  border: 1px solid var(--mantine-color-dark-4, var(--mantine-color-gray-3));
+  transition: background-color 0.15s;
+}
+
+.aui-turn-collapsed:hover {
+  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+}
+
+.aui-turn-chevron {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-turn-summary-user {
+  color: var(--mantine-color-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aui-turn-summary-response {
+  color: var(--mantine-color-dimmed);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aui-turn-expanded {
+  position: relative;
+}
+
+.aui-turn-collapse-btn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--mantine-radius-xs);
+  color: var(--mantine-color-dimmed);
+  z-index: 1;
+}
+
+.aui-turn-collapse-btn:hover {
+  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+}
+
 /* Vectorizer preview + controls */
 .aui-vectorizer {
   display: flex;

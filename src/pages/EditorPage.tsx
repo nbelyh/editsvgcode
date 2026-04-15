@@ -10,7 +10,7 @@ import { Editor, type EditorHandle } from '../components/Editor';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
 import { TeachingBubble } from '../components/TeachingBubble';
-import { AiChat } from '../components/AiChat';
+import { AiChat } from '../components/aichat';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { getNewUniqueId, stripBom, findElementRange, formatXml } from '../lib/svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from '../lib/chat-storage';
