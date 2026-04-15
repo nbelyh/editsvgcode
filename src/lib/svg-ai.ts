@@ -3,10 +3,10 @@
  * All SVG processing stays on the client — the server never receives the full SVG.
  */
 
-const LINE_BUDGET = 300;
-const HEAD_LINES = 20;
-const TAIL_LINES = 5;
-const SELECTION_PADDING = 30;
+const LINE_BUDGET = 1000;
+const HEAD_LINES = 40;
+const TAIL_LINES = 10;
+const SELECTION_PADDING = 50;
 
 /** Normalize \r\n to \n — Monaco on Windows uses \r\n, models always output \n */
 function normalize(s: string): string {
