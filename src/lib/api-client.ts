@@ -148,6 +148,10 @@ export async function sendChatRequest(
   // Build input: previous history + svgContext (refreshed each turn) + new user message
   const input: unknown[] = [
     ...conversationHistory,
+    // When there is prior history, warn the model that line numbers may have shifted
+    ...(conversationHistory.length > 0
+      ? [{ role: 'developer', content: 'The SVG document has been updated since the earlier messages. Line numbers from previous tool calls and search results are now stale — do NOT reuse them. Always rely on the current SVG context below and re-run search_svg or read_svg_lines if you need line numbers.' }]
+      : []),
     { role: 'developer', content: svgContext },
     { role: 'user', content: userText },
   ];
