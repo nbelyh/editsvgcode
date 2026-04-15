@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useState } from 'react';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
 import { IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../../lib/models';
@@ -23,6 +23,8 @@ interface ChatComposerProps {
   credits: Credits | null;
   isAnonymous: boolean;
   isModelDisabled: (m: { pro: boolean }) => boolean;
+  /** Past user messages for Up/Down history navigation. */
+  history: string[];
 }
 
 export function ChatComposer({
@@ -30,11 +32,14 @@ export function ChatComposer({
   isRunning, hasPending, selectedElement,
   model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange,
-  credits, isAnonymous, isModelDisabled,
+  credits, isAnonymous, isModelDisabled, history,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editModels = useMemo(() => EDIT_MODELS, []);
   const imageModels = useMemo(() => IMAGE_MODELS, []);
+  // History navigation: -1 = current input, 0 = most recent, 1 = one before, etc.
+  const [historyIdx, setHistoryIdx] = useState(-1);
+  const draftRef = useRef('');  // saves current input when navigating into history
 
   const autoGrow = useCallback(() => {
     const ta = textareaRef.current;
@@ -49,9 +54,51 @@ export function ChatComposer({
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      setHistoryIdx(-1);
       onSend();
+      return;
     }
-  }, [onSend]);
+
+    const ta = e.currentTarget;
+
+    if (e.key === 'ArrowUp' && history.length > 0) {
+      // Only navigate history when cursor is on the first line
+      const cursorPos = ta.selectionStart;
+      const textBeforeCursor = ta.value.slice(0, cursorPos);
+      if (textBeforeCursor.includes('\n')) return; // not on first line
+
+      const nextIdx = historyIdx + 1;
+      if (nextIdx >= history.length) return; // no more history
+
+      e.preventDefault();
+      if (historyIdx === -1) {
+        draftRef.current = input; // save current draft
+      }
+      setHistoryIdx(nextIdx);
+      onInputChange(history[nextIdx]);
+      requestAnimationFrame(autoGrow);
+      return;
+    }
+
+    if (e.key === 'ArrowDown' && historyIdx >= 0) {
+      // Only navigate when cursor is on the last line
+      const cursorPos = ta.selectionStart;
+      const textAfterCursor = ta.value.slice(cursorPos);
+      if (textAfterCursor.includes('\n')) return; // not on last line
+
+      e.preventDefault();
+      const nextIdx = historyIdx - 1;
+      if (nextIdx < 0) {
+        setHistoryIdx(-1);
+        onInputChange(draftRef.current);
+      } else {
+        setHistoryIdx(nextIdx);
+        onInputChange(history[nextIdx]);
+      }
+      requestAnimationFrame(autoGrow);
+      return;
+    }
+  }, [onSend, history, historyIdx, input, onInputChange, autoGrow]);
 
   return (
     <div className="aui-composer-area">

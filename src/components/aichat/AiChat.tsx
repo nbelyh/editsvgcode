@@ -261,6 +261,11 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setSelectedIcon(null);
   }, []);
 
+  const inputHistory = useMemo(
+    () => messages.filter(m => m.role === 'user' && m.content).map(m => m.content).reverse(),
+    [messages],
+  );
+
   return (
     <div className="aui-root">
       <div className="aui-header">
@@ -306,6 +311,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           credits={credits}
           isAnonymous={isAnonymous}
           isModelDisabled={isModelDisabled}
+          history={inputHistory}
         />
       </div>
     </div>
