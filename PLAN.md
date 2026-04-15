@@ -413,6 +413,13 @@ Deploy Phase 2, monitor:
 - Path segment highlighting in preview as cursor moves through d="..." data
 - Visual feedback linking editor position to preview geometry
 
+### 3.7 Icon picker UI for search_icons
+
+- When AI uses search_icons and inserts an icon, show thumbnail alternatives from the search results alongside the proposal
+- User can click an alternative icon → sends continuation to the model: "Use this icon instead" + SVG code → model re-inserts with correct positioning/sizing
+- Happy path (model picked well): no extra API call. Swap: one extra call.
+- Store full search results (icon SVGs + names + licenses) on the tool call for display
+
 **Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
 
 ---

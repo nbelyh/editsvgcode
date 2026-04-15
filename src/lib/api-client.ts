@@ -1,6 +1,7 @@
 import { getAuth } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
+import { searchIcons } from './icon-search';
 import { config } from './config';
 
 export interface ChatMessage {
@@ -166,7 +167,7 @@ export async function sendChatRequest(
   // Agentic loop — execute read-only tools locally, send results back
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const readCalls = response.output.filter(
-      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg')
+      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'search_icons')
     );
 
     if (readCalls.length === 0) break;
@@ -181,7 +182,12 @@ export async function sendChatRequest(
     const toolResults: unknown[] = [];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
-      const result = executeReadTool(call.name!, args, normalizedSvg);
+      let result: string | null;
+      if (call.name === 'search_icons') {
+        result = await searchIcons(args.query, args.style, args.noAttribution ?? true, signal);
+      } else {
+        result = executeReadTool(call.name!, args, normalizedSvg);
+      }
       const output = { type: 'function_call_output', call_id: call.call_id, output: result ?? '' };
       toolResults.push(output);
     }
