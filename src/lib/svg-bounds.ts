@@ -54,14 +54,43 @@ export function getElementBounds(svgCode: string, selector: string): string {
       if (!(el instanceof SVGGraphicsElement)) continue;
       try {
         const bbox = el.getBBox();
+
+        // Transform bbox corners from element-local coords → viewBox coords
+        // using the cumulative transform matrix (CTM).
+        // elCTM maps element-local → screen; svgCTM maps viewBox → screen.
+        // So svgCTM⁻¹ · elCTM maps element-local → viewBox.
+        const elCTM = el.getScreenCTM();
+        const svgCTM = svgEl.getScreenCTM();
+        if (!elCTM || !svgCTM) continue; // not rendered (inside <defs>, display:none, etc.)
+
+        const m = svgCTM.inverse().multiply(elCTM);
+
+        // Transform all 4 corners and take the axis-aligned bounding rect.
+        // This handles rotation; for pure translate+scale 2 corners would suffice,
+        // but the general case needs all 4.
+        const corners = [
+          { x: bbox.x, y: bbox.y },
+          { x: bbox.x + bbox.width, y: bbox.y },
+          { x: bbox.x, y: bbox.y + bbox.height },
+          { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+        ].map(p => ({
+          x: m.a * p.x + m.c * p.y + m.e,
+          y: m.b * p.x + m.d * p.y + m.f,
+        }));
+        const xs = corners.map(c => c.x);
+        const ys = corners.map(c => c.y);
+        const x1 = Math.min(...xs);
+        const y1 = Math.min(...ys);
+        const x2 = Math.max(...xs);
+        const y2 = Math.max(...ys);
         results.push({
           selector,
           tagName: el.tagName.toLowerCase(),
           id: el.id || undefined,
-          x: Math.round(bbox.x * 100) / 100,
-          y: Math.round(bbox.y * 100) / 100,
-          width: Math.round(bbox.width * 100) / 100,
-          height: Math.round(bbox.height * 100) / 100,
+          x: Math.round(x1 * 100) / 100,
+          y: Math.round(y1 * 100) / 100,
+          width: Math.round((x2 - x1) * 100) / 100,
+          height: Math.round((y2 - y1) * 100) / 100,
         });
       } catch {
         // getBBox can throw for elements with no visual representation

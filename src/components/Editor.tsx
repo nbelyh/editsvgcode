@@ -3,6 +3,7 @@ import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
 import { registerSvgProviders } from '../lib/completion-provider';
 import { formatXml, findElementAtOffset } from '../lib/svg-utils';
+import { getElementBounds } from '../lib/svg-bounds';
 
 interface EditorProps {
   value: string;
@@ -65,6 +66,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
     if (import.meta.env.DEV) {
       (window as any).__test_monaco_editor = editor;
       (window as any).__test_formatXml = formatXml;
+      (window as any).__test_getElementBounds = getElementBounds;
     }
 
     if (!(monaco as any).__svgProvidersRegistered) {
