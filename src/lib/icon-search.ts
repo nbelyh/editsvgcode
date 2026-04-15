@@ -4,7 +4,7 @@
  */
 
 const ICONIFY_API = 'https://api.iconify.design';
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 30;
 
 /** Preferred icon sets by style — high-quality, permissively licensed sets first. */
 const OUTLINE_PREFIXES = 'tabler,lucide,ph,heroicons,material-symbols';
@@ -46,8 +46,9 @@ export async function fetchIcons(
   noAttribution: boolean,
   palette: 'colored' | 'monochrome' | 'any' = 'any',
   signal?: AbortSignal,
+  excludeNames: string[] = [],
 ): Promise<{ icons: IconResult[]; error?: string }> {
-  const params = new URLSearchParams({ query, limit: '32' });
+  const params = new URLSearchParams({ query, limit: '999' });
 
   // Palette=colored overrides style prefixes — colored sets are specific
   if (palette === 'colored') {
@@ -97,6 +98,15 @@ export async function fetchIcons(
     });
     if (candidates.length === 0) {
       return { icons: [], error: `No attribution-free icons found for "${query}". Try searching with noAttribution=false, or use generate_image.` };
+    }
+  }
+
+  // Exclude already-shown icons (for "More" pagination)
+  if (excludeNames.length > 0) {
+    const excludeSet = new Set(excludeNames);
+    candidates = candidates.filter(id => !excludeSet.has(id));
+    if (candidates.length === 0) {
+      return { icons: [], error: `No more icons available for "${query}". Try a different query or use generate_image.` };
     }
   }
 

@@ -18,7 +18,10 @@ interface ChatThreadProps {
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
   onRestore: (msgIdx: number) => void;
   iconPickIcons: IconResult[] | null;
+  iconPickSelected: IconResult | null;
   onIconSelect: (icon: IconResult) => void;
+  onIconMore: () => void;
+  onIconNone: () => void;
 }
 
 interface Turn {
@@ -56,7 +59,7 @@ export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
   onAccept, onReject, onUpdateToolCallSvg, onRestore,
-  iconPickIcons, onIconSelect,
+  iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
 }: ChatThreadProps) {
   const [expandedTurns, setExpandedTurns] = useState<Set<number>>(new Set());
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
@@ -154,6 +157,15 @@ export function ChatThread({
                     )}
                   </div>
                 )}
+                {msg.selectedIcon && (
+                  <div className="aui-icon-picker aui-icon-picker-collapsed">
+                    <span className="aui-icon-picker-label">Icon:</span>
+                    <div className="aui-icon-picker-selected">
+                      <div className="aui-icon-picker-svg" dangerouslySetInnerHTML={{ __html: msg.selectedIcon.svg }} />
+                      <span className="aui-icon-picker-selected-name">{msg.selectedIcon.name}</span>
+                    </div>
+                  </div>
+                )}
                 {msg.toolCalls?.map((tc, tcIdx) => (
                   <ToolCallProposal
                     key={tcIdx}
@@ -170,7 +182,13 @@ export function ChatThread({
         );
       })}
 
-      {isRunning && !iconPickIcons && (
+      {iconPickIcons && (
+        <div className="aui-msg aui-msg-assistant">
+          <IconPicker icons={iconPickIcons} onSelect={onIconSelect} onMore={onIconMore} onNone={onIconNone} selectedIcon={iconPickSelected} />
+        </div>
+      )}
+
+      {isRunning && (!iconPickIcons || iconPickSelected) && (
         <div className="aui-msg aui-msg-assistant">
           <div className="aui-status-indicator">
             <span className="aui-spinner" />
@@ -179,12 +197,6 @@ export function ChatThread({
             {progressLabel === 'vectorizing' && 'Vectorizing…'}
             {typeof progressStatus === 'object' && `Calling ${progressStatus.tool}… (round ${progressStatus.round})`}
           </div>
-        </div>
-      )}
-
-      {iconPickIcons && (
-        <div className="aui-msg aui-msg-assistant">
-          <IconPicker icons={iconPickIcons} onSelect={onIconSelect} />
         </div>
       )}
 

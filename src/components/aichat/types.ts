@@ -1,5 +1,5 @@
 import type { StoredToolCall } from '../ToolCallProposal';
-import type { ProgressStatus, Credits } from '../../lib/api-client';
+import type { ProgressStatus, Credits, IconResult } from '../../lib/api-client';
 import type { ReasoningEffort } from '../../lib/models';
 
 export interface DisplayMessage {
@@ -9,6 +9,8 @@ export interface DisplayMessage {
   buyCredits?: true;
   /** Raw API input/output items for this turn — replayed on subsequent requests. */
   rawItems?: unknown[];
+  /** Icon selected from the icon picker (search_icons tool). */
+  selectedIcon?: IconResult;
 }
 
 export interface AiChatProps {

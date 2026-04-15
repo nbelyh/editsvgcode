@@ -134,7 +134,7 @@ export async function sendChatRequest(
   signal?: AbortSignal,
   onProgress?: (status: ProgressStatus) => void,
   effort?: string,
-  onIconPick?: (icons: IconResult[]) => Promise<IconResult>,
+  onIconPick?: (icons: IconResult[]) => Promise<IconResult | 'more' | 'none'>,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -186,17 +186,30 @@ export async function sendChatRequest(
     const toolResults: unknown[] = [];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
-      let result: string | null;
+      let result: string | null = null;
       if (call.name === 'search_icons') {
-        const { icons, error } = await fetchIcons(args.query, args.style, args.noAttribution ?? true, args.palette ?? 'any', signal);
-        if (error || icons.length === 0) {
-          result = error ?? 'No icons found.';
-        } else if (onIconPick) {
-          const selected = await onIconPick(icons);
-          result = formatIconForModel(selected);
-        } else {
-          // Fallback: auto-select the first icon
-          result = formatIconForModel(icons[0]);
+        const excludeNames: string[] = [];
+        let picked = false;
+        while (!picked) {
+          const { icons, error } = await fetchIcons(args.query, args.style, args.noAttribution ?? true, args.palette ?? 'any', signal, excludeNames);
+          if (error || icons.length === 0) {
+            result = error ?? 'No icons found.';
+            picked = true;
+          } else if (onIconPick) {
+            const selected = await onIconPick(icons);
+            if (selected === 'none') {
+              result = 'User rejected all icon results and wants a custom generated icon instead. Use generate_image to create the icon.';
+              picked = true;
+            } else if (selected === 'more') {
+              excludeNames.push(...icons.map(i => i.name));
+            } else {
+              result = formatIconForModel(selected);
+              picked = true;
+            }
+          } else {
+            result = formatIconForModel(icons[0]);
+            picked = true;
+          }
         }
       } else if (call.name === 'get_element_bounds') {
         result = getElementBounds(normalizedSvg, args.selector);

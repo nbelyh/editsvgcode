@@ -38,7 +38,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const isModelDisabled = useCallback((m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro, [isDebug, tier]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const [iconPickIcons, setIconPickIcons] = useState<IconResult[] | null>(null);
-  const iconPickResolveRef = useRef<((icon: IconResult) => void) | null>(null);
+  const [selectedIcon, setSelectedIcon] = useState<IconResult | null>(null);
+  const iconPickResolveRef = useRef<((result: IconResult | 'more' | 'none') => void) | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -95,13 +96,16 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         }
       }
 
-      const handleIconPick = (icons: IconResult[]): Promise<IconResult> => {
-        return new Promise<IconResult>(resolve => {
+      const handleIconPick = (icons: IconResult[]): Promise<IconResult | 'more' | 'none'> => {
+        return new Promise<IconResult | 'more' | 'none'>(resolve => {
           setIconPickIcons(icons);
-          iconPickResolveRef.current = (icon) => {
-            setIconPickIcons(null);
+          setSelectedIcon(null);
+          iconPickResolveRef.current = (result) => {
+            if (result !== 'none' && typeof result === 'object') {
+              setSelectedIcon(result);
+            }
             iconPickResolveRef.current = null;
-            resolve(icon);
+            resolve(result);
           };
         });
       };
@@ -131,6 +135,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           { role: 'user', content: text },
           ...response.rawOutput,
         ],
+        selectedIcon: selectedIcon ?? undefined,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -150,6 +155,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     } finally {
       setIsRunning(false);
       abortRef.current = null;
+      setIconPickIcons(null);
+      setSelectedIcon(null);
     }
   }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
 
@@ -157,12 +164,15 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     abortRef.current?.abort();
     setIsRunning(false);
     setIconPickIcons(null);
+    setSelectedIcon(null);
     iconPickResolveRef.current = null;
   }, []);
 
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setInput('');
+    setIconPickIcons(null);
+    setSelectedIcon(null);
     onPreviewSvg(null);
     clearChatMessages(fileId);
   }, [onPreviewSvg, fileId]);
@@ -241,6 +251,16 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     iconPickResolveRef.current?.(icon);
   }, []);
 
+  const handleIconMore = useCallback(() => {
+    iconPickResolveRef.current?.('more');
+  }, []);
+
+  const handleIconNone = useCallback(() => {
+    iconPickResolveRef.current?.('none');
+    setIconPickIcons(null);
+    setSelectedIcon(null);
+  }, []);
+
   return (
     <div className="aui-root">
       <div className="aui-header">
@@ -263,7 +283,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onUpdateToolCallSvg={handleUpdateToolCallSvg}
           onRestore={handleRestore}
           iconPickIcons={iconPickIcons}
+          iconPickSelected={selectedIcon}
           onIconSelect={handleIconSelect}
+          onIconMore={handleIconMore}
+          onIconNone={handleIconNone}
         />
         <ChatComposer
           input={input}
