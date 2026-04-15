@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../../lib/chat-storage';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
@@ -37,6 +37,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isModelDisabled = useCallback((m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro, [isDebug, tier]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
+  const [iconPickIcons, setIconPickIcons] = useState<IconResult[] | null>(null);
+  const iconPickResolveRef = useRef<((icon: IconResult) => void) | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -93,6 +95,17 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         }
       }
 
+      const handleIconPick = (icons: IconResult[]): Promise<IconResult> => {
+        return new Promise<IconResult>(resolve => {
+          setIconPickIcons(icons);
+          iconPickResolveRef.current = (icon) => {
+            setIconPickIcons(null);
+            iconPickResolveRef.current = null;
+            resolve(icon);
+          };
+        });
+      };
+
       const response = await sendChatRequest(
         conversationHistory,
         text,
@@ -104,6 +117,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         abort.signal,
         setProgressStatus,
         effort,
+        handleIconPick,
       );
 
       const assistantMsg: DisplayMessage = {
@@ -142,6 +156,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
     setIsRunning(false);
+    setIconPickIcons(null);
+    iconPickResolveRef.current = null;
   }, []);
 
   const handleNewChat = useCallback(() => {
@@ -221,6 +237,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     localStorage.setItem('esvg-image-model', v);
   }, []);
 
+  const handleIconSelect = useCallback((icon: IconResult) => {
+    iconPickResolveRef.current?.(icon);
+  }, []);
+
   return (
     <div className="aui-root">
       <div className="aui-header">
@@ -242,6 +262,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onReject={handleReject}
           onUpdateToolCallSvg={handleUpdateToolCallSvg}
           onRestore={handleRestore}
+          iconPickIcons={iconPickIcons}
+          onIconSelect={handleIconSelect}
         />
         <ChatComposer
           input={input}

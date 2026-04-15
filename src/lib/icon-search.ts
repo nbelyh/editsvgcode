@@ -9,6 +9,7 @@ const MAX_RESULTS = 5;
 /** Preferred icon sets by style — high-quality, permissively licensed sets first. */
 const OUTLINE_PREFIXES = 'tabler,lucide,ph,heroicons,material-symbols';
 const FILLED_PREFIXES = 'mdi,fa6-solid,material-symbols,ph,fluent';
+const COLORED_PREFIXES = 'noto,fluent-emoji,fluent-emoji-flat,twemoji,openmoji,icon-park,emojione';
 
 /** Licenses that require no attribution (permissive). */
 const NO_ATTRIBUTION_SPDX = new Set(['MIT', 'Apache-2.0', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Unlicense', 'CC0-1.0']);
@@ -17,6 +18,7 @@ interface IconifyCollectionInfo {
   name: string;
   license: { title: string; spdx?: string; url?: string };
   author?: { name?: string; url?: string };
+  palette?: boolean;
 }
 
 interface IconifySearchResponse {
@@ -25,7 +27,7 @@ interface IconifySearchResponse {
   collections: Record<string, IconifyCollectionInfo>;
 }
 
-interface IconResult {
+export interface IconResult {
   name: string;
   svg: string;
   setName: string;
@@ -35,35 +37,58 @@ interface IconResult {
 }
 
 /**
- * Search for icons and return their SVG code.
- * Called from the agentic loop when the model invokes search_icons.
+ * Fetch icons from Iconify and return structured results.
+ * The caller (agentic loop) shows these to the user for selection.
  */
-export async function searchIcons(
+export async function fetchIcons(
   query: string,
   style: 'outline' | 'filled' | 'any',
   noAttribution: boolean,
+  palette: 'colored' | 'monochrome' | 'any' = 'any',
   signal?: AbortSignal,
-): Promise<string> {
-  // 1. Search Iconify API
+): Promise<{ icons: IconResult[]; error?: string }> {
   const params = new URLSearchParams({ query, limit: '32' });
-  if (style === 'outline') {
+
+  // Palette=colored overrides style prefixes — colored sets are specific
+  if (palette === 'colored') {
+    params.set('prefixes', COLORED_PREFIXES);
+  } else if (style === 'outline') {
     params.set('prefixes', OUTLINE_PREFIXES);
   } else if (style === 'filled') {
     params.set('prefixes', FILLED_PREFIXES);
   }
 
+  // NOTE: category is filtered client-side — the Iconify API category param is unreliable
+
   const searchRes = await fetch(`${ICONIFY_API}/search?${params}`, { signal });
   if (!searchRes.ok) {
-    return `Icon search failed (HTTP ${searchRes.status}). Try a different query or use manual SVG.`;
+    return { icons: [], error: `Icon search failed (HTTP ${searchRes.status}). Try a different query or use manual SVG.` };
   }
 
   const data: IconifySearchResponse = await searchRes.json();
   if (data.icons.length === 0) {
-    return `No icons found for "${query}". Try a different keyword or use generate_image for custom illustrations.`;
+    return { icons: [], error: `No icons found for "${query}". Try a different keyword or use generate_image for custom illustrations.` };
   }
 
-  // 2. Filter by license if noAttribution is requested
   let candidates = data.icons;
+
+  // Filter by palette (client-side, using collection metadata)
+  if (palette === 'monochrome') {
+    candidates = candidates.filter(iconId => {
+      const prefix = iconId.split(':')[0];
+      return data.collections[prefix]?.palette !== true;
+    });
+  } else if (palette === 'colored') {
+    candidates = candidates.filter(iconId => {
+      const prefix = iconId.split(':')[0];
+      return data.collections[prefix]?.palette === true;
+    });
+  }
+
+  if (candidates.length === 0) {
+    return { icons: [], error: `No ${palette} icons found for "${query}". Try palette='any' or a different query.` };
+  }
+
   if (noAttribution) {
     candidates = candidates.filter(iconId => {
       const prefix = iconId.split(':')[0];
@@ -71,14 +96,12 @@ export async function searchIcons(
       return col?.license?.spdx && NO_ATTRIBUTION_SPDX.has(col.license.spdx);
     });
     if (candidates.length === 0) {
-      return `No attribution-free icons found for "${query}". Try searching with noAttribution=false, or use generate_image.`;
+      return { icons: [], error: `No attribution-free icons found for "${query}". Try searching with noAttribution=false, or use generate_image.` };
     }
   }
 
-  // 3. Pick top N unique icon sets to get variety
   const selected = pickDiverseIcons(candidates, MAX_RESULTS);
 
-  // 4. Fetch SVG for each selected icon (in parallel)
   const results = await Promise.all(
     selected.map(async (iconId): Promise<IconResult | null> => {
       try {
@@ -107,17 +130,20 @@ export async function searchIcons(
 
   const icons = results.filter((r): r is IconResult => r !== null);
   if (icons.length === 0) {
-    return `Found icon names but failed to fetch SVG. Try again or use generate_image.`;
+    return { icons: [], error: 'Found icon names but failed to fetch SVG. Try again or use generate_image.' };
   }
 
-  // 5. Format results for the model — include license info
-  const parts = icons.map((icon, i) => {
-    const licenseNote = icon.needsAttribution
-      ? ` — ⚠️ requires attribution (${icon.licenseUrl ?? icon.license})`
-      : '';
-    return `### Icon ${i + 1}: ${icon.name} — ${icon.setName} (${icon.license})${licenseNote}\n\`\`\`svg\n${icon.svg}\n\`\`\``;
-  });
-  return `Found ${data.total} icons for "${query}". Top ${icons.length} matches:\n\n${parts.join('\n\n')}\n\nPick the best match and insert it into the SVG using replace_lines or replace_svg. Adjust position, size (width/height or transform), and colors (fill/stroke) to fit the document. If an icon requires attribution, mention it to the user with the license link.`;
+  return { icons };
+}
+
+/**
+ * Format a single selected icon for the model to use.
+ */
+export function formatIconForModel(icon: IconResult): string {
+  const licenseNote = icon.needsAttribution
+    ? ` — ⚠️ requires attribution (${icon.licenseUrl ?? icon.license})`
+    : '';
+  return `User selected icon: ${icon.name} — ${icon.setName} (${icon.license})${licenseNote}\n\`\`\`svg\n${icon.svg}\n\`\`\`\n\nInsert this icon into the SVG using replace_lines or replace_svg. Adjust position, size (width/height or transform), and colors (fill/stroke) to fit the document. If the icon requires attribution, mention it to the user with the license link.`;
 }
 
 /**

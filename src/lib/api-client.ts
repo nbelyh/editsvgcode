@@ -1,7 +1,7 @@
 import { getAuth } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
 import { generateImage } from './image-gen';
-import { searchIcons } from './icon-search';
+import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
 import { config } from './config';
 
@@ -121,6 +121,8 @@ export type ProgressStatus =
   | 'vectorizing'
   | { tool: string; round: number };
 
+export type { IconResult };
+
 export async function sendChatRequest(
   conversationHistory: unknown[],
   userText: string,
@@ -132,6 +134,7 @@ export async function sendChatRequest(
   signal?: AbortSignal,
   onProgress?: (status: ProgressStatus) => void,
   effort?: string,
+  onIconPick?: (icons: IconResult[]) => Promise<IconResult>,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -185,7 +188,16 @@ export async function sendChatRequest(
       const args = JSON.parse(call.arguments!);
       let result: string | null;
       if (call.name === 'search_icons') {
-        result = await searchIcons(args.query, args.style, args.noAttribution ?? true, signal);
+        const { icons, error } = await fetchIcons(args.query, args.style, args.noAttribution ?? true, args.palette ?? 'any', signal);
+        if (error || icons.length === 0) {
+          result = error ?? 'No icons found.';
+        } else if (onIconPick) {
+          const selected = await onIconPick(icons);
+          result = formatIconForModel(selected);
+        } else {
+          // Fallback: auto-select the first icon
+          result = formatIconForModel(icons[0]);
+        }
       } else if (call.name === 'get_element_bounds') {
         result = getElementBounds(normalizedSvg, args.selector);
       } else {

@@ -2,7 +2,9 @@ import { useState, Fragment } from 'react';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
+import { IconPicker } from './IconPicker';
 import type { DisplayMessage, ProgressStatus } from './types';
+import type { IconResult } from '../../lib/api-client';
 
 interface ChatThreadProps {
   messages: DisplayMessage[];
@@ -15,6 +17,8 @@ interface ChatThreadProps {
   onReject: (msgIndex: number, tcIndex: number) => void;
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
   onRestore: (msgIdx: number) => void;
+  iconPickIcons: IconResult[] | null;
+  onIconSelect: (icon: IconResult) => void;
 }
 
 interface Turn {
@@ -52,6 +56,7 @@ export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
   onAccept, onReject, onUpdateToolCallSvg, onRestore,
+  iconPickIcons, onIconSelect,
 }: ChatThreadProps) {
   const [expandedTurns, setExpandedTurns] = useState<Set<number>>(new Set());
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
@@ -165,7 +170,7 @@ export function ChatThread({
         );
       })}
 
-      {isRunning && (
+      {isRunning && !iconPickIcons && (
         <div className="aui-msg aui-msg-assistant">
           <div className="aui-status-indicator">
             <span className="aui-spinner" />
@@ -174,6 +179,12 @@ export function ChatThread({
             {progressLabel === 'vectorizing' && 'Vectorizing…'}
             {typeof progressStatus === 'object' && `Calling ${progressStatus.tool}… (round ${progressStatus.round})`}
           </div>
+        </div>
+      )}
+
+      {iconPickIcons && (
+        <div className="aui-msg aui-msg-assistant">
+          <IconPicker icons={iconPickIcons} onSelect={onIconSelect} />
         </div>
       )}
 
