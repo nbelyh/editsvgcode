@@ -7,7 +7,7 @@
 | **Product name** | Edit SVG Code AI Credits — 300 |
 | **Product type** | Regular |
 | **Tags** | svg, editor, ai, credits, top-up |
-| **IPN URL** | `https://Edit SVG Codecode-api.azurewebsites.net/api/webhook/payproglobal` |
+| **IPN URL** | `https://editsvgcode-api.azurewebsites.net/api/webhook/payproglobal` |
 
 **Product description** (shown on checkout page):
 
@@ -46,7 +46,7 @@ Top up your Edit SVG Code AI credits with a one-time purchase. Credits are added
 | Field | Value |
 |-------|-------|
 | **Base pricing currency** | USD |
-| **Price** | $12.00 |
+| **Price** | $10.00 |
 
 ---
 

@@ -7,7 +7,7 @@
 | **Product name** | Edit SVG Code AI Credits — 1,000 |
 | **Product type** | Regular |
 | **Tags** | svg, editor, ai, credits, top-up, bulk |
-| **IPN URL** | `https://Edit SVG Codecode-api.azurewebsites.net/api/webhook/payproglobal` |
+| **IPN URL** | `https://editsvgcode-api.azurewebsites.net/api/webhook/payproglobal` |
 
 **Product description** (shown on checkout page):
 

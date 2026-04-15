@@ -8,16 +8,15 @@ Go to **Store settings → Product setup → Add product** for each:
 
 | Product | Type | Price | Billing |
 |---------|------|-------|---------|
-| Pro Monthly | Subscription | $9.00 | Monthly recurring |
-| Pro Annual | Subscription | $79.00 | Annual recurring |
-| 100 AI Credits | One-time | $5.00 | One-time |
-| 300 AI Credits | One-time | $12.00 | One-time |
+| Pro Monthly | Subscription | $10.00 | Monthly recurring |
+| Pro Annual | Subscription | $80.00 | Annual recurring |
+| 300 AI Credits | One-time | $10.00 | One-time |
 | 1,000 AI Credits | One-time | $29.00 | One-time |
 
 For each product:
 - **No license provider** — leave the licensing section empty (this is an "Access Based Product")
 - **IPN URL** → `https://editsvgcode-api.azurewebsites.net/api/webhook/payproglobal`
-- **SKU** (optional but useful): `pro-monthly`, `pro-annual`, `credits-100`, `credits-300`, `credits-1000`
+- **SKU** (optional but useful): `pro-monthly`, `pro-annual`, `credits-300`, `credits-1000`
 
 ### 2. Set Up IPN Security Keys
 
@@ -130,7 +129,6 @@ Use the product SKU (`ORDER_ITEM_SKU`) or `PRODUCT_ID` to distinguish subscripti
 ```ts
 const SUBSCRIPTION_SKUS = new Set(["pro-monthly", "pro-annual"]);
 const CREDIT_PACKS: Record<string, number> = {
-  "credits-100": 100,
   "credits-300": 300,
   "credits-1000": 1000,
 };
@@ -140,7 +138,6 @@ const CREDIT_PACKS: Record<string, number> = {
 
 ```ts
 const CREDIT_PACKS: Record<string, number> = {
-  "credits-100": 100,
   "credits-300": 300,
   "credits-1000": 1000,
 };

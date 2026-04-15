@@ -7,11 +7,11 @@
 | **Product name** | Edit SVG Code Pro (Annual) |
 | **Product type** | Regular |
 | **Tags** | svg, editor, ai, pro, subscription, annual |
-| **IPN URL** | `https://Edit SVG Codecode-api.azurewebsites.net/api/webhook/payproglobal` |
+| **IPN URL** | `https://editsvgcode-api.azurewebsites.net/api/webhook/payproglobal` |
 
 **Product description** (shown on checkout page):
 
-1,000 AI credits per month. Access to all AI models (including full-size and reasoning models). Ad-free. Billed annually — saves ~27% vs monthly ($79/year vs $108/year). Credits reset monthly.
+1,000 AI credits per month. Access to all AI models (including full-size and reasoning models). Ad-free. Billed annually — saves 33% vs monthly ($80/year vs $120/year). Credits reset monthly.
 
 **Product specification** (detailed feature list, shown below description):
 
@@ -21,7 +21,7 @@
 - AI image generation with GPT-Image-1 and GPT-Image-1.5
 - Ad-free editor
 - Access to all future Pro features
-- Save ~27% compared to monthly billing ($79/year vs $108/year)
+- Save 33% compared to monthly billing ($80/year vs $120/year)
 
 **Free tier includes (no subscription needed):**
 - 50 AI credits per month
@@ -47,7 +47,7 @@
 | Field | Value |
 |-------|-------|
 | **Base pricing currency** | USD |
-| **Price** | $79.00 |
+| **Price** | $80.00 |
 | **Billing period** | 12 months |
 | **Trial period** | None |
 

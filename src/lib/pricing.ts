@@ -16,10 +16,10 @@ export const DEFAULT_PRICING: PricingConfig = {
   anonymousTrialCredits: 20,
   freeMonthlyCredits: 100,
   proMonthlyCredits: 1000,
-  proMonthlyPriceUsd: 9,
-  proAnnualPriceUsd: 79,
-  bulkPackCredits: 1000,
-  bulkPackPriceUsd: 15,
+  proMonthlyPriceUsd: 10,
+  proAnnualPriceUsd: 80,
+  bulkPackCredits: 300,
+  bulkPackPriceUsd: 10,
 };
 
 /** Named exports kept for backward compat */

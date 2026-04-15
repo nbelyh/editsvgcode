@@ -7,7 +7,7 @@
 | **Product name** | Edit SVG Code Pro (Monthly) |
 | **Product type** | Regular |
 | **Tags** | svg, editor, ai, pro, subscription |
-| **IPN URL** | `https://Edit SVG Codecode-api.azurewebsites.net/api/webhook/payproglobal` |
+| **IPN URL** | `https://editsvgcode-api.azurewebsites.net/api/webhook/payproglobal` |
 
 **Product description** (shown on checkout page):
 
@@ -46,7 +46,7 @@
 | Field | Value |
 |-------|-------|
 | **Base pricing currency** | USD |
-| **Price** | $9.00 |
+| **Price** | $10.00 |
 | **Billing period** | 1 month |
 | **Trial period** | None (or 7 days free if desired later) |
 
