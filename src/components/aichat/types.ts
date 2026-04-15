@@ -1,5 +1,5 @@
 import type { StoredToolCall } from '../ToolCallProposal';
-import type { ProgressStatus, Credits, IconResult } from '../../lib/api-client';
+import type { ProgressStatus, Credits, IconResult, ReadToolCall } from '../../lib/api-client';
 import type { ReasoningEffort } from '../../lib/models';
 
 export interface DisplayMessage {
@@ -11,6 +11,8 @@ export interface DisplayMessage {
   rawItems?: unknown[];
   /** Icon selected from the icon picker (search_icons tool). */
   selectedIcon?: IconResult;
+  /** Intermediate read-only tool calls executed during the agentic loop. */
+  readToolCalls?: ReadToolCall[];
 }
 
 export interface AiChatProps {

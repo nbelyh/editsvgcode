@@ -25,9 +25,9 @@ export function EditorPage() {
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isPrivate, setIsPrivate] = useState(true);
-  const [fileId, setFileId] = useState(() => routeFileId || sessionStorage.getItem('esvg-local-id') || (() => {
+  const [fileId, setFileId] = useState(() => routeFileId || localStorage.getItem('esvg-local-id') || (() => {
     const id = '_local_' + getNewUniqueId();
-    sessionStorage.setItem('esvg-local-id', id);
+    localStorage.setItem('esvg-local-id', id);
     return id;
   })());
   const dbRef = useRef<EditSvgCodeDb | null>(null);
@@ -78,7 +78,7 @@ export function EditorPage() {
     const handleDbInit = async () => {
       const uniqueId = routeFileId || '';
       if (uniqueId) setFileId(uniqueId);
-      const currentFileId = uniqueId || sessionStorage.getItem('esvg-local-id') || fileId;
+      const currentFileId = uniqueId || localStorage.getItem('esvg-local-id') || fileId;
 
       if (uniqueId) {
         // URL-based file: always verify Firestore access first
@@ -166,7 +166,7 @@ export function EditorPage() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       setFileId(name);
-      sessionStorage.setItem('esvg-local-id', name);
+      localStorage.setItem('esvg-local-id', name);
       setSvgCode(formatXml(stripBom(ev.target?.result as string)));
     };
     reader.readAsText(file);

@@ -123,6 +123,13 @@ export type ProgressStatus =
 
 export type { IconResult };
 
+/** Intermediate read-only tool call surfaced in the UI. */
+export interface ReadToolCall {
+  name: string;
+  args: Record<string, unknown>;
+  result: string;
+}
+
 export async function sendChatRequest(
   conversationHistory: unknown[],
   userText: string,
@@ -135,6 +142,7 @@ export async function sendChatRequest(
   onProgress?: (status: ProgressStatus) => void,
   effort?: string,
   onIconPick?: (icons: IconResult[]) => Promise<IconResult | 'more' | 'none'>,
+  onToolCall?: (tc: ReadToolCall) => void,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -218,6 +226,7 @@ export async function sendChatRequest(
       }
       const output = { type: 'function_call_output', call_id: call.call_id, output: result ?? '' };
       toolResults.push(output);
+      onToolCall?.({ name: call.name!, args, result: result ?? '' });
     }
     allRawOutput.push(...toolResults);
 

@@ -206,62 +206,66 @@
   color: var(--mantine-color-dimmed);
 }
 
-/* Collapsible turn groups */
-.aui-turn-collapsed {
+/* Collapsible read tool calls */
+.aui-read-tools {
+  margin-bottom: 6px;
+}
+
+.aui-read-tools-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  border-radius: var(--mantine-radius-sm);
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--mantine-color-dimmed);
+  gap: 4px;
+  padding: 4px 6px;
   border: 1px solid var(--mantine-color-dark-4, var(--mantine-color-gray-3));
-  transition: background-color 0.15s;
-}
-
-.aui-turn-collapsed:hover {
-  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
-}
-
-.aui-turn-chevron {
-  flex-shrink: 0;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
   color: var(--mantine-color-dimmed);
-}
-
-.aui-turn-summary-user {
-  color: var(--mantine-color-text);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aui-turn-summary-response {
-  color: var(--mantine-color-dimmed);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aui-turn-expanded {
-  position: relative;
-}
-
-.aui-turn-collapse-btn {
-  position: absolute;
-  right: 4px;
-  top: 4px;
+  font-size: 11px;
   cursor: pointer;
-  padding: 2px;
-  border-radius: var(--mantine-radius-xs);
-  color: var(--mantine-color-dimmed);
-  z-index: 1;
+  transition: background-color 0.15s;
+  width: 100%;
+  text-align: left;
 }
 
-.aui-turn-collapse-btn:hover {
+.aui-read-tools-toggle:hover {
   background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+}
+
+.aui-read-tools-details {
+  border: 1px solid var(--mantine-color-dark-4, var(--mantine-color-gray-3));
+  border-top: none;
+  border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.aui-read-tool-item {
+  margin-bottom: 6px;
+}
+
+.aui-read-tool-item:last-child {
+  margin-bottom: 0;
+}
+
+.aui-read-tool-name {
+  font-family: var(--mantine-font-family-monospace);
+  color: var(--mantine-color-dimmed);
+  font-size: 10px;
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+
+.aui-read-tool-result {
+  margin: 0;
+  padding: 4px 6px;
+  background: var(--mantine-color-dark-6, var(--mantine-color-gray-0));
+  border-radius: var(--mantine-radius-xs);
+  font-size: 10px;
+  overflow-x: auto;
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Vectorizer preview + controls */

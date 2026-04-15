@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../../lib/chat-storage';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
@@ -10,6 +10,13 @@ import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import type { DisplayMessage, AiChatProps } from './types';
 import '../AiChat.css';
+
+const HISTORY_KEY = 'esvg-input-history';
+const MAX_HISTORY = 100;
+
+function loadHistory(): string[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
 
 export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -39,6 +46,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const [iconPickIcons, setIconPickIcons] = useState<IconResult[] | null>(null);
   const [selectedIcon, setSelectedIcon] = useState<IconResult | null>(null);
+  const [inputHistory, setInputHistory] = useState<string[]>(loadHistory);
   const iconPickResolveRef = useRef<((result: IconResult | 'more' | 'none') => void) | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -85,6 +93,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setIsRunning(true);
     setProgressStatus('thinking');
 
+    // Push to global input history
+    setInputHistory(prev => {
+      const next = [text, ...prev.filter(h => h !== text)].slice(0, MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      return next;
+    });
+
     const abort = new AbortController();
     abortRef.current = abort;
 
@@ -110,6 +125,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         });
       };
 
+      const collectedToolCalls: ReadToolCall[] = [];
+
       const response = await sendChatRequest(
         conversationHistory,
         text,
@@ -122,6 +139,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         setProgressStatus,
         effort,
         handleIconPick,
+        (tc) => collectedToolCalls.push(tc),
       );
 
       const assistantMsg: DisplayMessage = {
@@ -136,6 +154,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           ...response.rawOutput,
         ],
         selectedIcon: selectedIcon ?? undefined,
+        readToolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -260,11 +279,6 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setIconPickIcons(null);
     setSelectedIcon(null);
   }, []);
-
-  const inputHistory = useMemo(
-    () => messages.filter(m => m.role === 'user' && m.content).map(m => m.content).reverse(),
-    [messages],
-  );
 
   return (
     <div className="aui-root">
