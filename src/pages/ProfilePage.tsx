@@ -86,12 +86,12 @@ export function ProfilePage() {
           <Group gap="md" align="flex-start">
             <Avatar src={user.photoURL} size={56} radius="xl" />
             <Stack gap={4}>
-              <Text fw={600} size="lg">{user.displayName || 'Anonymous'}</Text>
+              <Text fw={600} size="lg">{user.displayName || 'Guest'}</Text>
               <Text size="sm" c="dimmed">{user.email}</Text>
               <Text size="xs" c="dimmed" style={{ opacity: 0.5 }}>ID: {user.uid}</Text>
               <Group gap="xs">
                 {user.isAnonymous
-                  ? <Badge size="sm" variant="light" color="yellow">Anonymous</Badge>
+                  ? <Badge size="sm" variant="light" color="yellow">Guest</Badge>
                   : <Badge size="sm" variant="light" color={isPro ? 'violet' : 'gray'}>{isPro ? 'Pro' : 'Free'}</Badge>
                 }
                 {userDoc?.subscriptionStatus && userDoc.subscriptionStatus !== 'active' && (
@@ -101,39 +101,45 @@ export function ProfilePage() {
             </Stack>
           </Group>
 
+          <Divider />
+
+          {/* Credits */}
+          {credits != null && (
+            <Group gap="xl">
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Credits remaining</Text>
+                <Text fw={700} size="xl">{credits.remaining.toLocaleString()}</Text>
+              </Stack>
+              <Stack gap={2}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{user.isAnonymous ? 'Trial limit' : 'Monthly limit'}</Text>
+                <Text fw={700} size="xl">{credits.limit.toLocaleString()}</Text>
+              </Stack>
+              {(credits.packCredits ?? 0) > 0 && (
+                <Stack gap={2}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Pack credits</Text>
+                  <Text fw={700} size="xl">{credits.packCredits!.toLocaleString()}</Text>
+                </Stack>
+              )}
+              {credits.rechargeAt && (
+                <Stack gap={2}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges on</Text>
+                  <Text fw={500}>
+                    {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
+                  </Text>
+                </Stack>
+              )}
+            </Group>
+          )}
+
+          <Divider />
+
+          {/* Purchase link */}
+          <Anchor component={Link} to="/pricing" size="sm">
+            {user.isAnonymous ? 'Sign in to get more credits →' : 'View pricing & upgrade options →'}
+          </Anchor>
+
           {!user.isAnonymous && (
             <>
-              <Divider />
-
-              {/* Credits */}
-              {credits != null && (
-                <Group gap="xl">
-                  <Stack gap={2}>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Credits remaining</Text>
-                    <Text fw={700} size="xl">{credits.remaining.toLocaleString()}</Text>
-                  </Stack>
-                  <Stack gap={2}>
-                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Monthly limit</Text>
-                    <Text fw={700} size="xl">{credits.limit.toLocaleString()}</Text>
-                  </Stack>
-                  {credits.rechargeAt && (
-                    <Stack gap={2}>
-                      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges on</Text>
-                      <Text fw={500}>
-                        {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
-                      </Text>
-                    </Stack>
-                  )}
-                </Group>
-              )}
-
-              <Divider />
-
-              {/* Purchase link */}
-              <Anchor component={Link} to="/pricing" size="sm">
-                View pricing &amp; upgrade options →
-              </Anchor>
-
               {/* Manage subscription */}
               <Group>
                 <Anchor

@@ -20,6 +20,8 @@ export interface Credits {
   limit: number;
   tier?: "free" | "pro";
   creditsByModel?: Record<string, number>;
+  /** Purchased pack credits (never expire). */
+  packCredits?: number;
   /** ISO date string of next monthly recharge (free signed-in users only). */
   rechargeAt?: string;
 }

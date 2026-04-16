@@ -2,25 +2,8 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { firebaseDb, logError } from './firebase';
 import { fetchPricing } from './pricing';
+import { billingPeriodKey, nextRechargeDate } from '../../shared/billing';
 import type { Credits } from './api-client';
-
-/** Compute the next date credits will reset, mirroring the backend billingPeriodKey logic. */
-function nextRechargeDate(today: Date, startDay?: number): Date {
-  if (!startDay) {
-    return new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  }
-  const year = today.getFullYear();
-  const month = today.getMonth(); // 0-based
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const resetDayThisMonth = Math.min(startDay, daysInMonth);
-  if (today.getDate() >= resetDayThisMonth) {
-    const nextMonthIdx = month === 11 ? 0 : month + 1;
-    const nextYear = month === 11 ? year + 1 : year;
-    const daysInNext = new Date(nextYear, nextMonthIdx + 1, 0).getDate();
-    return new Date(nextYear, nextMonthIdx, Math.min(startDay, daysInNext));
-  }
-  return new Date(year, month, resetDayThisMonth);
-}
 
 /**
  * Subscribe to real-time credit balance updates.
@@ -76,29 +59,32 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
 
           let remaining: number;
           let creditsByModel: Record<string, number> | undefined;
+          const packCredits = usageData?.packCredits ?? 0;
 
           if (tier === 'pro') {
-            remaining = usageData?.credits ?? 0;
-            creditsByModel = usageData?.credits_by_model;
+            const period = billingPeriodKey(today, startDay);
+            if (!usageData || usageData.month !== period) {
+              remaining = limit + packCredits;
+            } else {
+              remaining = (usageData.credits ?? limit) + packCredits;
+              creditsByModel = usageData.credits_by_model;
+            }
           } else {
-            const month = today.toISOString().slice(0, 7);
+            const period = billingPeriodKey(today, startDay);
             if (!usageData) {
               // No usage doc yet — fresh user, full monthly allowance
               remaining = limit;
-            } else if (usageData.month === month) {
+            } else if (usageData.month === period) {
               // Current billing period
-              remaining = usageData.credits ?? 0;
+              remaining = (usageData.credits ?? 0) + packCredits;
               creditsByModel = usageData.credits_by_model;
-            } else if (!usageData.month) {
-              // No month field — credit pack credits added before any monthly reset
-              remaining = usageData.credits ?? limit;
             } else {
-              // Stale month from a previous billing period — new period started, full allowance
-              remaining = limit;
+              // New billing period — full monthly allowance + packs
+              remaining = limit + packCredits;
             }
           }
 
-          onChange({ remaining, limit, tier, creditsByModel, rechargeAt });
+          onChange({ remaining, limit, tier, creditsByModel, packCredits, rechargeAt });
         } catch (err) {
           logError('credits-listener', err);
         }

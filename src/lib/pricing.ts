@@ -1,26 +1,10 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { firebaseDb } from './firebase';
+import { DEFAULT_PRICING, mapFirestorePricing } from '../../shared/billing';
+import type { PricingConfig } from '../../shared/billing';
 
-export interface PricingConfig {
-  anonymousTrialCredits: number;
-  freeMonthlyCredits: number;
-  proMonthlyCredits: number;
-  proMonthlyPriceUsd: number;
-  proAnnualPriceUsd: number;
-  bulkPackCredits: number;
-  bulkPackPriceUsd: number;
-}
-
-/** Hardcoded defaults — used before Firestore config is fetched */
-export const DEFAULT_PRICING: PricingConfig = {
-  anonymousTrialCredits: 20,
-  freeMonthlyCredits: 100,
-  proMonthlyCredits: 1000,
-  proMonthlyPriceUsd: 10,
-  proAnnualPriceUsd: 96,
-  bulkPackCredits: 300,
-  bulkPackPriceUsd: 10,
-};
+export type { PricingConfig };
+export { DEFAULT_PRICING };
 
 /** Named exports kept for backward compat */
 export const ANONYMOUS_TRIAL_CREDITS = DEFAULT_PRICING.anonymousTrialCredits;
@@ -43,15 +27,7 @@ export async function fetchPricing(): Promise<PricingConfig> {
     const snap = await getDoc(doc(firebaseDb, 'config', 'pricing'));
     const d = snap.data();
     if (!d) return DEFAULT_PRICING;
-    const pricing: PricingConfig = {
-      anonymousTrialCredits: d.anonymous_trial_credits ?? DEFAULT_PRICING.anonymousTrialCredits,
-      freeMonthlyCredits: d.free_monthly_credits ?? DEFAULT_PRICING.freeMonthlyCredits,
-      proMonthlyCredits: d.pro_monthly_credits ?? DEFAULT_PRICING.proMonthlyCredits,
-      proMonthlyPriceUsd: d.pro_monthly_price_usd ?? DEFAULT_PRICING.proMonthlyPriceUsd,
-      proAnnualPriceUsd: d.pro_annual_price_usd ?? DEFAULT_PRICING.proAnnualPriceUsd,
-      bulkPackCredits: d.bulk_pack_credits ?? DEFAULT_PRICING.bulkPackCredits,
-      bulkPackPriceUsd: d.bulk_pack_price_usd ?? DEFAULT_PRICING.bulkPackPriceUsd,
-    };
+    const pricing = mapFirestorePricing(d as Record<string, unknown>);
     clientCache = { pricing, expiresAt: Date.now() + CACHE_TTL_MS };
     return pricing;
   } catch {
