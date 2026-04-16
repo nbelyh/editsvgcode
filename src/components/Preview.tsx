@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { ActionIcon, Group, SegmentedControl, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import DOMPurify from 'dompurify';
@@ -18,17 +18,27 @@ export interface PreviewHandle {
   focus: () => void;
 }
 
-type BgMode = 'checkerboard' | 'white' | 'black' | 'none';
+type BgMode = 'checkerboard' | 'checkerboard-dark' | 'white' | 'black';
 
-const CHECKERBOARD =
+const CHECKERBOARD_LIGHT =
   'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABlBMVEX////g4OACVBJKAAAAFElEQVR42mNgAAJGIGDAwyAkDwQABMgAIUCVOUYAAAAASUVORK5CYII=")';
 
+const CHECKERBOARD_DARK =
+  'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAGElEQVR4nGNQQgLGSICBihLIHGRFVJQAAHT8H+GQ1mTOAAAAAElFTkSuQmCC")';
+
 const BG: Record<BgMode, { background: string; backgroundImage?: string }> = {
-  checkerboard: { background: 'transparent', backgroundImage: CHECKERBOARD },
+  checkerboard: { background: 'transparent', backgroundImage: CHECKERBOARD_LIGHT },
+  'checkerboard-dark': { background: 'transparent', backgroundImage: CHECKERBOARD_DARK },
   white: { background: '#fff' },
   black: { background: '#000' },
-  none: { background: 'transparent' },
 };
+
+const BG_OPTIONS: { icon: string; value: BgMode; label: string }[] = [
+  { icon: '▦', value: 'checkerboard', label: 'Light checkerboard' },
+  { icon: '▧', value: 'checkerboard-dark', label: 'Dark checkerboard' },
+  { icon: '□', value: 'white', label: 'White' },
+  { icon: '■', value: 'black', label: 'Black' },
+];
 
 const SELECTION_FILTER_ID = '__esvg-select-filter';
 const HOVER_FILTER_ID = '__esvg-hover-filter';
@@ -356,7 +366,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       <Group
         justify="space-between"
         px="xs" py={4}
-        style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}
+        style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}
       >
         <Group gap="xs">
           <Tooltip label="Zoom in (Ctrl+Scroll)">
@@ -372,16 +382,21 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit} aria-label="Fit to window"><IconArrowsMaximize size={16} /></ActionIcon>
           </Tooltip>
           <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{zoomPct}%</Text>
-          <SegmentedControl
-            size="xs" value={bgMode} onChange={(v) => setBgMode(v as BgMode)}
-            data={[
-              { label: '▦', value: 'checkerboard' },
-              { label: '□', value: 'white' },
-              { label: '■', value: 'black' },
-              { label: '∅', value: 'none' },
-            ]}
-            styles={{ root: { backgroundColor: '#1e1e1e' }, label: { padding: '2px 8px', fontSize: 12 } }}
-          />
+          <div style={{ width: 1, height: 16, backgroundColor: 'var(--esvg-chrome-border)' }} />
+          {BG_OPTIONS.map(({ icon, value, label }) => (
+            <Tooltip key={value} label={label}>
+              <ActionIcon
+                variant={bgMode === value ? 'light' : 'subtle'}
+                color={bgMode === value ? 'blue' : 'gray'}
+                size="sm"
+                onClick={() => setBgMode(value)}
+                aria-label={label}
+                style={{ fontSize: 12 }}
+              >
+                {icon}
+              </ActionIcon>
+            </Tooltip>
+          ))}
         </Group>
         <Group gap="xs">
           {onDeleteElement && (

@@ -76,7 +76,7 @@ export function TeachingBubble({ anchorSelector, active, onActivate }: TeachingB
         transform: 'translateX(-100%)',
         zIndex: 10000,
         width: 280,
-        backgroundColor: 'var(--mantine-color-dark-6)',
+        backgroundColor: 'var(--esvg-chrome-bg)',
         borderColor: 'var(--mantine-color-blue-7)',
       }}
     >

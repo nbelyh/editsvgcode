@@ -1,5 +1,5 @@
-import { AppShell, Group, Text } from '@mantine/core';
-import { IconBrandGithub, IconBug } from '@tabler/icons-react';
+import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { IconBrandGithub, IconBug, IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, Link } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
@@ -8,21 +8,31 @@ import './App.css';
 declare const __APP_VERSION__: string;
 
 export default function App() {
+  const { setColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('dark');
+
+  const toggleColorScheme = () => {
+    setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
     <AppShell
       header={{ height: 50 }}
       footer={{ height: 26 }}
       padding={0}
     >
-      <AppShell.Header
-        style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}
-      >
+      <AppShell.Header className="app-chrome">
         <Group h="100%" px="md" justify="space-between">
           <Group gap="md">
-            <Text fw={700} size="lg" c="white" component="a" href="/" style={{ textDecoration: 'none' }}>Online SVG code editor</Text>
-            <Text size="sm" c="gray.5" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Go Pro</Text>
+            <Text fw={700} size="lg" component="a" href="/" className="app-header-title">Online SVG code editor</Text>
+            <Text size="sm" c="dimmed" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Go Pro</Text>
           </Group>
-          <UserMenu />
+          <Group gap="xs">
+            <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme">
+              {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+            </ActionIcon>
+            <UserMenu />
+          </Group>
         </Group>
       </AppShell.Header>
 
@@ -30,9 +40,7 @@ export default function App() {
         <Outlet />
       </AppShell.Main>
 
-      <AppShell.Footer
-        style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderTop: '1px solid var(--mantine-color-dark-4)' }}
-      >
+      <AppShell.Footer className="app-chrome">
         <Group h="100%" px="xs" justify="space-between">
           <Group gap="xs">
             <Text size="sm" c="dimmed">v{__APP_VERSION__}</Text>

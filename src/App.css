@@ -40,8 +40,24 @@
   align-items: center;
   gap: 2px;
   padding: 4px 2px;
-  background-color: var(--mantine-color-dark-7);
-  border-left: 1px solid var(--mantine-color-dark-4);
+  background-color: var(--esvg-chrome-bg);
+  border-left: 1px solid var(--esvg-chrome-border);
+}
+
+/* App chrome (header, footer, toolbars) — adapts to light/dark */
+:root {
+  --esvg-chrome-bg: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7));
+  --esvg-chrome-border: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.app-chrome {
+  background-color: var(--esvg-chrome-bg);
+  border-color: var(--esvg-chrome-border);
+}
+
+.app-header-title {
+  text-decoration: none;
+  color: var(--mantine-color-text);
 }
 
 /* Let suggest details panel size to content, scroll after ~10 lines */
@@ -69,9 +85,9 @@
   --carbon-font-size: 14px;
   --carbon-padding: 1.5ch;
   --carbon-max-char: 20ch;
-  --carbon-bg-primary: hsl(0, 0%, 12%);
-  --carbon-bg-secondary: hsl(0, 0%, 15%);
-  --carbon-text-color: hsl(0, 0%, 90%);
+  --carbon-bg-primary: light-dark(hsl(0, 0%, 96%), hsl(0, 0%, 12%));
+  --carbon-bg-secondary: light-dark(hsl(0, 0%, 92%), hsl(0, 0%, 15%));
+  --carbon-text-color: light-dark(hsl(0, 0%, 20%), hsl(0, 0%, 90%));
   z-index: 10;
   font-size: var(--carbon-font-size);
   font-family: var(--carbon-font-family);

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Group, ActionIcon, Text, Tooltip } from '@mantine/core';
+import { Group, ActionIcon, Text, Tooltip, useComputedColorScheme } from '@mantine/core';
 import { IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { useParams } from 'react-router-dom';
 import { Allotment } from 'allotment';
@@ -139,6 +139,9 @@ export function EditorPage() {
     }
   }, [persistTab, sidebarTab, showSidebar]);
 
+  const computedColorScheme = useComputedColorScheme('dark');
+  const monacoTheme = computedColorScheme === 'dark' ? 'vs-dark' : 'vs';
+
   return (
     <>
       <input
@@ -167,7 +170,7 @@ export function EditorPage() {
             <div style={{ flex: 1 }}>
               {proposedSvg && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  <Group gap="xs" p={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
+                  <Group gap="xs" p={4} style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)' }}>
                     <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
                   </Group>
                   <div style={{ flex: 1 }}>
@@ -175,7 +178,7 @@ export function EditorPage() {
                       original={svgCode}
                       modified={proposedSvg}
                       language="xml"
-                      theme="vs-dark"
+                      theme={monacoTheme}
                       options={{ readOnly: true, renderSideBySide: false }}
                       onMount={handleDiffMount}
                     />
@@ -183,7 +186,7 @@ export function EditorPage() {
                 </div>
               )}
               <div style={{ height: '100%', display: proposedSvg ? 'none' : 'block' }}>
-                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} onCursorElement={handleCursorElement} />
+                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} theme={monacoTheme} onCursorElement={handleCursorElement} />
               </div>
             </div>
           </div>

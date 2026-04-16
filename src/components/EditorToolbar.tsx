@@ -16,7 +16,7 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, onTogglePrivate, showPreview, onTogglePreview }: EditorToolbarProps) {
   return (
-    <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}>
+    <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}>
       <Group gap="xs">
         <Tooltip label="Create a blank SVG document">
           <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={onNew}>

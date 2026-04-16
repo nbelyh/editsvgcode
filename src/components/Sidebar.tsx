@@ -33,7 +33,7 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
     <Stack
       p="md"
       h="100%"
-      style={{ backgroundColor: '#1e1e1e', color: '#aaa', overflow: 'auto' }}
+      style={{ backgroundColor: 'var(--esvg-chrome-bg)', overflow: 'auto' }}
     >
       <div>
         <Title order={4}>SVG Code Sandbox</Title>

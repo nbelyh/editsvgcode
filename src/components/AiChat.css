@@ -15,8 +15,8 @@
   gap: 2px;
   padding: 4px 8px;
   height: 36px;
-  background-color: var(--mantine-color-dark-7);
-  border-bottom: 1px solid var(--mantine-color-dark-4);
+  background-color: var(--esvg-chrome-bg);
+  border-bottom: 1px solid var(--esvg-chrome-border);
   flex-shrink: 0;
 }
 
@@ -70,7 +70,7 @@
 }
 
 .aui-msg-user {
-  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
   padding: 4px 8px;
 }
 
@@ -110,14 +110,14 @@
 }
 
 .aui-markdown code {
-  background-color: var(--mantine-color-dark-4, var(--mantine-color-gray-2));
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
   padding: 1px 4px;
   border-radius: 3px;
   font-size: 12px;
 }
 
 .aui-markdown pre {
-  background-color: var(--mantine-color-dark-8, var(--mantine-color-gray-1));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-8));
   padding: 8px;
   border-radius: var(--mantine-radius-sm);
   overflow-x: auto;
@@ -218,7 +218,7 @@
   align-items: center;
   gap: 4px;
   padding: 4px 6px;
-  border: 1px solid var(--mantine-color-dark-4, var(--mantine-color-gray-3));
+  border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
   background: transparent;
   color: var(--mantine-color-dimmed);
@@ -230,11 +230,11 @@
 }
 
 .aui-read-tools-toggle:hover {
-  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
 
 .aui-read-tools-details {
-  border: 1px solid var(--mantine-color-dark-4, var(--mantine-color-gray-3));
+  border: 1px solid var(--mantine-color-default-border);
   border-top: none;
   border-radius: 0 0 var(--mantine-radius-sm) var(--mantine-radius-sm);
   padding: 6px 8px;
@@ -260,7 +260,7 @@
 .aui-read-tool-result {
   margin: 0;
   padding: 4px 6px;
-  background: var(--mantine-color-dark-6, var(--mantine-color-gray-0));
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
   border-radius: var(--mantine-radius-xs);
   font-size: 10px;
   overflow-x: auto;
@@ -332,7 +332,7 @@
   flex: 1;
   min-width: 0;
   font-size: 11px;
-  background: var(--mantine-color-dark-6, var(--mantine-color-gray-1));
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   color: var(--mantine-color-text);
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
@@ -355,7 +355,7 @@
   font-size: 10px;
   padding: 1px 4px;
   border: none;
-  background: var(--mantine-color-dark-6, var(--mantine-color-gray-1));
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
   color: var(--mantine-color-dimmed);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -371,7 +371,7 @@
 }
 
 .aui-vectorizer-seg-btn:hover:not(.active) {
-  background: var(--mantine-color-dark-5, var(--mantine-color-gray-2));
+  background: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
 }
 
 /* Toggle for advanced settings */
@@ -423,8 +423,9 @@
 }
 .aui-checkpoint-restore:hover {
   color: var(--mantine-primary-color-filled);
-  background: var(--mantine-color-dark-5);
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
+
 
 /* Composer */
 .aui-composer-area {
@@ -442,7 +443,7 @@
 
 .aui-composer-input {
   width: 100%;
-  background-color: var(--mantine-color-dark-6, var(--mantine-color-gray-0));
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-md);
   color: var(--mantine-color-text);
@@ -521,7 +522,7 @@
 .aui-icon-picker-item:hover,
 .aui-icon-picker-item.hovered {
   border-color: var(--mantine-color-violet-6);
-  background-color: var(--mantine-color-dark-5, var(--mantine-color-gray-1));
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
 
 .aui-icon-picker-svg {
@@ -583,4 +584,3 @@
   font-size: 11px;
   color: var(--mantine-color-dimmed);
 }
-

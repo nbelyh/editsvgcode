@@ -21,7 +21,7 @@ function formatSize(bytes: number): string {
 
 function SvgThumb({ text }: { text: string }) {
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-  return <img src={url} alt="preview" width={40} height={40} style={{ objectFit: 'contain', background: '#f8f8f8', borderRadius: 4 }} />;
+  return <img src={url} alt="preview" width={40} height={40} style={{ objectFit: 'contain', background: 'var(--mantine-color-gray-1)', borderRadius: 4 }} />;
 }
 
 export function FilesPage() {

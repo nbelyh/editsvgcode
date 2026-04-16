@@ -9,6 +9,7 @@ interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly: boolean;
+  theme?: string;
   onCursorElement?: (element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => void;
 }
 
@@ -20,7 +21,7 @@ export interface EditorHandle {
   redo: () => void;
 }
 
-export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly, onCursorElement }, ref) {
+export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly, theme, onCursorElement }, ref) {
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const onCursorElementRef = useRef(onCursorElement);
   onCursorElementRef.current = onCursorElement;
@@ -112,7 +113,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
     <MonacoEditor
       height="100%"
       language="xml"
-      theme="vs-dark"
+      theme={theme || 'vs-dark'}
       value={value}
       onChange={(v) => onChange(v ?? '')}
       onMount={handleMount}

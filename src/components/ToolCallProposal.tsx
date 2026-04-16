@@ -183,7 +183,7 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           </button>
           <button
             className="aui-composer-send"
-            style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'var(--mantine-color-dark-4)' }}
+            style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))' }}
             onClick={onReject}
           >
             Reject
