@@ -1,5 +1,6 @@
 import { useState, Fragment } from 'react';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { IconPicker } from './IconPicker';
@@ -119,7 +120,7 @@ export function ChatThread({
               <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
                 {msg.content}
                 {msg.buyCredits && (
-                  <> — <a href={BUY_CREDITS_URL} target="_blank" rel="noopener noreferrer">Buy Credits</a></>
+                  <> — <Link to={BUY_CREDITS_URL}>Buy Credits</Link></>
                 )}
               </div>
             )}

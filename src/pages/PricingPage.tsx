@@ -107,12 +107,11 @@ export function PricingPage() {
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         <PlanCard
-          title="Trial"
+          title="Anonymous"
           credits={`${pricing.anonymousTrialCredits} credits, one-time`}
           features={[
-            'No sign-in required',
-            'All free-tier models',
-            `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor(pricing.anonymousTrialCredits / 10)} image gens`,
+            'Only -mini models',
+            `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor((pricing.anonymousTrialCredits - 1) / 10)} image gen`,
             'Credits never reset',
           ]}
           ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
@@ -120,12 +119,11 @@ export function PricingPage() {
 
         <PlanCard
           title="Free"
-          badge="Sign in required"
           credits={`${pricing.freeMonthlyCredits} credits / month`}
           features={[
             'Google or GitHub sign-in',
-            'All free-tier models',
-            `~${pricing.freeMonthlyCredits} AI edits or ${Math.floor(pricing.freeMonthlyCredits / 10)} image gens`,
+            'Only -mini models',
+            `~${pricing.freeMonthlyCredits} AI edits or ${Math.floor((pricing.freeMonthlyCredits - 1) / 10)} image gens`,
             'Credits reset monthly',
             'Save files to cloud',
           ]}
@@ -141,7 +139,7 @@ export function PricingPage() {
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
           features={[
             'Everything in Free',
-            'Latest models (gpt-5.4, gpt-5.2-codex, etc.)',
+            'All models (gpt-5.4, gpt-5.2-codex, etc.)',
             'Better image generation',
             'Priority support',
           ]}

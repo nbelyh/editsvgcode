@@ -1,4 +1,5 @@
 import { Text, Tooltip } from '@mantine/core';
+import { Link } from 'react-router-dom';
 
 export const BUY_CREDITS_URL = '/pricing';
 
@@ -46,9 +47,9 @@ export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous
   return (
     <Tooltip label={label} multiline w={modelEntries.length > 0 ? 220 : undefined}>
       {depleted ? (
-        <a href={BUY_CREDITS_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'block', lineHeight: 0 }}>
+        <Link to={BUY_CREDITS_URL} style={{ display: 'block', lineHeight: 0 }}>
           {indicator}
-        </a>
+        </Link>
       ) : indicator}
     </Tooltip>
   );

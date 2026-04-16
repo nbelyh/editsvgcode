@@ -1,6 +1,6 @@
 import { AppShell, Group, Text } from '@mantine/core';
 import { IconBrandGithub, IconBug } from '@tabler/icons-react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
 import './App.css';
@@ -20,6 +20,7 @@ export default function App() {
         <Group h="100%" px="md" justify="space-between">
           <Group gap="md">
             <Text fw={700} size="lg" c="white" component="a" href="/" style={{ textDecoration: 'none' }}>Online SVG code editor</Text>
+            <Text size="sm" c="gray.5" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Go Pro</Text>
           </Group>
           <UserMenu />
         </Group>

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
-import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard, IconFiles } from '@tabler/icons-react';
+import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard, IconFiles, IconStar } from '@tabler/icons-react';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
+import { subscribeCredits } from '../lib/credits-listener';
+import type { Credits } from '../lib/api-client';
 
 interface UserInfo {
   uid: string;
@@ -20,6 +22,7 @@ function snapshotUser(u: import('firebase/auth').User | null): UserInfo | null {
 
 export function UserMenu() {
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,7 +30,12 @@ export function UserMenu() {
     return onIdTokenChanged(auth, (u) => setUser(snapshotUser(u)));
   }, []);
 
+  useEffect(() => {
+    return subscribeCredits(setCredits);
+  }, []);
+
   const isAnonymous = !user || user.isAnonymous;
+  const isPro = credits?.tier === 'pro';
 
   const handleGoogleSignIn = async () => {
     try {
@@ -87,7 +95,7 @@ export function UserMenu() {
               Files
             </Menu.Item>
             <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
-              Pricing &amp; Credits
+              Upgrade to Pro
             </Menu.Item>
             <Menu.Item leftSection={<IconBrandGoogle size={14} />} onClick={handleGoogleSignIn}>
               Sign in with Google
@@ -115,9 +123,11 @@ export function UserMenu() {
               Files
             </Menu.Item>
 
-            <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
-              Pricing &amp; Credits
-            </Menu.Item>
+            {!isPro && (
+              <Menu.Item leftSection={<IconStar size={14} />} onClick={() => navigate('/pricing')}>
+                Upgrade to Pro
+              </Menu.Item>
+            )}
             <Menu.Item leftSection={<IconLogout size={14} />} onClick={handleSignOut}>
               Sign out
             </Menu.Item>
