@@ -180,7 +180,7 @@ export function ChatComposer({
         </Popover>
         <div className="aui-composer-footer-actions">
           {credits && (
-            <CreditsIndicator remaining={credits.remaining} limit={credits.limit} creditsByModel={credits.creditsByModel} isAnonymous={isAnonymous} rechargeAt={credits.rechargeAt} />
+            <CreditsIndicator remaining={credits.remaining} limit={credits.limit} packCredits={credits.packCredits} creditsByModel={credits.creditsByModel} isAnonymous={isAnonymous} rechargeAt={credits.rechargeAt} />
           )}
           <Tooltip label={isRunning ? 'Stop' : 'Send (Enter)'}>
             <ActionIcon

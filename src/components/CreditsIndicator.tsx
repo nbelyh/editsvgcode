@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 
 export const BUY_CREDITS_URL = '/pricing';
 
-export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous, rechargeAt }: { remaining: number; limit: number; creditsByModel?: Record<string, number>; isAnonymous?: boolean; rechargeAt?: string }) {
+export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel, isAnonymous, rechargeAt }: { remaining: number; limit: number; packCredits?: number; creditsByModel?: Record<string, number>; isAnonymous?: boolean; rechargeAt?: string }) {
   const size = 18;
   const stroke = 2.5;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
-  const ratio = Math.min(remaining / limit, 1);
+  const effectiveLimit = limit + (packCredits ?? 0);
+  const ratio = Math.min(remaining / effectiveLimit, 1);
   const offset = circumference * (1 - ratio);
   const color = ratio <= 0 ? 'var(--mantine-color-red-filled)' : ratio <= 0.2 ? 'var(--mantine-color-yellow-filled)' : 'var(--mantine-primary-color-filled)';
   const depleted = remaining <= 0;
@@ -19,7 +20,7 @@ export function CreditsIndicator({ remaining, limit, creditsByModel, isAnonymous
     <Text size="sm">No credits remaining — click to buy more</Text>
   ) : (
     <div>
-      <Text size="sm" fw={600}>{remaining} / {limit} credits remaining</Text>
+      <Text size="sm" fw={600}>{remaining} / {effectiveLimit} credits remaining</Text>
       {rechargeAt && (
         <Text size="sm" c="dimmed" mt={2}>Recharges {new Date(rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</Text>
       )}
