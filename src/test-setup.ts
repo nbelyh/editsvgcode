@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 
 // Polyfill window.matchMedia for Mantine in jsdom
-Object.defineProperty(window, 'matchMedia', {
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
     matches: false,
@@ -14,3 +15,4 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+}
