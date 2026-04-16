@@ -23,7 +23,8 @@ export default function App() {
     >
       <AppShell.Header className="app-chrome">
         <Group h="100%" px="md" justify="space-between">
-          <Group gap="md">
+          <Group gap="sm">
+            <img src="/editsvgcode-logo.svg" alt="Logo" height={28} />
             <Text fw={700} size="lg" component="a" href="/" className="app-header-title">Online SVG code editor</Text>
             <Text size="sm" c="dimmed" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Go Pro</Text>
           </Group>
