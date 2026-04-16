@@ -123,12 +123,35 @@ export function ProfilePage() {
               {credits.rechargeAt && (
                 <Stack gap={2}>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges on</Text>
-                  <Text fw={500}>
+                  <Text fw={700} size="xl">
                     {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
                   </Text>
                 </Stack>
               )}
             </Group>
+          )}
+
+          {/* Usage by model */}
+          {credits?.creditsByModel && Object.keys(credits.creditsByModel).length > 0 && (
+            <>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{user.isAnonymous ? 'Usage (trial)' : 'Usage this month'}</Text>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Model</Table.Th>
+                    <Table.Th style={{ textAlign: 'right' }}>Credits spent</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {Object.entries(credits.creditsByModel).sort(([, a], [, b]) => b - a).map(([model, spent]) => (
+                    <Table.Tr key={model}>
+                      <Table.Td>{model}</Table.Td>
+                      <Table.Td style={{ textAlign: 'right' }}>{spent.toLocaleString()}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </>
           )}
 
           <Divider />
