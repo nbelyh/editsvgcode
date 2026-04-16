@@ -426,6 +426,48 @@
   background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
 }
 
+/* Editable user message */
+.aui-msg-editable {
+  cursor: pointer;
+}
+
+.aui-msg-editable:hover {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+}
+
+/* Inline edit form */
+.aui-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aui-edit-textarea {
+  width: 100%;
+  min-height: 36px;
+  max-height: 200px;
+  padding: 6px 8px;
+  border: 1px solid var(--mantine-primary-color-filled);
+  border-radius: var(--mantine-radius-sm);
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  color: var(--mantine-color-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.aui-edit-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+
+
 
 /* Composer */
 .aui-composer-area {

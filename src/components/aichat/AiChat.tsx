@@ -214,6 +214,55 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     if (popCount > 0) onRestore(popCount);
   }, [messages, onPreviewSvg, onRestore, fileId]);
 
+  // --- Edit previous message ---
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+
+  const handleEditStart = useCallback((msgIdx: number) => {
+    const msg = messages[msgIdx];
+    if (msg?.role === 'user') {
+      setEditingIndex(msgIdx);
+      setEditingText(msg.content);
+    }
+  }, [messages]);
+
+  const handleEditCancel = useCallback(() => {
+    setEditingIndex(null);
+    setEditingText('');
+  }, []);
+
+  const handleEditSubmit = useCallback((msgIdx: number, newText: string) => {
+    const text = newText.trim();
+    if (!text || isRunning) return;
+
+    // Restore to checkpoint (drop this message and everything after)
+    const removed = messages.slice(msgIdx);
+    const popCount = removed.reduce((n, m) =>
+      n + (m.toolCalls?.filter(tc => tc.status === 'accepted' && tc.arguments.svg).length ?? 0), 0);
+
+    const kept = messages.slice(0, msgIdx);
+    setMessages(kept);
+    saveChatMessages(kept, fileId);
+    onPreviewSvg(null);
+    if (popCount > 0) onRestore(popCount);
+
+    // Clear editing state and set input to the edited text, then trigger send
+    setEditingIndex(null);
+    setEditingText('');
+    setInput(text);
+    // We need to trigger send after state updates, so use a ref flag
+    pendingEditSendRef.current = true;
+  }, [isRunning, messages, fileId, onPreviewSvg, onRestore]);
+
+  // Ref to trigger send after an edit-submit restores + sets input
+  const pendingEditSendRef = useRef(false);
+  useEffect(() => {
+    if (pendingEditSendRef.current && input.trim() && !isRunning) {
+      pendingEditSendRef.current = false;
+      handleSend();
+    }
+  }, [input, isRunning, handleSend]);
+
   const handleAccept = useCallback((msgIndex: number, tcIndex: number) => {
     const msg = messages[msgIndex];
     if (!msg?.toolCalls?.[tcIndex]) return;
@@ -301,6 +350,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onReject={handleReject}
           onUpdateToolCallSvg={handleUpdateToolCallSvg}
           onRestore={handleRestore}
+          editingIndex={editingIndex}
+          editingText={editingText}
+          onEditStart={handleEditStart}
+          onEditChange={setEditingText}
+          onEditSubmit={handleEditSubmit}
+          onEditCancel={handleEditCancel}
           iconPickIcons={iconPickIcons}
           iconPickSelected={selectedIcon}
           onIconSelect={handleIconSelect}

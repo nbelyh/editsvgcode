@@ -1,5 +1,6 @@
-import { useState, Fragment } from 'react';
-import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool } from '@tabler/icons-react';
+import { useState, Fragment, useRef, useEffect } from 'react';
+import { ActionIcon, Tooltip } from '@mantine/core';
+import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
@@ -18,6 +19,12 @@ interface ChatThreadProps {
   onReject: (msgIndex: number, tcIndex: number) => void;
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
   onRestore: (msgIdx: number) => void;
+  editingIndex: number | null;
+  editingText: string;
+  onEditStart: (msgIdx: number) => void;
+  onEditChange: (text: string) => void;
+  onEditSubmit: (msgIdx: number, text: string) => void;
+  onEditCancel: () => void;
   iconPickIcons: IconResult[] | null;
   iconPickSelected: IconResult | null;
   onIconSelect: (icon: IconResult) => void;
@@ -49,10 +56,73 @@ function ReadToolCallsBlock({ calls }: { calls: ReadToolCall[] }) {
   );
 }
 
+function EditMessageForm({ text, onChange, onSubmit, onCancel }: {
+  text: string;
+  onChange: (t: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }, []);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+    }
+  }, [text]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+
+  return (
+    <div className="aui-edit-form">
+      <textarea
+        ref={textareaRef}
+        className="aui-edit-textarea"
+        value={text}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        rows={1}
+      />
+      <div className="aui-edit-actions">
+        <Tooltip label="Cancel (Esc)">
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={onCancel}>
+            <IconX size={16} />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label="Submit (Enter)">
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={onSubmit} disabled={!text.trim()}>
+            <IconArrowUp size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
+
 export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
   onAccept, onReject, onUpdateToolCallSvg, onRestore,
+  editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
@@ -69,6 +139,7 @@ export function ChatThread({
 
       {messages.map((msg, msgIdx) => {
         if (msg.role === 'user') {
+          const isEditing = editingIndex === msgIdx;
           return (<Fragment key={msgIdx}>
             {canUndo && (
               <div className="aui-checkpoint">
@@ -77,12 +148,23 @@ export function ChatThread({
                 <div className="aui-checkpoint-line" />
               </div>
             )}
-            <div className="aui-msg aui-msg-user">
+            <div className={`aui-msg aui-msg-user${!isEditing && !isRunning ? ' aui-msg-editable' : ''}`}
+              onClick={!isEditing && !isRunning ? () => onEditStart(msgIdx) : undefined}
+            >
               <div className="aui-msg-header">
                 <IconUser size={14} />
                 You
               </div>
-              <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+              {isEditing ? (
+                <EditMessageForm
+                  text={editingText}
+                  onChange={onEditChange}
+                  onSubmit={() => onEditSubmit(msgIdx, editingText)}
+                  onCancel={onEditCancel}
+                />
+              ) : (
+                <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+              )}
             </div>
           </Fragment>);
         }
