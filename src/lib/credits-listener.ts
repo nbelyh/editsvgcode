@@ -27,7 +27,7 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
     let cachedPricing: Awaited<ReturnType<typeof fetchPricing>> | null = null;
 
     unsubSnapshot = onSnapshot(
-      doc(firebaseDb, 'usage', user.uid),
+      doc(firebaseDb, 'users', user.uid),
       async (snap) => {
         try {
           if (!cachedPricing) cachedPricing = await fetchPricing();
