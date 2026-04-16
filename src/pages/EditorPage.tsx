@@ -289,7 +289,7 @@ export function EditorPage() {
       <Allotment>
         <Allotment.Pane preferredSize="45%">
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0 }}>
+            <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}>
               <Tooltip label="Create a blank SVG document">
                 <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={handleNew}>
                   New

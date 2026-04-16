@@ -356,7 +356,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       <Group
         justify="space-between"
         px="xs" py={4}
-        style={{ backgroundColor: '#252526', borderBottom: '1px solid #3c3c3c', flexShrink: 0 }}
+        style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}
       >
         <Group gap="xs">
           <Tooltip label="Zoom in (Ctrl+Scroll)">

@@ -14,7 +14,9 @@
   justify-content: flex-end;
   gap: 2px;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--mantine-color-default-border);
+  height: 36px;
+  background-color: var(--mantine-color-dark-7);
+  border-bottom: 1px solid var(--mantine-color-dark-4);
   flex-shrink: 0;
 }
 
