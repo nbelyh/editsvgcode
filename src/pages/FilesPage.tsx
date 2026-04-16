@@ -68,7 +68,7 @@ export function FilesPage() {
   }, [files]);
 
   return (
-    <Container size="sm" py="xl">
+    <Container py="xl" style={{ overflow: 'auto', height: '100%' }}>
       <Title order={2} mb="md">Files</Title>
 
       {loading ? (

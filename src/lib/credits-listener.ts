@@ -6,7 +6,7 @@ import type { Credits } from './api-client';
 
 /**
  * Subscribe to real-time credit balance updates.
- * Listens to `usage/{uid}` via onSnapshot so credits update instantly
+ * Listens to `users/{uid}` via onSnapshot so credits update instantly
  * after every server-side deduction — no manual re-fetch needed.
  *
  * The usage doc contains stable, display-ready values maintained by the backend

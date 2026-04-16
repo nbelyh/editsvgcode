@@ -81,7 +81,7 @@ export function ProfilePage() {
   const isPro = tier === 'pro';
 
   return (
-    <Container size="sm" py="xl">
+    <Container py="xl" style={{ overflow: 'auto', height: '100%' }}>
       <Title order={2} mb="md">Profile</Title>
 
       {loading ? (
@@ -89,60 +89,58 @@ export function ProfilePage() {
       ) : !user ? (
         <Text c="dimmed">Not signed in.</Text>
       ) : (
-        <Stack gap="xl">
+        <Stack gap="md">
 
-          {/* User info */}
-          <Group gap="md" align="flex-start">
-            <Avatar src={user.photoURL} size={56} radius="xl" />
-            <Stack gap={4}>
-              <Text fw={600} size="lg">{user.displayName || 'Guest'}</Text>
-              <Text size="sm" c="dimmed">{user.email}</Text>
-              <Text size="xs" c="dimmed" style={{ opacity: 0.5 }}>ID: {user.uid}</Text>
-              <Group gap="xs">
-                {user.isAnonymous
-                  ? <Badge size="sm" variant="light" color="yellow">Guest</Badge>
-                  : <Badge size="sm" variant="light" color={isPro ? 'violet' : 'gray'}>{isPro ? 'Pro' : 'Free'}</Badge>
-                }
-                {userDoc?.subscriptionStatus && userDoc.subscriptionStatus !== 'active' && (
-                  <Badge size="sm" variant="outline" color="orange">{userDoc.subscriptionStatus}</Badge>
+          {/* User info + credits */}
+          <Group gap="md" align="flex-start" justify="space-between" wrap="wrap">
+            <Group gap="md" align="center">
+              <Avatar src={user.photoURL} size={48} radius="xl" />
+              <div>
+                <Group gap="xs" align="center">
+                  <Text fw={600} size="lg">{user.displayName || 'Guest'}</Text>
+                  {user.isAnonymous
+                    ? <Badge size="sm" variant="light" color="yellow">Guest</Badge>
+                    : <Badge size="sm" variant="light" color={isPro ? 'violet' : 'gray'}>{isPro ? 'Pro' : 'Free'}</Badge>
+                  }
+                  {userDoc?.subscriptionStatus && userDoc.subscriptionStatus !== 'active' && (
+                    <Badge size="sm" variant="outline" color="orange">{userDoc.subscriptionStatus}</Badge>
+                  )}
+                </Group>
+                <Text size="sm" c="dimmed">{user.email}</Text>
+              </div>
+            </Group>
+            {credits != null && (
+              <Group gap="xl">
+                <Stack gap={2}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Remaining</Text>
+                  <Text fw={700} size="xl">{credits.remaining.toLocaleString()}</Text>
+                </Stack>
+                {(credits.packCredits ?? 0) > 0 && (
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Pack</Text>
+                    <Text fw={700} size="xl">{credits.packCredits!.toLocaleString()}</Text>
+                  </Stack>
+                )}
+                <Stack gap={2}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{user.isAnonymous ? 'Trial' : 'Monthly'}</Text>
+                  <Text fw={700} size="xl">{credits.limit.toLocaleString()}</Text>
+                </Stack>
+                {credits.rechargeAt && (
+                  <Stack gap={2}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges</Text>
+                    <Text fw={700} size="xl">
+                      {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </Stack>
                 )}
               </Group>
-            </Stack>
+            )}
           </Group>
-
-          <Divider />
-
-          {/* Credits */}
-          {credits != null && (
-            <Group gap="xl">
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Credits remaining</Text>
-                <Text fw={700} size="xl">{credits.remaining.toLocaleString()}</Text>
-              </Stack>
-              <Stack gap={2}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{user.isAnonymous ? 'Trial limit' : 'Monthly limit'}</Text>
-                <Text fw={700} size="xl">{credits.limit.toLocaleString()}</Text>
-              </Stack>
-              {(credits.packCredits ?? 0) > 0 && (
-                <Stack gap={2}>
-                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Pack credits</Text>
-                  <Text fw={700} size="xl">{credits.packCredits!.toLocaleString()}</Text>
-                </Stack>
-              )}
-              {credits.rechargeAt && (
-                <Stack gap={2}>
-                  <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Recharges on</Text>
-                  <Text fw={700} size="xl">
-                    {new Date(credits.rechargeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
-                  </Text>
-                </Stack>
-              )}
-            </Group>
-          )}
 
           {/* Usage by model */}
           {credits?.creditsByModel && Object.keys(credits.creditsByModel).length > 0 && (
             <>
+              <Divider />
               <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{user.isAnonymous ? 'Usage (trial)' : 'Usage this month'}</Text>
               <Table>
                 <Table.Thead>
@@ -165,89 +163,86 @@ export function ProfilePage() {
 
           <Divider />
 
-          {/* Purchase link */}
-          <Anchor component={Link} to="/pricing" size="sm">
-            {user.isAnonymous ? 'Sign in to get more credits →' : 'View pricing & upgrade options →'}
-          </Anchor>
-
-          {!user.isAnonymous && (
-            <>
-              {/* Manage subscription */}
-              <Group>
+          {/* Links row */}
+          <Group gap="lg">
+            <Anchor component={Link} to="/pricing" size="sm">
+              {user.isAnonymous ? 'Sign in to get more credits →' : 'Pricing & upgrade →'}
+            </Anchor>
+            {!user.isAnonymous && (
+              <>
                 <Anchor
                   href="https://cc.payproglobal.com/Customer/Account/Login"
                   target="_blank"
                   rel="noopener noreferrer"
                   size="sm"
                 >
-                  Manage subscription (PayPro Global portal) <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
+                  Manage subscription <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
                 </Anchor>
-              </Group>
+                <Button variant="light" size="xs" onClick={() => setRedeemOpened(true)}>
+                  Redeem license key
+                </Button>
+              </>
+            )}
+          </Group>
 
-              <Divider />
-
-              {/* Redeem license key */}
-              <Button variant="light" onClick={() => setRedeemOpened(true)}>
-                Redeem license key
-              </Button>
+          {!user.isAnonymous && (
+            <>
               <RedeemLicenseDialog opened={redeemOpened} onClose={() => setRedeemOpened(false)} />
 
               <Divider />
 
               {/* Transaction history */}
-              <div>
-                <Title order={4} mb="sm">Transaction history</Title>
-                {transactions.length === 0 ? (
-                  <Text c="dimmed" size="sm">No transactions yet.</Text>
-                ) : (
-                  <Table striped highlightOnHover>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Date</Table.Th>
-                        <Table.Th>Type</Table.Th>
-                        <Table.Th>Product</Table.Th>
-                        <Table.Th>Amount</Table.Th>
-                        <Table.Th>Order</Table.Th>
+              <Title order={4} mb="xs">Transaction history</Title>
+              {transactions.length === 0 ? (
+                <Text c="dimmed" size="sm">No transactions yet.</Text>
+              ) : (
+                <Table striped highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Date</Table.Th>
+                      <Table.Th>Type</Table.Th>
+                      <Table.Th>Product</Table.Th>
+                      <Table.Th>Amount</Table.Th>
+                      <Table.Th>Order</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {transactions.map((t) => (
+                      <Table.Tr key={t.orderId}>
+                        <Table.Td>
+                          <Text size="sm" c="dimmed">
+                            {t.date ? new Date(t.date).toLocaleDateString() : '—'}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group gap={6}>
+                            <TypeBadge type={t.type} />
+                            {t.testMode && <Badge color="yellow" variant="outline" size="xs">test</Badge>}
+                          </Group>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">{t.sku ? (SKU_LABELS[t.sku] ?? t.sku) : '—'}</Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">
+                            {t.amount && t.currency ? `${t.currency} ${t.amount}` : '—'}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Anchor
+                            href={`https://cc.payproglobal.com/Orders/Details/${t.orderId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            size="sm"
+                          >
+                            #{t.orderId}
+                          </Anchor>
+                        </Table.Td>
                       </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {transactions.map((t) => (
-                        <Table.Tr key={t.orderId}>
-                          <Table.Td>
-                            <Text size="sm" c="dimmed">
-                              {t.date ? new Date(t.date).toLocaleDateString() : '—'}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Group gap={6}>
-                              <TypeBadge type={t.type} />
-                              {t.testMode && <Badge color="yellow" variant="outline" size="xs">test</Badge>}
-                            </Group>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm">{t.sku ? (SKU_LABELS[t.sku] ?? t.sku) : '—'}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm">
-                              {t.amount && t.currency ? `${t.currency} ${t.amount}` : '—'}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Anchor
-                              href={`https://cc.payproglobal.com/Orders/Details/${t.orderId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              size="sm"
-                            >
-                              #{t.orderId}
-                            </Anchor>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                )}
-              </div>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              )}
             </>
           )}
 

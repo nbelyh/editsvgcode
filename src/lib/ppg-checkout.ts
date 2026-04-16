@@ -36,7 +36,7 @@ export function buildCheckoutUrl(product: PpgProductKey, opts: CheckoutOptions =
   }
   if (window.location.hostname === 'localhost') {
     params.set('use-test-mode', 'true');
-    params.set('secret-key', '6KK@GZjmuM');
+    // params.set('secret-key', '6KK@GZjmuM');
   }
   return `https://store.payproglobal.com/checkout?${params.toString()}`;
 }

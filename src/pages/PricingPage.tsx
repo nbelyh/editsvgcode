@@ -99,7 +99,7 @@ export function PricingPage() {
   };
 
   return (
-    <Stack align="center" gap="xl" py="xl" px="md">
+    <Stack align="center" gap="xl" py="xl" px="md" style={{ overflow: 'auto', height: '100%' }}>
       <Stack align="center" gap="xs">
         <Title order={2}>Simple, transparent pricing</Title>
         <Text c="dimmed" size="md">Start for free. Upgrade when you need more.</Text>
