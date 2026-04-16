@@ -191,6 +191,17 @@ async function signInWithProvider(provider: AuthProvider): Promise<User> {
   // Refresh token so onIdTokenChanged fires in UI components
   await user.getIdToken(true);
 
+  // Initialize usage doc with proper credits for the signed-in tier
+  try {
+    const idToken = await user.getIdToken();
+    await fetch(`${config.API_URL}/api/init-credits`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+  } catch {
+    // Non-critical — ensureCurrentPeriod will catch up on first API call
+  }
+
   return user;
 }
 

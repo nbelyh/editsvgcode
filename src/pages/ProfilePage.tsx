@@ -31,6 +31,13 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   credits_refunded:      { label: 'Credits refunded',     color: 'red' },
 };
 
+const SKU_LABELS: Record<string, string> = {
+  'pro-monthly': 'Pro Monthly',
+  'pro-annual': 'Pro Annual',
+  'credits-300': '300 Credits',
+  'credits-1000': '1000 Credits',
+};
+
 function TypeBadge({ type }: { type: string }) {
   const meta = TYPE_LABELS[type] ?? { label: type, color: 'gray' };
   return <Badge color={meta.color} variant="light" size="sm">{meta.label}</Badge>;
@@ -188,6 +195,7 @@ export function ProfilePage() {
                       <Table.Tr>
                         <Table.Th>Date</Table.Th>
                         <Table.Th>Type</Table.Th>
+                        <Table.Th>Product</Table.Th>
                         <Table.Th>Amount</Table.Th>
                         <Table.Th>Order</Table.Th>
                       </Table.Tr>
@@ -205,6 +213,9 @@ export function ProfilePage() {
                               <TypeBadge type={t.type} />
                               {t.testMode && <Badge color="yellow" variant="outline" size="xs">test</Badge>}
                             </Group>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{t.sku ? (SKU_LABELS[t.sku] ?? t.sku) : '—'}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Text size="sm">
