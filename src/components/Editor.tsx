@@ -74,6 +74,19 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       (monaco as any).__svgProvidersRegistered = true;
     }
 
+    // Alt+Z: toggle word wrap (not built into standalone Monaco)
+    editor.addAction({
+      id: 'editor.action.toggleWordWrap',
+      label: 'Toggle Word Wrap',
+      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+      run(ed) {
+        const current = ed.getOption(monaco.editor.EditorOption.wordWrap);
+        const next = current === 'on' ? 'off' : 'on';
+        ed.updateOptions({ wordWrap: next });
+        localStorage.setItem('esvg-editor-wordWrap', next);
+      },
+    });
+
     editor.onDidChangeCursorPosition((e) => {
       const cb = onCursorElementRef.current;
       if (!cb) return;
@@ -107,8 +120,9 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
         automaticLayout: true,
         tabSize: 2,
         readOnly,
-        minimap: { enabled: false },
+        minimap: { enabled: localStorage.getItem('esvg-editor-minimap') === 'true' },
         fixedOverflowWidgets: true,
+        wordWrap: (localStorage.getItem('esvg-editor-wordWrap') as 'on' | 'off') || 'off',
       }}
     />
   );
