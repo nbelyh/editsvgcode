@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Group, ActionIcon, Button, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle, IconLock, IconWorld } from '@tabler/icons-react';
+import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconSparkles, IconInfoCircle, IconLock, IconWorld, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
@@ -42,6 +42,8 @@ export function EditorPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
+  const [showPreview, setShowPreview] = useState(() => localStorage.getItem('esvg-show-preview') !== 'false');
+  const [showSidebar, setShowSidebar] = useState(() => localStorage.getItem('esvg-show-sidebar') !== 'false');
 
   /** Detach models from the DiffEditor widget, then clear the proposal. */
   const clearProposal = useCallback(() => {
@@ -267,15 +269,37 @@ export function EditorPage() {
     }
   }, []);
 
+  const togglePreview = useCallback(() => {
+    setShowPreview(prev => {
+      const next = !prev;
+      localStorage.setItem('esvg-show-preview', String(next));
+      return next;
+    });
+  }, []);
+
   const switchToInfo = useCallback(() => {
-    setSidebarTab('info');
-    persistTab('info');
-  }, [persistTab]);
+    if (sidebarTab === 'info' && showSidebar) {
+      setShowSidebar(false);
+      localStorage.setItem('esvg-show-sidebar', 'false');
+    } else {
+      setSidebarTab('info');
+      persistTab('info');
+      setShowSidebar(true);
+      localStorage.setItem('esvg-show-sidebar', 'true');
+    }
+  }, [persistTab, sidebarTab, showSidebar]);
 
   const switchToAi = useCallback(() => {
-    setSidebarTab('ai');
-    persistTab('ai');
-  }, [persistTab]);
+    if (sidebarTab === 'ai' && showSidebar) {
+      setShowSidebar(false);
+      localStorage.setItem('esvg-show-sidebar', 'false');
+    } else {
+      setSidebarTab('ai');
+      persistTab('ai');
+      setShowSidebar(true);
+      localStorage.setItem('esvg-show-sidebar', 'true');
+    }
+  }, [persistTab, sidebarTab, showSidebar]);
 
   return (
     <>
@@ -286,37 +310,45 @@ export function EditorPage() {
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
+      <div style={{ display: 'flex', height: '100%' }}>
       <Allotment>
         <Allotment.Pane preferredSize="45%">
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Group gap="xs" px={8} py={4} style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}>
-              <Tooltip label="Create a blank SVG document">
-                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={handleNew}>
-                  New
-                </Button>
-              </Tooltip>
-              <Tooltip label="Open an SVG file from your computer">
-                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFolderOpen size={14} />} onClick={handleUpload}>
-                  Open
-                </Button>
-              </Tooltip>
-              <Tooltip label="Download the file to your computer">
-                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconDownload size={14} />} onClick={handleDownload}>
-                  Download
-                </Button>
-              </Tooltip>
-              <Tooltip label={routeFileId ? "Save changes" : "Save to the cloud"}>
-                <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={handleSave} loading={saving}>
-                  Save
-                </Button>
-              </Tooltip>
-              {routeFileId && (
-                <Tooltip label={isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
-                  <ActionIcon variant="subtle" color={isPrivate ? 'gray' : 'blue'} size="sm" onClick={handleTogglePrivate}>
-                    {isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
-                  </ActionIcon>
+            <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--mantine-color-dark-7)', borderBottom: '1px solid var(--mantine-color-dark-4)', flexShrink: 0, height: 36 }}>
+              <Group gap="xs">
+                <Tooltip label="Create a blank SVG document">
+                  <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={handleNew}>
+                    New
+                  </Button>
                 </Tooltip>
-              )}
+                <Tooltip label="Open an SVG file from your computer">
+                  <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFolderOpen size={14} />} onClick={handleUpload}>
+                    Open
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Download the file to your computer">
+                  <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconDownload size={14} />} onClick={handleDownload}>
+                    Download
+                  </Button>
+                </Tooltip>
+                <Tooltip label={routeFileId ? "Save changes" : "Save to the cloud"}>
+                  <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={handleSave} loading={saving}>
+                    Save
+                  </Button>
+                </Tooltip>
+                {routeFileId && (
+                  <Tooltip label={isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
+                    <ActionIcon variant="subtle" color={isPrivate ? 'gray' : 'blue'} size="sm" onClick={handleTogglePrivate}>
+                      {isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Group>
+              <Tooltip label={showPreview ? 'Hide preview' : 'Show preview'}>
+                <ActionIcon variant="subtle" color="gray" size="sm" onClick={togglePreview}>
+                  {showPreview ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+                </ActionIcon>
+              </Tooltip>
             </Group>
             <div style={{ flex: 1 }}>
               {proposedSvg && (
@@ -342,12 +374,11 @@ export function EditorPage() {
             </div>
           </div>
         </Allotment.Pane>
-        <Allotment.Pane preferredSize="45%">
+        <Allotment.Pane preferredSize="45%" visible={showPreview}>
           <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
         </Allotment.Pane>
-        <Allotment.Pane preferredSize="15%" minSize={320}>
-          <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--mantine-color-body)' }}>
-            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
+          <div style={{ height: '100%', overflow: 'hidden', position: 'relative', backgroundColor: 'var(--mantine-color-body)' }}>
               <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
                 <AiChat
                   svgCode={svgCode}
@@ -363,12 +394,14 @@ export function EditorPage() {
               <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
                 <Sidebar onOpenCommandPalette={handleOpenCommandPalette} onOpenAiChat={switchToAi} />
               </div>
-            </div>
-            <div className="activity-bar">
+          </div>
+        </Allotment.Pane>
+      </Allotment>
+        <div className="activity-bar">
               <Tooltip label="Info" position="left">
                 <ActionIcon
-                  variant={sidebarTab === 'info' ? 'light' : 'subtle'}
-                  color={sidebarTab === 'info' ? 'blue' : 'gray'}
+                  variant={sidebarTab === 'info' && showSidebar ? 'light' : 'subtle'}
+                  color={sidebarTab === 'info' && showSidebar ? 'blue' : 'gray'}
                   size="lg"
                   onClick={switchToInfo}
                 >
@@ -378,8 +411,8 @@ export function EditorPage() {
               <Tooltip label="AI Chat" position="left">
                   <ActionIcon
                     data-teaching-anchor="ai-chat"
-                    variant={sidebarTab === 'ai' ? 'light' : 'subtle'}
-                    color={sidebarTab === 'ai' ? 'blue' : 'gray'}
+                    variant={sidebarTab === 'ai' && showSidebar ? 'light' : 'subtle'}
+                    color={sidebarTab === 'ai' && showSidebar ? 'blue' : 'gray'}
                     size="lg"
                     onClick={switchToAi}
                   >
@@ -388,9 +421,7 @@ export function EditorPage() {
                 </Tooltip>
               <TeachingBubble anchorSelector='[data-teaching-anchor="ai-chat"]' active={sidebarTab === 'ai'} onActivate={switchToAi} />
             </div>
-          </div>
-        </Allotment.Pane>
-      </Allotment>
+      </div>
     </>
   );
 }
