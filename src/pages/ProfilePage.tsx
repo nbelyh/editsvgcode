@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Loader, Group, Avatar, Badge, Stack, Table, Anchor, Divider } from '@mantine/core';
+import { Container, Title, Text, Loader, Group, Avatar, Badge, Stack, Table, Anchor, Divider, Button } from '@mantine/core';
 import { IconExternalLink } from '@tabler/icons-react';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { firebaseDb } from '../lib/firebase';
 import { subscribeCredits } from '../lib/credits-listener';
+import { RedeemLicenseDialog } from '../components/RedeemLicenseDialog';
 import type { Credits } from '../lib/api-client';
 
 interface UserDoc {
@@ -49,6 +50,7 @@ export function ProfilePage() {
   const [credits, setCredits] = useState<Credits | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [redeemOpened, setRedeemOpened] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -181,6 +183,14 @@ export function ProfilePage() {
                   Manage subscription (PayPro Global portal) <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
                 </Anchor>
               </Group>
+
+              <Divider />
+
+              {/* Redeem license key */}
+              <Button variant="light" onClick={() => setRedeemOpened(true)}>
+                Redeem license key
+              </Button>
+              <RedeemLicenseDialog opened={redeemOpened} onClose={() => setRedeemOpened(false)} />
 
               <Divider />
 
