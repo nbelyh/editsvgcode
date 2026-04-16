@@ -155,7 +155,7 @@ export function PricingPage() {
           credits="One-time, never expire"
           features={[
             'No subscription needed',
-            'All pro models',
+            'Works with any plan',
             'Top up any time',
           ]}
           ctas={[

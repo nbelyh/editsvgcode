@@ -164,24 +164,24 @@ export function ProfilePage() {
           <Divider />
 
           {/* Links row */}
-          <Group gap="lg">
-            <Anchor component={Link} to="/pricing" size="sm">
-              {user.isAnonymous ? 'Sign in to get more credits →' : 'Pricing & upgrade →'}
-            </Anchor>
+          <Group gap="lg" align="center">
+            <Button component={Link} to="/pricing" variant="light" size="xs">
+              {user.isAnonymous ? 'Register to get more credits' : isPro ? 'Buy more credits' : 'Upgrade or buy credits'}
+            </Button>
+            {!user.isAnonymous && isPro && (
+              <Anchor
+                href="https://cc.payproglobal.com/Customer/Account/Login"
+                target="_blank"
+                rel="noopener noreferrer"
+                size="sm"
+              >
+                Manage subscription <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
+              </Anchor>
+            )}
             {!user.isAnonymous && (
-              <>
-                <Anchor
-                  href="https://cc.payproglobal.com/Customer/Account/Login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  size="sm"
-                >
-                  Manage subscription <IconExternalLink size={12} style={{ verticalAlign: 'middle' }} />
-                </Anchor>
-                <Button variant="light" size="xs" onClick={() => setRedeemOpened(true)}>
-                  Redeem license key
-                </Button>
-              </>
+              <Anchor size="xs" c="dimmed" style={{ cursor: 'pointer' }} onClick={() => setRedeemOpened(true)}>
+                Redeem license key
+              </Anchor>
             )}
           </Group>
 
