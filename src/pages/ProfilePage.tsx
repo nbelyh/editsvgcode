@@ -71,11 +71,6 @@ export function ProfilePage() {
   const tier = credits?.tier ?? userDoc?.tier ?? 'free';
   const isPro = tier === 'pro';
 
-  function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
-    if (!user) return;
-    window.open(buildCheckoutUrl(product, { uid: user.uid, email: user.email, displayName: user.displayName }), '_blank');
-  }
-
   return (
     <Container size="sm" py="xl">
       <Title order={2} mb="md">Profile</Title>

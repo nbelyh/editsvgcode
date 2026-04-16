@@ -17,6 +17,10 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
+    match /users/{userId}/{document=**} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
 
     // Credit balance + token analytics — owner read-only, server writes via Admin SDK
     match /usage/{userId} {
