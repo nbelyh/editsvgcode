@@ -370,7 +370,7 @@ Deploy Phase 2, monitor:
 
 **Goal:** Make the editor best-in-class — add element tree, exports, optimization, advanced navigation. Reference: [vscode-svg2](https://github.com/lishu/vscode-svg2) (MIT) for feature inspiration and code patterns.
 
-### 3.1 SVG Element Tree
+### 3.1 SVG Element Tree ⬚
 
 - TreeView.tsx in sidebar tab: collapsible tree of SVG DOM
 - Click tree node → highlight in preview + scroll in editor
@@ -379,7 +379,7 @@ Deploy Phase 2, monitor:
 - *Note: Monaco already provides code folding for XML; this adds visual overview + preview integration*
 - *Ref: vscode-svg2 DocumentSymbol tree in outline panel*
 
-### 3.2 SVG Optimization (SVGO)
+### 3.2 SVG Optimization (SVGO) ⬚
 
 - Install svgo (runs client-side)
 - Button in toolbar: "Optimize"
@@ -387,7 +387,7 @@ Deploy Phase 2, monitor:
 - Use Monaco diff to preview optimization changes
 - *Ref: vscode-svg2 "Minify SVG" command (note: they warn SVGO can break SVGs — add undo/diff review)*
 
-### 3.3 Export options
+### 3.3 Export options ⬚
 
 - SVG → PNG (render to canvas, resolution picker)
 - SVG → React JSX component
@@ -396,35 +396,51 @@ Deploy Phase 2, monitor:
 - Export dropdown in toolbar
 - *Ref: vscode-svg2 "Export PNG" feature*
 
-### 3.4 Go to id definition / references
+### 3.4 Go to id definition / references ⬚
 
 - Ctrl+click on `url(#id)` → jump to the element with that `id`
 - Ctrl+click on `href="#id"` or `xlink:href="#id"` → same
 - Hover on `url(#id)` → show target element preview
 - *Ref: vscode-svg2 "In Id Reference Click Goto id="" element"*
 
-### 3.5 Rename id references
+### 3.5 Rename id references ⬚
 
 - Place cursor on `id="foo"` → F2 → rename `id` and all `url(#foo)`, `href="#foo"` references
 - *Ref: vscode-svg2 "Rename Tag Name or Id Reference"*
 
-### 3.6 Path segment preview highlighting
+### 3.6 Path segment preview highlighting ⬚
 
 - Path segment highlighting in preview as cursor moves through d="..." data
 - Visual feedback linking editor position to preview geometry
 
-### 3.7 Icon picker UI for search_icons
+### 3.7 Icon picker UI for search_icons ✅
 
 - When AI uses search_icons and inserts an icon, show thumbnail alternatives from the search results alongside the proposal
 - User can click an alternative icon → sends continuation to the model: "Use this icon instead" + SVG code → model re-inserts with correct positioning/sizing
 - Happy path (model picked well): no extra API call. Swap: one extra call.
 - Store full search results (icon SVGs + names + licenses) on the tool call for display
 
+### 3.8 Move selected elements ⬚
+
+- Drag selected element(s) in preview to reposition
+- Update `transform`, `x`/`y`, or `cx`/`cy` attributes in editor accordingly
+- Support both single and multi-select (Ctrl+click from Phase 1.2)
+- Show guides/snapping during drag (optional)
+- Sync editor ↔ preview on drop
+
+### 3.9 Resize selected elements ⬚
+
+- Resize handles (corner + edge) on selected element(s) in preview
+- Update `width`/`height`, `r`/`rx`/`ry`, `transform scale`, or viewBox as appropriate per element type
+- Maintain aspect ratio with Shift held
+- Show dimensions tooltip during resize
+- Sync editor ↔ preview on release
+
 **Deliverable:** Feature-rich free editor that competes with 4-5 separate tools.
 
 ---
 
-## Phase 4: Payments & Subscription Management
+## Phase 4: Payments & Subscription Management ✅ MOSTLY COMPLETE
 
 **Goal:** Monetize with subscriptions via PayProGlobal.
 
@@ -438,13 +454,14 @@ Deploy Phase 2, monitor:
 ### 4.2 User profile & settings (partially done)
 
 - ✅ Profile page: account info, shared files list with preview/size/delete
+- ✅ Subscription status display + transaction history
+- ✅ Pricing page with plan cards + checkout integration
 - BYOL configuration: user picks provider (OpenAI / Anthropic / Google) + enters API key
 - BYOL keys stored in localStorage (never sent to your server)
 - BYOL requests go direct from browser to AI provider (skip Azure Function)
 - Model selector in AI sidebar reflects available models per provider
-- Subscription status display
 
-### 4.3 PayProGlobal integration
+### 4.3 PayProGlobal integration ✅
 
 - Create PPG products:
   - **Pro Monthly** ($9/mo subscription)
@@ -464,7 +481,7 @@ Deploy Phase 2, monitor:
   - On `OrderRefunded`: deduct credits or downgrade tier
 - Client reads subscription status + credit balance from Firestore on load
 
-### 4.4 Credit system & tier enforcement
+### 4.4 Credit system & tier enforcement ✅
 
 - Firestore `users/{uid}` document:
   ```
@@ -484,10 +501,10 @@ Deploy Phase 2, monitor:
 - BYOL: client-side calls, no server enforcement
 - Remove ads for Pro users
 
-### 4.5 Usage dashboard
+### 4.5 Usage dashboard ✅
 
-- Counter in AI sidebar: "3/5 free edits today" or "Pro ∞"
-- Settings page: monthly usage stats
+- ✅ Counter in AI sidebar: credits remaining + per-model breakdown (CreditsIndicator component)
+- ✅ Daily cost display with per-model tooltip in chat UI
 
 **Deliverable:** Working subscription system with BYOL support.
 
@@ -536,9 +553,9 @@ Phase 0: React rewrite              ✅ COMPLETE
 Phase 1: Enhanced UX (core)         ✅ COMPLETE
 Phase 2: AI sidebar MVP             ✅ COMPLETE (incl. image gen, auth, profile)
   → DEPLOY & MEASURE 2-3 WEEKS
-Phase 3: Enhanced UX (advanced)     tree, exports, SVGO, id navigation
-Phase 4: Payments                   subscriptions, BYOL, tiers
-Phase 5: Growth                     search, SEO, PWA
+Phase 3: Enhanced UX (advanced)     🟡 1/9 done (icon picker) — tree, exports, SVGO, id nav, move, resize remaining
+Phase 4: Payments                   ✅ MOSTLY COMPLETE — PPG webhook, credits, tiers, pricing page done; BYOL UI remaining
+Phase 5: Growth                     ⬚ NOT STARTED — search, SEO, PWA
 ```
 
 ## Manual Steps (Not Claude's Job)
@@ -546,7 +563,7 @@ Phase 5: Growth                     search, SEO, PWA
 - [x] Create Azure OpenAI resource + deploy GPT-4.1 models
 - [x] Create Azure Function App in Azure Portal
 - [x] Enable Firebase Auth providers (Google, GitHub) in Firebase Console
-- [ ] Create PayProGlobal account + products (Pro Monthly, Pro Annual, credit packs x3)
-- [ ] Configure PPG webhook URL + IPN secret key
+- [x] Create PayProGlobal account + products (Pro Monthly, Pro Annual, credit packs x3)
+- [x] Configure PPG webhook URL + IPN secret key
 - [ ] Monitor analytics after Phase 2 launch
 - [ ] Product Hunt / Hacker News launch post
