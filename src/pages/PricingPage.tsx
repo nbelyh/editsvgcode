@@ -159,6 +159,7 @@ export function PricingPage() {
             'Top up any time',
           ]}
           ctas={[
+            { label: `100 credits — $5`, onClick: () => checkout('credits-100') },
             { label: `300 credits — $10`, onClick: () => checkout('credits-300') },
             { label: `1,000 credits — $15`, onClick: () => checkout('credits-1000') },
           ]}

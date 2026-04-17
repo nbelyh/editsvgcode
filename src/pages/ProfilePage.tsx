@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
 const SKU_LABELS: Record<string, string> = {
   'pro-monthly': 'Pro Monthly',
   'pro-annual': 'Pro Annual',
+  'credits-100': '100 Credits',
   'credits-300': '300 Credits',
   'credits-1000': '1000 Credits',
 };

@@ -6,6 +6,7 @@
 export const PPG_PRODUCT_IDS = {
   'pro-monthly':  132975,
   'pro-annual':   133016,
+  'credits-100':  133059,
   'credits-300':  133017,
   'credits-1000': 133018,
 } as const;
