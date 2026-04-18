@@ -137,13 +137,16 @@ export function useDocument(routeFileId: string | undefined) {
 
   const handleDownload = useCallback(() => {
     const uniqueId = routeFileId || getNewUniqueId();
+    const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
     const element = document.createElement('a');
-    element.setAttribute('href', 'data:image/svg+xml;base64,' + window.btoa(svgCode));
+    element.setAttribute('href', url);
     element.setAttribute('download', uniqueId + '.svg');
     element.style.display = 'none';
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    URL.revokeObjectURL(url);
   }, [svgCode, routeFileId]);
 
   const handleNew = useCallback(() => {
