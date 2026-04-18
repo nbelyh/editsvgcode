@@ -312,6 +312,30 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     onPreviewSvg(newSvg);
   }, [onPreviewSvg]);
 
+  const handleUndoAccept = useCallback((msgIndex: number, tcIndex: number) => {
+    const msg = messages[msgIndex];
+    if (!msg?.toolCalls?.[tcIndex]) return;
+
+    const tc = msg.toolCalls[tcIndex];
+    const svg = tc.arguments.svg as string;
+
+    // Pop the checkpoint to restore SVG to pre-accept state
+    onRestore(1);
+
+    // Set tool call back to pending so vectorizer controls appear
+    setMessages(prev => prev.map((m, i) =>
+      i !== msgIndex ? m : {
+        ...m,
+        toolCalls: m.toolCalls?.map((t, j) =>
+          j === tcIndex ? { ...t, status: 'pending' as const } : t
+        ),
+      }
+    ));
+
+    // Preview the tool call's SVG
+    if (svg) onPreviewSvg(svg);
+  }, [messages, onPreviewSvg, onRestore]);
+
   const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
     onPreviewSvg(null);
 
@@ -375,6 +399,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onAccept={handleAccept}
           onReject={handleReject}
           onUpdateToolCallSvg={handleUpdateToolCallSvg}
+          onUndoAccept={handleUndoAccept}
           onRestore={handleRestore}
           editingIndex={editingIndex}
           editingText={editingText}

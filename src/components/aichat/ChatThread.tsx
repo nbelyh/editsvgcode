@@ -19,6 +19,7 @@ interface ChatThreadProps {
   onAccept: (msgIndex: number, tcIndex: number) => void;
   onReject: (msgIndex: number, tcIndex: number) => void;
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
+  onUndoAccept: (msgIndex: number, tcIndex: number) => void;
   onRestore: (msgIdx: number) => void;
   editingIndex: number | null;
   editingText: string;
@@ -125,7 +126,7 @@ function EditMessageForm({ text, onChange, onSubmit, onCancel }: {
 export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
-  onAccept, onReject, onUpdateToolCallSvg, onRestore,
+  onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
@@ -175,8 +176,20 @@ export function ChatThread({
         }
 
         // Assistant message
+        const hasAcceptedGenImage = msg.toolCalls?.some(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+
         if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon) {
           return (<div key={msgIdx}>
+            {hasAcceptedGenImage && (
+              <div className="aui-checkpoint">
+                <div className="aui-checkpoint-line" />
+                <button className="aui-checkpoint-restore" onClick={() => {
+                  const tcIdx = msg.toolCalls!.findIndex(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+                  if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
+                }}>Restore</button>
+                <div className="aui-checkpoint-line" />
+              </div>
+            )}
             {msg.toolCalls.map((tc, tcIdx) => (
               <ToolCallProposal
                 key={`${msgIdx}-${tcIdx}`}
@@ -209,6 +222,16 @@ export function ChatThread({
                 {msg.buyCredits && (
                   <> — <Link to={BUY_CREDITS_URL}>Buy Credits</Link></>
                 )}
+              </div>
+            )}
+            {hasAcceptedGenImage && (
+              <div className="aui-checkpoint">
+                <div className="aui-checkpoint-line" />
+                <button className="aui-checkpoint-restore" onClick={() => {
+                  const tcIdx = msg.toolCalls!.findIndex(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+                  if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
+                }}>Restore</button>
+                <div className="aui-checkpoint-line" />
               </div>
             )}
             {msg.toolCalls?.map((tc, tcIdx) => (

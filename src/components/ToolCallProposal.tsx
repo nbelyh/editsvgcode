@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight, IconDownload } from '@tabler/icons-react';
 import type { ChatToolCall } from '../lib/api-client';
 import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
 
@@ -90,6 +90,14 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
         >
           <img src={pngDataUrl} alt="Generated PNG" />
         </a>
+        <a
+          className="aui-vectorizer-save-png"
+          href={pngDataUrl}
+          download="generated.png"
+          title="Save generated raster image"
+        >
+          <IconDownload size={12} /> Save raster image
+        </a>
       </div>
       <div className="aui-vectorizer-controls">
         {/* Primary controls — always visible */}
@@ -97,7 +105,7 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
           <span className="aui-vectorizer-label">Curve</span>
           <SegmentedControl
             value={params.mode}
-            options={[{ value: 'pixel', label: 'Pixel' }, { value: 'polygon', label: 'Polygon' }, { value: 'spline', label: 'Spline' }]}
+            options={[{ value: 'none', label: 'Pixel' }, { value: 'polygon', label: 'Polygon' }, { value: 'spline', label: 'Spline' }]}
             onChange={v => set('mode', v as VectorizerParams['mode'])}
           />
         </div>
@@ -155,7 +163,7 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
         <ImageGenerationControls pngDataUrl={pngDataUrl} onUpdateSvg={onUpdateSvg} />
       )}
       {pngDataUrl && tc.status !== 'pending' && (
-        <div className="aui-vectorizer-preview" style={{ marginTop: 8 }}>
+        <div className="aui-vectorizer-preview aui-vectorizer-preview-row" style={{ marginTop: 8 }}>
           <a
             href="#"
             onClick={e => {
@@ -169,6 +177,9 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
             title="Open full size"
           >
             <img src={pngDataUrl} alt="Generated PNG" />
+          </a>
+          <a className="aui-vectorizer-save-png" href={pngDataUrl} download="generated.png" title="Save generated raster image">
+            <IconDownload size={12} /> Save raster image
           </a>
         </div>
       )}

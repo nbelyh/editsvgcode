@@ -300,6 +300,26 @@
   opacity: 0.85;
 }
 
+.aui-vectorizer-save-png {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--mantine-color-dimmed);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.aui-vectorizer-save-png:hover {
+  color: var(--mantine-color-text);
+}
+
+.aui-vectorizer-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .aui-vectorizer-controls {
   display: flex;
   flex-direction: column;
