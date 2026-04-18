@@ -46,8 +46,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
   const [iconPickIcons, setIconPickIcons] = useState<IconResult[] | null>(null);
   const [selectedIcon, setSelectedIcon] = useState<IconResult | null>(null);
+  const [imageConfirmSummary, setImageConfirmSummary] = useState<string | null>(null);
   const [inputHistory, setInputHistory] = useState<string[]>(loadHistory);
   const iconPickResolveRef = useRef<((result: IconResult | 'more' | 'none') => void) | null>(null);
+  const imageConfirmResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -125,6 +127,17 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         });
       };
 
+      const handleImageConfirm = (summary: string): Promise<boolean> => {
+        return new Promise<boolean>(resolve => {
+          setImageConfirmSummary(summary);
+          imageConfirmResolveRef.current = (confirmed) => {
+            setImageConfirmSummary(null);
+            imageConfirmResolveRef.current = null;
+            resolve(confirmed);
+          };
+        });
+      };
+
       const collectedToolCalls: ReadToolCall[] = [];
 
       const response = await sendChatRequest(
@@ -140,6 +153,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         effort,
         handleIconPick,
         (tc) => collectedToolCalls.push(tc),
+        handleImageConfirm,
       );
 
       const assistantMsg: DisplayMessage = {
@@ -176,6 +190,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       abortRef.current = null;
       setIconPickIcons(null);
       setSelectedIcon(null);
+      setImageConfirmSummary(null);
+      imageConfirmResolveRef.current = null;
     }
   }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
 
@@ -184,7 +200,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setIsRunning(false);
     setIconPickIcons(null);
     setSelectedIcon(null);
+    setImageConfirmSummary(null);
     iconPickResolveRef.current = null;
+    imageConfirmResolveRef.current = null;
   }, []);
 
   const handleNewChat = useCallback(() => {
@@ -329,6 +347,14 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setSelectedIcon(null);
   }, []);
 
+  const handleImageConfirmYes = useCallback(() => {
+    imageConfirmResolveRef.current?.(true);
+  }, []);
+
+  const handleImageConfirmNo = useCallback(() => {
+    imageConfirmResolveRef.current?.(false);
+  }, []);
+
   return (
     <div className="aui-root">
       <div className="aui-header">
@@ -361,6 +387,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onIconSelect={handleIconSelect}
           onIconMore={handleIconMore}
           onIconNone={handleIconNone}
+          imageConfirmSummary={imageConfirmSummary}
+          onImageConfirm={handleImageConfirmYes}
+          onImageDecline={handleImageConfirmNo}
         />
         <ChatComposer
           input={input}

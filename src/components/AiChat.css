@@ -626,3 +626,60 @@
   font-size: 11px;
   color: var(--mantine-color-dimmed);
 }
+
+/* Image generation confirmation */
+.aui-image-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aui-image-confirm-text {
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-image-confirm-hint {
+  font-size: 11px;
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-image-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.aui-image-confirm-sep {
+  color: var(--mantine-color-dimmed);
+  font-size: 11px;
+}
+
+.aui-image-confirm-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  height: 26px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--mantine-color-text);
+  cursor: pointer;
+  width: fit-content;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.aui-image-confirm-btn:hover {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.aui-image-confirm-btn-primary {
+  background: var(--mantine-primary-color-filled);
+  color: white;
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.aui-image-confirm-btn-primary:hover {
+  background: var(--mantine-primary-color-filled-hover);
+  border-color: var(--mantine-primary-color-filled-hover);
+}

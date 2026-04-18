@@ -145,6 +145,7 @@ export async function sendChatRequest(
   effort?: string,
   onIconPick?: (icons: IconResult[]) => Promise<IconResult | 'more' | 'none'>,
   onToolCall?: (tc: ReadToolCall) => void,
+  onImageConfirm?: (summary: string) => Promise<boolean>,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -236,6 +237,41 @@ export async function sendChatRequest(
     onProgress?.('thinking');
     const continuationInput = [...input, ...allRawOutput];
     response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
+  }
+
+  // Final output — may loop if user declines generate_image
+  let processingResponse = true;
+  while (processingResponse) {
+    processingResponse = false;
+
+    // Check if response contains a generate_image call that needs confirmation
+    const genImageCall = response.output.find(
+      item => item.type === 'function_call' && item.name === 'generate_image'
+    );
+    if (genImageCall && onImageConfirm) {
+      const genArgs = JSON.parse(genImageCall.arguments!);
+      const confirmed = await onImageConfirm(genArgs.summary || genArgs.prompt);
+      if (!confirmed) {
+        // User declined — send rejection back and ask model to draw with SVG
+        allRawOutput.push(...response.output);
+        allRawOutput.push({
+          type: 'function_call_output',
+          call_id: genImageCall.call_id,
+          output: 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.',
+        });
+        // Provide OK outputs for any other tool calls in this response
+        for (const item of response.output) {
+          if (item.type === 'function_call' && item.name !== 'generate_image') {
+            allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'OK' });
+          }
+        }
+        onProgress?.('thinking');
+        const continuationInput = [...input, ...allRawOutput];
+        response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
+        processingResponse = true;
+        continue;
+      }
+    }
   }
 
   // Final output

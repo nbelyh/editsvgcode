@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { IconPicker } from './IconPicker';
+import { ImageConfirm } from './ImageConfirm';
 import type { DisplayMessage, ProgressStatus } from './types';
 import type { IconResult, ReadToolCall } from '../../lib/api-client';
 
@@ -30,6 +31,9 @@ interface ChatThreadProps {
   onIconSelect: (icon: IconResult) => void;
   onIconMore: () => void;
   onIconNone: () => void;
+  imageConfirmSummary: string | null;
+  onImageConfirm: () => void;
+  onImageDecline: () => void;
 }
 
 function ReadToolCallsBlock({ calls }: { calls: ReadToolCall[] }) {
@@ -124,6 +128,7 @@ export function ChatThread({
   onAccept, onReject, onUpdateToolCallSvg, onRestore,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
+  imageConfirmSummary, onImageConfirm, onImageDecline,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -225,7 +230,13 @@ export function ChatThread({
         </div>
       )}
 
-      {isRunning && (!iconPickIcons || iconPickSelected) && (
+      {imageConfirmSummary && (
+        <div className="aui-msg aui-msg-assistant">
+          <ImageConfirm summary={imageConfirmSummary} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+        </div>
+      )}
+
+      {isRunning && (!iconPickIcons || iconPickSelected) && !imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
           <div className="aui-status-indicator">
             <span className="aui-spinner" />
