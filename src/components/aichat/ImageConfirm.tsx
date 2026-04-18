@@ -15,7 +15,7 @@ export function ImageConfirm({ summary, onConfirm, onDecline }: ImageConfirmProp
       </div>
       <div className="aui-image-confirm-actions">
         <button className="aui-image-confirm-btn aui-image-confirm-btn-primary" onClick={onConfirm}>Generate &amp; vectorize</button>
-        <button className="aui-image-confirm-btn" onClick={onDecline}>Draw with SVG code instead</button>
+        <button className="aui-image-confirm-btn" onClick={onDecline}>Try to draw SVG with code instead</button>
       </div>
     </div>
   );
