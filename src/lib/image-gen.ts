@@ -1,7 +1,7 @@
 export type ImageProgressStatus = 'generating-image' | 'vectorizing';
 
 export interface VectorizerParams {
-  mode: 'spline' | 'polygon' | 'pixel';
+  mode: 'spline' | 'polygon' | 'none';
   clusteringMode: 'color' | 'binary';
   hierarchical: 'stacked' | 'cutout';
   filterSpeckle: number;     // 1–16
