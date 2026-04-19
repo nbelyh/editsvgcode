@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { signInWithGoogle, signInWithGithub, logError } from '../lib/firebase';
-import { fetchPricing, DEFAULT_PRICING, type PricingConfig } from '../lib/pricing';
+import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
 interface PlanCta {
@@ -69,16 +69,12 @@ function PlanCard({
 export function PricingPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
+  const pricing = DEFAULT_PRICING;
 
   useEffect(() => {
     const auth = getAuth();
     setUser(auth.currentUser);
     return onAuthStateChanged(auth, setUser);
-  }, []);
-
-  useEffect(() => {
-    fetchPricing().then(setPricing);
   }, []);
 
   const isAnonymous = !user || user.isAnonymous;
@@ -145,7 +141,7 @@ export function PricingPage() {
           ]}
           highlight
           ctas={isPro ? [{ label: 'Current plan' }] : [
-            { label: `Monthly — $${pricing.proMonthlyPriceUsd}/mo`, variant: 'filled', onClick: () => checkout('pro-monthly') },
+            { label: `Monthly — $10/mo`, variant: 'filled', onClick: () => checkout('pro-monthly') },
             { label: `Annual — $8/mo ($96/yr)`, variant: 'light', onClick: () => checkout('pro-annual') },
           ]}
         />

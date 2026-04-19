@@ -1,7 +1,7 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { firebaseDb, logError } from './firebase';
-import { fetchPricing } from './pricing';
+import { DEFAULT_PRICING } from './pricing';
 import type { Credits } from './api-client';
 
 /**
@@ -24,14 +24,11 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
 
     if (!user) return;
 
-    let cachedPricing: Awaited<ReturnType<typeof fetchPricing>> | null = null;
-
     unsubSnapshot = onSnapshot(
       doc(firebaseDb, 'users', user.uid),
       async (snap) => {
         try {
-          if (!cachedPricing) cachedPricing = await fetchPricing();
-          const pricing = cachedPricing;
+          const pricing = DEFAULT_PRICING;
           const data = snap.data();
 
           if (user.isAnonymous) {
