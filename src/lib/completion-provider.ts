@@ -300,6 +300,15 @@ function formatHoverDescription(desc: string): string {
           };
         }
       } else {
+        // Expand the word to include dashes/colons so hyphenated attributes like stop-color are matched
+        const col = position.column - 1; // 0-based
+        let start = col;
+        let end = col;
+        while (start > 0 && /[a-zA-Z0-9\-_:]/.test(line[start - 1])) start--;
+        while (end < line.length && /[a-zA-Z0-9\-_:]/.test(line[end])) end++;
+        const attrWord = line.substring(start, end);
+        if (!attrWord) return;
+
         const textUntilPosition = model.getValueInRange({
           startLineNumber: 1,
           startColumn: 1,
@@ -313,10 +322,10 @@ function formatHoverDescription(desc: string): string {
           const info = schema[lastOpenedTag.tagName];
           if (info?.attributes) {
             for (const attribute of info.attributes) {
-              if (attribute.name === wordInfo.word) {
+              if (attribute.name === attrWord) {
                 const prefix = attribute.deprecated
-                  ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*'
-                  : `**${wordInfo.word}**`;
+                  ? '~~**`' + attrWord + '`**~~ *(deprecated)*'
+                  : `**${attrWord}**`;
                 const parts = [{ value: prefix }];
                 if (attribute.description) parts.push({ value: formatHoverDescription(attribute.description) });
                 if (attribute.options) {
@@ -324,7 +333,7 @@ function formatHoverDescription(desc: string): string {
                 }
                 return {
                   contents: parts,
-                  range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
+                  range: new monaco.Range(position.lineNumber, start + 1, position.lineNumber, end + 1),
                 };
               }
             }
