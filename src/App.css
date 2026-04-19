@@ -28,9 +28,17 @@
 }
 
 /* Ensure Monaco hover/suggest widgets (with fixedOverflowWidgets) render above
-   the Preview toolbar and Allotment sash. */
+   the Preview toolbar and Allotment sash.
+   The editor pane needs a higher z-index than sibling panes so that its
+   fixed-overflow tooltip/suggest widgets aren't hidden behind the Preview. */
 .overflowingContentWidgets {
   z-index: 1000 !important;
+}
+
+/* Lift the editor (first) Allotment pane above the preview (second) pane
+   so overflow widgets (tooltips, autocomplete) are not clipped. */
+[data-testid="split-view-view"]:first-child {
+  z-index: 1;
 }
 
 /* Activity bar — thin vertical icon strip (VS Code style) */
