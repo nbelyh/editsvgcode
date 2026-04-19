@@ -1,5 +1,5 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
-import { IconBrandGithub, IconBrandTelegram, IconMail, IconBug, IconPhone } from '@tabler/icons-react';
+import { IconBrandGithub, IconBrandTelegram, IconMail, IconBug } from '@tabler/icons-react';
 
 export function AboutPage() {
   return (
@@ -29,10 +29,6 @@ export function AboutPage() {
           <Text>
             <IconMail size={16} style={{ verticalAlign: 'text-bottom' }} />{' '}
             Email: <Anchor href="mailto:support@unmanagedvisio.com">support@unmanagedvisio.com</Anchor>
-          </Text>
-          <Text>
-            <IconPhone size={16} style={{ verticalAlign: 'text-bottom' }} />{' '}
-            Phone: <Anchor href="tel:+4366473887141">+43 664 7388 7141</Anchor>
           </Text>
           <Text>
             <IconBug size={16} style={{ verticalAlign: 'text-bottom' }} />{' '}
