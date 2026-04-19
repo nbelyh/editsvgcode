@@ -90,14 +90,6 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
         >
           <img src={pngDataUrl} alt="Generated PNG" />
         </a>
-        <a
-          className="aui-vectorizer-save-png"
-          href={pngDataUrl}
-          download="generated.png"
-          title="Save generated raster image"
-        >
-          <IconDownload size={12} /> Save raster image
-        </a>
       </div>
       <div className="aui-vectorizer-controls">
         {/* Primary controls — always visible */}
