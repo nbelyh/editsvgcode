@@ -10,10 +10,6 @@ firestore-debug.log
 firebase-debug.log
 test-results
 playwright-report
-api/local.settings.json
-api/local.settings.beta.json
-api/dist
-api/node_modules
 __azurite_*
 __blobstorage__/*
 .emulator-data
