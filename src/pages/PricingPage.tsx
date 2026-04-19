@@ -1,4 +1,4 @@
-import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box } from '@mantine/core';
+import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table } from '@mantine/core';
 import { IconCheck, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
@@ -180,9 +180,87 @@ export function PricingPage() {
         </Stack>
       )}
 
-      <Text size="xs" c="dimmed">
-        Credits do not roll over. No hidden fees.
-      </Text>
+      <Container size="sm" py="xl">
+        <Stack gap="xl">
+          <Divider />
+
+          <Title order={3}>How credits work</Title>
+          <Text size="sm">
+            Credits are a virtual currency used by AI features — chat, code editing, and image generation.
+            Each AI request costs a fixed number of credits depending on the model:
+          </Text>
+          <Table highlightOnHover withTableBorder withColumnBorders>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Model tier</Table.Th>
+                <Table.Th>Examples</Table.Th>
+                <Table.Th>Credits per request</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              <Table.Tr>
+                <Table.Td>Mini models</Table.Td>
+                <Table.Td>gpt-4.1-mini, gpt-5-mini</Table.Td>
+                <Table.Td>1 – 3</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td>Full-size models</Table.Td>
+                <Table.Td>gpt-4.1, gpt-5, gpt-5.2-codex</Table.Td>
+                <Table.Td>5 – 20</Table.Td>
+              </Table.Tr>
+              <Table.Tr>
+                <Table.Td>Image generation</Table.Td>
+                <Table.Td>gpt-image-1-mini, gpt-image-1</Table.Td>
+                <Table.Td>10 – 50</Table.Td>
+              </Table.Tr>
+            </Table.Tbody>
+          </Table>
+          <Text size="sm">
+            The exact credit cost for each model is shown in the editor interface before you send a request.
+          </Text>
+
+          <Title order={3}>Monthly credits & billing</Title>
+          <List size="sm" spacing="xs">
+            <List.Item>Free and Pro tiers receive a monthly credit allowance that <strong>resets on your billing anniversary date</strong> (the day you signed up or subscribed).</List.Item>
+            <List.Item>Monthly credits <strong>do not roll over</strong> — unused credits expire at the start of each new billing period.</List.Item>
+            <List.Item>Pro subscriptions auto-renew until cancelled. You can cancel at any time; Pro features remain active until the end of the paid period.</List.Item>
+          </List>
+
+          <Title order={3}>Credit packs</Title>
+          <List size="sm" spacing="xs">
+            <List.Item>Credit packs are a one-time purchase — <strong>no subscription required</strong>.</List.Item>
+            <List.Item>Pack credits <strong>never expire</strong> and persist across billing periods.</List.Item>
+            <List.Item>When credits are consumed, pack credits are used first before your monthly allowance.</List.Item>
+            <List.Item>Pack credits are retained even if your subscription ends.</List.Item>
+          </List>
+
+          <Title order={3}>Payments & Merchant of Record</Title>
+          <Text size="sm">
+            All purchases are processed by{' '}
+            <Anchor href="https://payproglobal.com" target="_blank" rel="noopener noreferrer">PayPro Global, Inc.</Anchor>,
+            which acts as the Merchant of Record. PayPro Global is the legal seller of record —
+            your invoice, payment, and purchase agreement are with them. They handle payment processing,
+            global tax calculation, invoicing, and billing-related customer support.
+          </Text>
+
+          <Title order={3}>Refunds</Title>
+          <List size="sm" spacing="xs">
+            <List.Item>You may request a full refund within <strong>30 days</strong> of purchase (subscriptions and unused credit packs).</List.Item>
+            <List.Item>Credit packs are non-refundable once any credits from the pack have been used.</List.Item>
+            <List.Item>Refunds are processed by PayPro Global. Contact{' '}
+              <Anchor href="mailto:support@unmanagedvisio.com">support@unmanagedvisio.com</Anchor>{' '}
+              or use the{' '}
+              <Anchor href="https://cc.payproglobal.com/Customer/Account/Login" target="_blank" rel="noopener noreferrer">
+                PayPro Global customer portal
+              </Anchor>.
+            </List.Item>
+          </List>
+
+          <Text size="xs" c="dimmed">
+            See also: <Anchor href="/terms" size="xs">Terms of Service</Anchor> · <Anchor href="/refund-policy" size="xs">Refund Policy</Anchor> · <Anchor href="/privacy" size="xs">Privacy Policy</Anchor>
+          </Text>
+        </Stack>
+      </Container>
     </Stack>
   );
 }

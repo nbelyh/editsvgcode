@@ -12,6 +12,12 @@ import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { FilesPage } from './pages/FilesPage';
 import { PricingPage } from './pages/PricingPage';
+import { AboutPage } from './pages/AboutPage';
+import { SupportPage } from './pages/SupportPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { ImprintPage } from './pages/ImprintPage';
+import { RefundPolicyPage } from './pages/RefundPolicyPage';
 import { theme } from './theme';
 
 createRoot(document.getElementById('root')!).render(
@@ -25,6 +31,12 @@ createRoot(document.getElementById('root')!).render(
             <Route path="profile" element={<ProfilePage />} />
             <Route path="files" element={<FilesPage />} />
             <Route path="pricing" element={<PricingPage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="support" element={<SupportPage />} />
+            <Route path="terms" element={<TermsPage />} />
+            <Route path="privacy" element={<PrivacyPolicyPage />} />
+            <Route path="imprint" element={<ImprintPage />} />
+            <Route path="refund-policy" element={<RefundPolicyPage />} />
             <Route path=":fileId" element={<EditorPage />} />
           </Route>
         </Routes>

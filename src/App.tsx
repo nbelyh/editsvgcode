@@ -1,8 +1,9 @@
 import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconBrandGithub, IconBug, IconSun, IconMoon } from '@tabler/icons-react';
+import { IconBrandGithub, IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, Link } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import './App.css';
 
 declare const __APP_VERSION__: string;
@@ -26,7 +27,11 @@ export default function App() {
           <Group gap="sm">
             <img src="/editsvgcode-logo.svg" alt="Logo" height={28} />
             <Text fw={700} size="lg" component="a" href="/" className="app-header-title">Online SVG code editor</Text>
-            <Text size="sm" c="dimmed" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Go Pro</Text>
+            <Group gap="sm" ml="lg">
+              <Text size="sm" component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Upgrade</Text>
+              <Text size="sm" component={Link} to="/support" style={{ textDecoration: 'none' }}>Support</Text>
+              <Text size="sm" component={Link} to="/about" style={{ textDecoration: 'none' }}>About</Text>
+            </Group>
           </Group>
           <Group gap="xs">
             <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme">
@@ -46,18 +51,20 @@ export default function App() {
           <Group gap="xs">
             <Text size="sm" c="dimmed">v{__APP_VERSION__}</Text>
             <FooterLink href="https://unmanagedvisio.com" target="_blank">© UnmanagedVisio</FooterLink>
-            <FooterLink href="/privacy-policy.md" target="_blank">Privacy Policy</FooterLink>
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+            <FooterLink href="/terms">Terms of Service</FooterLink>
+            <FooterLink href="/imprint">Imprint</FooterLink>
+            <FooterLink href="/refund-policy">Refund Policy</FooterLink>
           </Group>
           <Group gap="xs">
-            <FooterLink href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer" icon={<IconBug size={14} />}>
-              {' '}Report an issue
-            </FooterLink>
             <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />}>
               {' '}GitHub
             </FooterLink>
           </Group>
         </Group>
       </AppShell.Footer>
+
+      <CookieConsentBanner />
     </AppShell>
   );
 }

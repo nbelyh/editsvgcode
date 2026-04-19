@@ -11,6 +11,12 @@
   overflow: hidden;
 }
 
+/* Allow scrolling on content pages rendered inside AppShell.Main */
+.page-scroll {
+  overflow-y: auto;
+  height: 100%;
+}
+
 /*
  * Prevent CLS from Allotment panes.
  * Panes start at width:0 then resize via ResizeObserver, causing a layout shift.

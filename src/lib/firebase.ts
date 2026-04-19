@@ -30,6 +30,7 @@ import {
 } from 'firebase/auth';
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 import { config } from './config';
+import { getConsent } from './cookie-consent';
 
 const firebaseConfig = {
   apiKey: config.FIREBASE_API_KEY,
@@ -57,9 +58,16 @@ let firebaseAnalytics: Analytics | null = null;
 if (isLocalhost) {
   console.log('Running on localhost - using Firebase Emulators');
   connectFirestoreEmulator(firebaseDb, 'localhost', 8080);
-  connectAuthEmulator(firebaseAuth, 'http://localhost:9099');
-} else {
+  connectAuthEmulator(firebaseAuth, 'http://localhost:9099', { disableWarnings: true });
+} else if (getConsent() === 'accepted') {
   firebaseAnalytics = getAnalytics(firebaseApp);
+}
+
+/** Enable analytics after user gives consent. */
+export function enableAnalytics(): void {
+  if (!firebaseAnalytics && !isLocalhost) {
+    firebaseAnalytics = getAnalytics(firebaseApp);
+  }
 }
 
 /** Log an error to Firebase Analytics (production) and console. */
