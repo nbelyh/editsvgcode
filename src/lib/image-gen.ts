@@ -144,10 +144,20 @@ async function vectorizeInBrowser(imageUrl: string, params: VectorizerParams = D
   try {
     const ctx = canvas.getContext('2d')!;
 
-    // Draw image directly — preserving alpha channel.
-    // vtracer-webapp 0.4.0 has built-in keying: it detects transparent pixels,
+    // Draw image preserving alpha channel.
+    // vtracer-webapp has built-in keying: it detects transparent pixels,
     // finds an unused key color, and uses KeyingAction to discard keyed clusters.
     ctx.drawImage(img, 0, 0);
+
+    // Clean up semi-transparent boundary pixels to prevent noisy edges.
+    // GPT-Image produces anti-aliased edges with partial alpha; those create
+    // many tiny speckle clusters in vtracer. Snap alpha to 0 or 255.
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 3; i < data.length; i += 4) {
+      data[i] = data[i] < 128 ? 0 : 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
 
     const { ColorImageConverter } = await import('vtracer-webapp');
 
