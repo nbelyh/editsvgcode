@@ -10,7 +10,7 @@ export interface VectorizerParams {
   cornerThreshold: number;   // 0–180 degrees
   lengthThreshold: number;   // 1–20
   spliceThreshold: number;   // 0–180 degrees
-  pathPrecision: number;     // 1–16
+  pathPrecision: number;     // 0–16
 }
 
 export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
@@ -23,7 +23,7 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
   cornerThreshold: 60,
   lengthThreshold: 4,
   spliceThreshold: 45,
-  pathPrecision: 3,
+  pathPrecision: 0,
 };
 
 import { getAuth } from 'firebase/auth';

@@ -131,7 +131,7 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
             <SliderRow label="Corner" value={params.cornerThreshold} min={0} max={180} step={1} onChange={v => set('cornerThreshold', v)} />
             <SliderRow label="Length" value={params.lengthThreshold} min={1} max={20} step={0.5} onChange={v => set('lengthThreshold', v)} />
             <SliderRow label="Splice" value={params.spliceThreshold} min={0} max={180} step={1} onChange={v => set('spliceThreshold', v)} />
-            <SliderRow label="Precision" value={params.pathPrecision} min={1} max={16} step={1} onChange={v => set('pathPrecision', v)} />
+            <SliderRow label="Precision" value={params.pathPrecision} min={0} max={16} step={1} onChange={v => set('pathPrecision', v)} />
           </div>
         )}
 
