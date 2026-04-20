@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Container, Title, Text, Table, Anchor, Loader, ActionIcon, Tooltip } from '@mantine/core';
+import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconLock, IconWorld } from '@tabler/icons-react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -46,15 +47,23 @@ export function FilesPage() {
     });
   }, []);
 
-  const handleDelete = useCallback(async (id: string) => {
-    const db = new EditSvgCodeDb();
-    try {
-      await db.deleteDocument(id);
-      setFiles((prev) => prev.filter((f) => f.id !== id));
-      notifications.show({ title: 'Deleted', message: `File ${id} deleted.`, color: 'green' });
-    } catch (err) {
-      notifications.show({ title: 'Delete failed', message: friendlyError(err), color: 'red' });
-    }
+  const handleDelete = useCallback((id: string) => {
+    modals.openConfirmModal({
+      title: 'Delete file',
+      children: <Text size="sm">Are you sure you want to delete <b>{id}</b>? This cannot be undone.</Text>,
+      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        const db = new EditSvgCodeDb();
+        try {
+          await db.deleteDocument(id);
+          setFiles((prev) => prev.filter((f) => f.id !== id));
+          notifications.show({ title: 'Deleted', message: `File ${id} deleted.`, color: 'green' });
+        } catch (err) {
+          notifications.show({ title: 'Delete failed', message: friendlyError(err), color: 'red' });
+        }
+      },
+    });
   }, []);
 
   const handleTogglePrivate = useCallback(async (id: string) => {
