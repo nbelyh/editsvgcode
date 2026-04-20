@@ -262,6 +262,47 @@ test.describe('Feature screenshots', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/08-chat-conversation.png` });
   });
 
+  // --- 4. AI Image Generation ---
+
+  test('11 — image generation + vectorizer', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+    await page.goto('/');
+    await loadDefaultSvg(page);
+    await page.waitForTimeout(500);
+
+    // Clear chat
+    const clearBtn = page.locator('.aui-header button').first();
+    if (await clearBtn.isEnabled().catch(() => false)) {
+      await clearBtn.click();
+      await page.waitForTimeout(300);
+    }
+
+    // Ask to generate an image
+    const input = page.locator('textarea.aui-composer-input');
+    await input.fill('draw a cute kitten');
+    await page.keyboard.press('Enter');
+
+    // Confirm image generation
+    await expect(page.locator('.aui-image-confirm')).toBeVisible({ timeout: 30000 });
+    await page.locator('.aui-image-confirm-btn-primary').click();
+
+    // Wait for vectorizer panel to appear (image generated + vectorized)
+    await expect(page.locator('.aui-vectorizer')).toBeVisible({ timeout: 120000 });
+    await page.waitForTimeout(1000);
+
+    // Expand "More settings" if available
+    const moreBtn = page.locator('.aui-vectorizer-toggle');
+    if (await moreBtn.isVisible().catch(() => false)) {
+      await moreBtn.click();
+      await page.waitForTimeout(300);
+    }
+
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/11-image-generation.png` });
+  });
+
   test('10 — model selector', async ({ page }) => {
     // Pre-set sidebar to AI chat tab
     await page.addInitScript(() => {
