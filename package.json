@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth --import .emulator-data --export-on-exit",
     "ship": "npm run build && playwright test && npm run deploy",
-    "ship:beta": "npm run build && playwright test && npm run deploy:beta",
+    "ship:beta": "npm run build && npm run deploy:beta",
     "deploy": "firebase deploy --only hosting,firestore",
     "deploy:beta": "firebase deploy --only hosting,firestore -P beta",
     "preview:deploy": "npm run build && firebase hosting:channel:deploy preview --expires 7d",

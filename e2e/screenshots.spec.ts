@@ -173,7 +173,6 @@ test.describe('Feature screenshots', () => {
     await loadDefaultSvg(page);
     await page.waitForTimeout(300);
 
-    const panel = page.locator('[data-testid="preview-panel"]');
     const modes = ['Light checkerboard', 'Dark checkerboard', 'White', 'Black'] as const;
     const tempFiles: string[] = [];
 
@@ -181,7 +180,7 @@ test.describe('Feature screenshots', () => {
       await page.locator(`button[aria-label="${mode}"]`).click();
       await page.waitForTimeout(200);
       const tmpPath = `${SCREENSHOT_DIR}/_tmp-bg-${mode.replace(/\s+/g, '-').toLowerCase()}.png`;
-      await panel.screenshot({ path: tmpPath });
+      await page.screenshot({ path: tmpPath });
       tempFiles.push(tmpPath);
     }
 
