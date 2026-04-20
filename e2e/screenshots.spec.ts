@@ -303,6 +303,35 @@ test.describe('Feature screenshots', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/11-image-generation.png` });
   });
 
+  // --- 5. Icon Search ---
+
+  test('13 — icon picker', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+    await page.goto('/');
+    await loadDefaultSvg(page);
+    await page.waitForTimeout(500);
+
+    // Clear chat
+    const clearBtn = page.locator('.aui-header button').first();
+    if (await clearBtn.isEnabled().catch(() => false)) {
+      await clearBtn.click();
+      await page.waitForTimeout(300);
+    }
+
+    // Ask to add an icon — triggers search_icons tool
+    const input = page.locator('textarea.aui-composer-input');
+    await input.fill('add a star icon');
+    await page.keyboard.press('Enter');
+
+    // Wait for icon picker grid to appear
+    await expect(page.locator('.aui-icon-picker-grid')).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/13-icon-picker.png` });
+  });
+
   test('10 — model selector', async ({ page }) => {
     // Pre-set sidebar to AI chat tab
     await page.addInitScript(() => {
