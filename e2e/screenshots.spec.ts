@@ -221,6 +221,47 @@ test.describe('Feature screenshots', () => {
 
   // --- 3. AI Chat ---
 
+  test('08 — chat conversation', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+    await page.goto('/');
+    await loadDefaultSvg(page);
+    await page.waitForTimeout(500);
+
+    // Clear any existing chat history
+    const clearBtn = page.locator('.aui-header button').first();
+    if (await clearBtn.isEnabled().catch(() => false)) {
+      await clearBtn.click();
+      await page.waitForTimeout(300);
+    }
+
+    // First message
+    const input = page.locator('textarea.aui-composer-input');
+    await input.fill('make the circles red');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.aui-msg-assistant')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('.aui-status-indicator')).toBeHidden({ timeout: 30000 });
+    await page.waitForTimeout(300);
+
+    // Accept the first change
+    const acceptBtn = page.getByRole('button', { name: /accept/i });
+    if (await acceptBtn.isVisible().catch(() => false)) {
+      await acceptBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    // Second message
+    await input.fill('now make them 1.5x bigger');
+    await page.keyboard.press('Enter');
+    // Wait for second user message + assistant to finish
+    await expect(page.locator('.aui-msg-user').nth(1)).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('.aui-status-indicator')).toBeHidden({ timeout: 30000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/08-chat-conversation.png` });
+  });
+
   test('10 — model selector', async ({ page }) => {
     // Pre-set sidebar to AI chat tab
     await page.addInitScript(() => {
