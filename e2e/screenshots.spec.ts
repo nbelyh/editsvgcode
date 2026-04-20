@@ -348,4 +348,49 @@ test.describe('Feature screenshots', () => {
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SCREENSHOT_DIR}/10-model-selector.png` });
   });
+
+  // --- 6. File Management ---
+
+  test('14 — files page', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+    await page.goto('/');
+    await loadDefaultSvg(page);
+    await page.waitForTimeout(500);
+
+    // Save the default file
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.waitForTimeout(1000);
+
+    // New document → generate a kitten
+    await page.goto('/');
+    await waitForEditor(page);
+    await page.waitForTimeout(500);
+
+    const input = page.locator('textarea.aui-composer-input');
+    await input.fill('draw a cute kitten');
+    await page.keyboard.press('Enter');
+
+    // Confirm image generation
+    await expect(page.locator('.aui-image-confirm')).toBeVisible({ timeout: 30000 });
+    await page.locator('.aui-image-confirm-btn-primary').click();
+
+    // Wait for vectorizer, then accept
+    await expect(page.locator('.aui-vectorizer')).toBeVisible({ timeout: 120000 });
+    await page.waitForTimeout(1000);
+    const acceptBtn = page.locator('.aui-proposal-actions .aui-composer-send').first();
+    await acceptBtn.click();
+    await page.waitForTimeout(500);
+
+    // Save the kitten file
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.waitForTimeout(1000);
+
+    // Navigate to files page
+    await page.goto('/files');
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/14-files-page.png` });
+  });
 });
