@@ -35,6 +35,10 @@ export function FilesPage() {
         const db = new EditSvgCodeDb();
         db.listUserDocuments()
           .then(setFiles)
+          .catch((err) => {
+            console.error('listUserDocuments failed', err);
+            notifications.show({ title: 'Failed to load files', message: friendlyError(err), color: 'red' });
+          })
           .finally(() => setLoading(false));
       } else {
         setLoading(false);
@@ -74,7 +78,7 @@ export function FilesPage() {
       {loading ? (
         <Loader size="sm" />
       ) : files.length === 0 ? (
-        <Text c="dimmed" size="sm">No shared files yet. Use &quot;Share&quot; in the editor to save a file.</Text>
+        <Text c="dimmed" size="sm">No saved files yet. Use &quot;Save&quot; in the editor to save a file.</Text>
       ) : (
         <Table striped highlightOnHover>
           <Table.Thead>
