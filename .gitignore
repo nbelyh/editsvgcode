@@ -10,7 +10,4 @@ firestore-debug.log
 firebase-debug.log
 test-results
 playwright-report
-__azurite_*
-__blobstorage__/*
-.emulator-data
-firebase-export-*/
+.emulators
