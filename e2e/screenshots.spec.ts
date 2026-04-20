@@ -168,6 +168,45 @@ test.describe('Feature screenshots', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/05-zoom-controls.png` });
   });
 
+  test('06 — background modes', async ({ page }) => {
+    await page.goto('/');
+    await loadDefaultSvg(page);
+    await page.waitForTimeout(300);
+
+    const panel = page.locator('[data-testid="preview-panel"]');
+    const modes = ['Light checkerboard', 'Dark checkerboard', 'White', 'Black'] as const;
+    const tempFiles: string[] = [];
+
+    for (const mode of modes) {
+      await page.locator(`button[aria-label="${mode}"]`).click();
+      await page.waitForTimeout(200);
+      const tmpPath = `${SCREENSHOT_DIR}/_tmp-bg-${mode.replace(/\s+/g, '-').toLowerCase()}.png`;
+      await panel.screenshot({ path: tmpPath });
+      tempFiles.push(tmpPath);
+    }
+
+    // Composite 2×2 grid using sharp
+    const sharp = (await import('sharp')).default;
+    const images = await Promise.all(tempFiles.map(f => sharp(f).toBuffer()));
+    const meta = await sharp(images[0]).metadata();
+    const w = meta.width!;
+    const h = meta.height!;
+    const gap = 4;
+    const composite = sharp({
+      create: { width: w * 2 + gap, height: h * 2 + gap, channels: 4, background: { r: 30, g: 30, b: 30, alpha: 1 } },
+    }).composite([
+      { input: images[0], left: 0, top: 0 },
+      { input: images[1], left: w + gap, top: 0 },
+      { input: images[2], left: 0, top: h + gap },
+      { input: images[3], left: w + gap, top: h + gap },
+    ]);
+    await composite.png().toFile(`${SCREENSHOT_DIR}/06-background-modes.png`);
+
+    // Clean up temp files
+    const { unlinkSync } = await import('fs');
+    for (const f of tempFiles) { try { unlinkSync(f); } catch {} }
+  });
+
   test('07 — click-to-select', async ({ page }) => {
     await page.goto('/');
     await loadDefaultSvg(page);

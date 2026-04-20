@@ -362,7 +362,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   }, []);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div data-testid="preview-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Group
         justify="space-between"
         px="xs" py={4}

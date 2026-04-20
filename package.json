@@ -47,6 +47,7 @@
     "firebase-tools": "^13.29.1",
     "jsdom": "^29.0.1",
     "rollup-plugin-visualizer": "^7.0.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.8.2",
     "vite": "^6.2.2",
     "vitest": "^4.1.0"
