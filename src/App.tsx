@@ -28,6 +28,7 @@ export default function App() {
             <img src="/editsvgcode-logo.svg" alt="Logo" height={28} />
             <Text fw={700} size="lg" component="a" href="/" className="app-header-title">Online SVG Code Editor</Text>
             <Group gap="sm" ml="lg">
+              <Text size="sm" fw={500} component={Link} to="/features" style={{ textDecoration: 'none' }}>Features</Text>
               <Text size="sm" fw={500} component={Link} to="/pricing" style={{ textDecoration: 'none' }}>Upgrade</Text>
               <Text size="sm" fw={500} component={Link} to="/support" style={{ textDecoration: 'none' }}>Support</Text>
               <Text size="sm" fw={500} component={Link} to="/about" style={{ textDecoration: 'none' }}>About</Text>

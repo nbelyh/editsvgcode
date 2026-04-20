@@ -13,6 +13,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { FilesPage } from './pages/FilesPage';
 import { PricingPage } from './pages/PricingPage';
 import { AboutPage } from './pages/AboutPage';
+import { FeaturesPage } from './pages/FeaturesPage';
 import { SupportPage } from './pages/SupportPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
             <Route index element={<EditorPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="files" element={<FilesPage />} />
+            <Route path="features" element={<FeaturesPage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="support" element={<SupportPage />} />
