@@ -12,7 +12,7 @@ const channels = [
   },
   {
     icon: IconBrandTelegram,
-    color: 'cyan',
+    color: 'blue',
     title: 'Telegram Chat',
     description: 'Ask a question in our Telegram chat for a quick response.',
     action: 'Join Telegram Chat',

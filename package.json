@@ -21,10 +21,10 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@mantine/core": "^7.17.0",
-    "@mantine/hooks": "^7.17.0",
-    "@mantine/modals": "^7.17.8",
-    "@mantine/notifications": "^7.17.8",
+    "@mantine/core": "^9.0.2",
+    "@mantine/hooks": "^9.0.2",
+    "@mantine/modals": "^9.0.2",
+    "@mantine/notifications": "^9.0.2",
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.28.1",
     "allotment": "^1.20.2",
