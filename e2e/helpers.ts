@@ -1,15 +1,30 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Wait for Monaco editor to be visible on the page. */
+/** Wait for Monaco editor to be visible and its API ready. */
 export async function waitForEditor(page: Page) {
   await expect(page.locator('.monaco-editor')).toBeVisible({ timeout: 15000 });
+  await page.waitForFunction(() => !!(window as any).__test_monaco_editor, { timeout: 10000 });
 }
 
-/** Set SVG content via the Monaco editor API and wait for it to appear in the preview. */
+/** Set SVG content via the Monaco editor API and wait for the preview to re-render. */
 export async function setSvgContent(page: Page, svg: string) {
+  // Capture the current preview SVG so we can detect when it changes
+  const oldHtml = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="svg-preview"] svg');
+    return el ? el.outerHTML : '';
+  });
+
   await page.evaluate((s) => {
     const editor = (window as any).__test_monaco_editor;
-    if (editor) editor.setValue(s);
+    if (editor) {
+      editor.updateOptions({ readOnly: false });
+      editor.setValue(s);
+    }
   }, svg);
-  await expect(page.locator('[data-testid="svg-preview"] svg')).toBeVisible({ timeout: 10000 });
+
+  // Wait for the preview to actually update (accounts for 300ms debounce)
+  await page.waitForFunction((prevHtml) => {
+    const el = document.querySelector('[data-testid="svg-preview"] svg');
+    return el && el.outerHTML !== prevHtml;
+  }, oldHtml, { timeout: 10000 });
 }
