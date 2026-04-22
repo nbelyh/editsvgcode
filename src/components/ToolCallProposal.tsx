@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useComputedColorScheme } from '@mantine/core';
 import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight, IconDownload } from '@tabler/icons-react';
 import type { ChatToolCall } from '../lib/api-client';
 import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
@@ -141,6 +142,7 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
 }
 
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {
+  const computedColorScheme = useComputedColorScheme('dark');
   const pngDataUrl = tc.name === 'generate_image' ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
 
   return (
@@ -186,7 +188,7 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           </button>
           <button
             className="aui-composer-send"
-            style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: 'light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))' }}
+            style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: computedColorScheme === 'dark' ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)' }}
             onClick={onReject}
           >
             Reject

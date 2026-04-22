@@ -59,9 +59,15 @@
 }
 
 /* App chrome (header, footer, toolbars) — adapts to light/dark */
-:root {
-  --esvg-chrome-bg: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-7));
-  --esvg-chrome-border: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+:root[data-mantine-color-scheme='light'] {
+  --esvg-chrome-bg: var(--mantine-color-gray-1);
+  --esvg-chrome-border: var(--mantine-color-gray-3);
+  --app-shell-border-color: var(--esvg-chrome-border);
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --esvg-chrome-bg: var(--mantine-color-dark-7);
+  --esvg-chrome-border: var(--mantine-color-dark-4);
   --app-shell-border-color: var(--esvg-chrome-border);
 }
 
