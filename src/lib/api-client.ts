@@ -185,6 +185,7 @@ export async function sendChatRequest(
   const allRawOutput: unknown[] = [];
 
   // Agentic loop — execute read-only tools locally, send results back
+  let iconsRejected = false; // track if user already clicked "None — generate instead"
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const readCalls = response.output.filter(
       item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'search_icons' || item.name === 'get_element_bounds')
@@ -204,6 +205,9 @@ export async function sendChatRequest(
       const args = JSON.parse(call.arguments!);
       let result: string | null = null;
       if (call.name === 'search_icons') {
+        if (iconsRejected) {
+          result = 'User already rejected icon results. Use generate_image to create a custom icon instead.';
+        } else {
         const excludeNames: string[] = [];
         let picked = false;
         while (!picked) {
@@ -215,6 +219,7 @@ export async function sendChatRequest(
             const selected = await onIconPick(icons);
             if (selected === 'none') {
               result = 'User rejected all icon results and wants a custom generated icon instead. Use generate_image to create the icon.';
+              iconsRejected = true;
               picked = true;
             } else if (selected === 'more') {
               excludeNames.push(...icons.map(i => i.name));
@@ -226,6 +231,7 @@ export async function sendChatRequest(
             result = formatIconForModel(icons[0]);
             picked = true;
           }
+        }
         }
       } else if (call.name === 'get_element_bounds') {
         result = getElementBounds(normalizedSvg, args.selector);
