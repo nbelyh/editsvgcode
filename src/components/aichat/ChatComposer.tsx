@@ -62,10 +62,8 @@ export function ChatComposer({
     const ta = e.currentTarget;
 
     if (e.key === 'ArrowUp' && history.length > 0) {
-      // Only navigate history when cursor is on the first line
-      const cursorPos = ta.selectionStart;
-      const textBeforeCursor = ta.value.slice(0, cursorPos);
-      if (textBeforeCursor.includes('\n')) return; // not on first line
+      // Only navigate history when cursor is at the very start
+      if (ta.selectionStart !== 0) return;
 
       const nextIdx = historyIdx + 1;
       if (nextIdx >= history.length) return; // no more history
@@ -81,10 +79,8 @@ export function ChatComposer({
     }
 
     if (e.key === 'ArrowDown' && historyIdx >= 0) {
-      // Only navigate when cursor is on the last line
-      const cursorPos = ta.selectionStart;
-      const textAfterCursor = ta.value.slice(cursorPos);
-      if (textAfterCursor.includes('\n')) return; // not on last line
+      // Only navigate history when cursor is at the very end
+      if (ta.selectionStart !== ta.value.length) return;
 
       e.preventDefault();
       const nextIdx = historyIdx - 1;
