@@ -176,7 +176,7 @@ export function ChatThread({
         }
 
         // Assistant message
-        const hasAcceptedGenImage = msg.toolCalls?.some(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+        const hasAcceptedGenImage = msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
 
         if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon) {
           return (<div key={msgIdx}>
@@ -184,7 +184,7 @@ export function ChatThread({
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => {
-                  const tcIdx = msg.toolCalls!.findIndex(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+                  const tcIdx = msg.toolCalls!.findIndex(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
                   if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
                 }}>Restore</button>
                 <div className="aui-checkpoint-line" />
@@ -228,7 +228,7 @@ export function ChatThread({
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => {
-                  const tcIdx = msg.toolCalls!.findIndex(tc => tc.name === 'generate_image' && tc.status === 'accepted');
+                  const tcIdx = msg.toolCalls!.findIndex(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
                   if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
                 }}>Restore</button>
                 <div className="aui-checkpoint-line" />

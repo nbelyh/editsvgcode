@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useComputedColorScheme } from '@mantine/core';
 import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight, IconDownload } from '@tabler/icons-react';
 import type { ChatToolCall } from '../lib/api-client';
 import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
@@ -142,15 +141,14 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
 }
 
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {
-  const computedColorScheme = useComputedColorScheme('dark');
-  const pngDataUrl = tc.name === 'generate_image' ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
+  const pngDataUrl = (tc.name === 'generate_image' || tc.name === 'modify_image') ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
 
   return (
     <div className="aui-proposal" style={{ marginBottom: 8 }}>
       <div className="aui-proposal-header">
-        {tc.name === 'find_replace' ? <IconPencil size={14} /> : tc.name === 'generate_image' ? <IconPhoto size={14} /> : <IconCode size={14} />}
+        {tc.name === 'find_replace' ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">
-          {(tc.arguments.summary as string) || (tc.name === 'find_replace' ? 'Find & replace' : tc.name === 'generate_image' ? 'Generate image' : 'Replace SVG')}
+          {(tc.arguments.summary as string) || (tc.name === 'find_replace' ? 'Find & replace' : tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
         </span>
       </div>
       {pngDataUrl && tc.status === 'pending' && (
@@ -179,20 +177,8 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
       )}
       {tc.status === 'pending' && (
         <div className="aui-proposal-actions">
-          <button
-            className="aui-composer-send"
-            style={{ fontSize: 11, padding: '3px 10px', height: 26 }}
-            onClick={onAccept}
-          >
-            Accept
-          </button>
-          <button
-            className="aui-composer-send"
-            style={{ fontSize: 11, padding: '3px 10px', height: 26, backgroundColor: computedColorScheme === 'dark' ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-3)' }}
-            onClick={onReject}
-          >
-            Reject
-          </button>
+          <button className="aui-action-btn aui-action-btn-primary" onClick={onAccept}>Accept</button>
+          <button className="aui-action-btn" onClick={onReject}>Reject</button>
         </div>
       )}
       {tc.status === 'accepted' && (

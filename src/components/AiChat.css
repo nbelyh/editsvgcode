@@ -188,8 +188,39 @@
 
 .aui-proposal-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   margin-top: 8px;
+}
+
+/* Shared action button used across tool proposals, image confirm, and icon picker */
+.aui-action-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  height: 26px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--mantine-color-text);
+  cursor: pointer;
+  width: fit-content;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.aui-action-btn:hover {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.aui-action-btn-primary {
+  background: var(--mantine-primary-color-filled);
+  color: white;
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.aui-action-btn-primary:hover {
+  background: var(--mantine-primary-color-filled-hover);
+  border-color: var(--mantine-primary-color-filled-hover);
 }
 
 .aui-proposal-status {
@@ -603,30 +634,9 @@
 
 .aui-icon-picker-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-}
-
-.aui-icon-picker-sep {
-  color: var(--mantine-color-dimmed);
-  font-size: 11px;
-}
-
-.aui-icon-picker-generate {
-  font-size: 11px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: var(--mantine-radius-sm);
-  background: transparent;
-  color: var(--mantine-color-dimmed);
-  cursor: pointer;
-  text-align: left;
-  width: fit-content;
-  transition: color 0.15s;
-}
-
-.aui-icon-picker-generate:hover {
-  color: var(--mantine-color-text);
 }
 
 /* Collapsed state — after user picked an icon */
@@ -666,40 +676,8 @@
 
 .aui-image-confirm-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   margin-top: 4px;
-}
-
-.aui-image-confirm-sep {
-  color: var(--mantine-color-dimmed);
-  font-size: 11px;
-}
-
-.aui-image-confirm-btn {
-  font-size: 11px;
-  padding: 3px 10px;
-  height: 26px;
-  border: 1px solid var(--mantine-color-default-border);
-  border-radius: var(--mantine-radius-sm);
-  background: transparent;
-  color: var(--mantine-color-text);
-  cursor: pointer;
-  width: fit-content;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.aui-image-confirm-btn:hover {
-  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
-}
-
-.aui-image-confirm-btn-primary {
-  background: var(--mantine-primary-color-filled);
-  color: white;
-  border-color: var(--mantine-primary-color-filled);
-}
-
-.aui-image-confirm-btn-primary:hover {
-  background: var(--mantine-primary-color-filled-hover);
-  border-color: var(--mantine-primary-color-filled-hover);
 }

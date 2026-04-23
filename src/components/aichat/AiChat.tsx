@@ -127,9 +127,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         });
       };
 
-      const handleImageConfirm = (summary: string): Promise<boolean> => {
+      const handleImageConfirm = (summary: string, isModify: boolean): Promise<boolean> => {
         return new Promise<boolean>(resolve => {
-          setImageConfirmSummary(summary);
+          setImageConfirmSummary(isModify ? `modify:${summary}` : summary);
           imageConfirmResolveRef.current = (confirmed) => {
             setImageConfirmSummary(null);
             imageConfirmResolveRef.current = null;
@@ -139,6 +139,22 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       };
 
       const collectedToolCalls: ReadToolCall[] = [];
+
+      // Find the last generated PNG from previous messages (for modify_image)
+      let lastPngDataUrl: string | undefined;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (m.toolCalls) {
+          for (let j = m.toolCalls.length - 1; j >= 0; j--) {
+            const tc = m.toolCalls[j];
+            if ((tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted' && tc.arguments.pngDataUrl) {
+              lastPngDataUrl = tc.arguments.pngDataUrl as string;
+              break;
+            }
+          }
+          if (lastPngDataUrl) break;
+        }
+      }
 
       const response = await sendChatRequest(
         conversationHistory,
@@ -154,6 +170,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         handleIconPick,
         (tc) => collectedToolCalls.push(tc),
         handleImageConfirm,
+        lastPngDataUrl,
       );
 
       const assistantMsg: DisplayMessage = {

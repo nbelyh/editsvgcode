@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase/auth';
 import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
-import { generateImage } from './image-gen';
+import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
 import { config } from './config';
@@ -145,7 +145,8 @@ export async function sendChatRequest(
   effort?: string,
   onIconPick?: (icons: IconResult[]) => Promise<IconResult | 'more' | 'none'>,
   onToolCall?: (tc: ReadToolCall) => void,
-  onImageConfirm?: (summary: string) => Promise<boolean>,
+  onImageConfirm?: (summary: string, isModify: boolean) => Promise<boolean>,
+  lastPngDataUrl?: string,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -244,24 +245,27 @@ export async function sendChatRequest(
   while (processingResponse) {
     processingResponse = false;
 
-    // Check if response contains a generate_image call that needs confirmation
+    // Check if response contains a generate_image or modify_image call that needs confirmation
     const genImageCall = response.output.find(
-      item => item.type === 'function_call' && item.name === 'generate_image'
+      item => item.type === 'function_call' && (item.name === 'generate_image' || item.name === 'modify_image')
     );
     if (genImageCall && onImageConfirm) {
       const genArgs = JSON.parse(genImageCall.arguments!);
-      const confirmed = await onImageConfirm(genArgs.summary || genArgs.prompt);
+      const confirmed = await onImageConfirm(genArgs.summary || genArgs.prompt, genImageCall.name === 'modify_image');
       if (!confirmed) {
-        // User declined — send rejection back and ask model to draw with SVG
+        // User declined — send rejection back and ask model to use SVG tools
         allRawOutput.push(...response.output);
+        const rejectionMsg = genImageCall.name === 'modify_image'
+          ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (find_replace, replace_lines, or replace_svg) instead.'
+          : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
         allRawOutput.push({
           type: 'function_call_output',
           call_id: genImageCall.call_id,
-          output: 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.',
+          output: rejectionMsg,
         });
         // Provide OK outputs for any other tool calls in this response
         for (const item of response.output) {
-          if (item.type === 'function_call' && item.name !== 'generate_image') {
+          if (item.type === 'function_call' && item.call_id !== genImageCall.call_id) {
             allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'OK' });
           }
         }
@@ -284,6 +288,8 @@ export async function sendChatRequest(
 
   // Track running SVG state so multiple tool calls chain correctly
   let runningSvg = normalizedSvg;
+  // Track the latest generated PNG for modify_image chaining within a single turn
+  let currentPngDataUrl = lastPngDataUrl;
 
   for (const item of response.output) {
     if (item.type === 'message') {
@@ -292,7 +298,7 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image')) {
+    } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image' || item.name === 'modify_image')) {
       const args = JSON.parse(item.arguments!);
       let toolOutput = 'OK';
       if (item.name === 'find_replace') {
@@ -321,6 +327,25 @@ export async function sendChatRequest(
         args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;
         latestCredits = result.credits;
+        currentPngDataUrl = result.pngDataUrl;
+      } else if (item.name === 'modify_image') {
+        if (!currentPngDataUrl) {
+          toolOutput = 'Error: No previously generated image available to modify. Use generate_image to create a new image first.';
+        } else {
+          onProgress?.('generating-image');
+          let result;
+          try {
+            result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s));
+          } catch (err) {
+            if (isCreditsError(err)) throw err;
+            throw err instanceof Error ? err : new Error(String(err));
+          }
+          args.svg = result.svg;
+          args.pngDataUrl = result.pngDataUrl;
+          runningSvg = result.svg;
+          latestCredits = result.credits;
+          currentPngDataUrl = result.pngDataUrl;
+        }
       }
       toolCalls.push({ name: item.name, arguments: args });
       // Add function_call_output so the API sees completed tool calls on replay

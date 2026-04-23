@@ -48,9 +48,8 @@ export function IconPicker({ icons, onSelect, onMore, onNone, selectedIcon }: Ic
         ))}
       </div>
       <div className="aui-icon-picker-actions">
-        <button className="aui-icon-picker-generate" onClick={onMore}>More icons…</button>
-        <span className="aui-icon-picker-sep">·</span>
-        <button className="aui-icon-picker-generate" onClick={onNone}>None — generate instead</button>
+        <button className="aui-action-btn aui-action-btn-primary" onClick={onMore}>More icons…</button>
+        <button className="aui-action-btn" onClick={onNone}>None — generate instead</button>
       </div>
     </div>
   );
