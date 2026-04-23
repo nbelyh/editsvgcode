@@ -25,6 +25,13 @@ const AI_FEATURES: Feature[] = [
     badge: 'Pro',
   },
   {
+    title: 'Image Modification',
+    description: 'Ask the AI to modify a previously generated image — add elements, change colors, or refine details. The AI edits the existing raster image based on your instructions, then re-vectorizes it to SVG. Multiple modifications can be chained in the same conversation.',
+    image: '/screenshots/16-image-modification.png',
+    thumb: '/screenshots/thumbs/16-image-modification.png',
+    badge: 'Pro',
+  },
+  {
     title: 'Model Selector',
     description: 'Switch between AI models (GPT-4o, Claude, o4-mini, etc.) from a dropdown. Each model has different strengths — faster responses vs. better reasoning. A "reasoning effort" slider lets you trade speed for quality on complex edits.',
     image: '/screenshots/10-model-selector.png',

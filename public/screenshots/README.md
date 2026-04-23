@@ -23,6 +23,7 @@
 
 - `11-image-generation.png` — "draw a cat", raster + vectorized SVG side by side
 - `12-vectorizer-controls.png` — Parameter sliders (color precision, speckle filter etc.)
+- `16-image-modification.png` — Iterative image editing: generate a kitten, then modify it to add a bow
 
 ## 5. Icon Search
 
