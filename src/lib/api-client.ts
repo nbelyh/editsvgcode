@@ -169,6 +169,10 @@ export async function sendChatRequest(
     ...(conversationHistory.length > 0
       ? [{ role: 'developer', content: 'The SVG document has been updated since the earlier messages. Line numbers from previous tool calls and search results are now stale — do NOT reuse them. Always rely on the current SVG context below and re-run search_svg or read_svg_lines if you need line numbers.' }]
       : []),
+    // When a previously generated image exists, tell the model so it knows modify_image is available
+    ...(lastPngDataUrl
+      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was generated from an AI image (generate_image or modify_image was used earlier in this conversation). A source PNG is available for further editing. If the user asks to change, add, or remove visual elements in this image, strongly prefer the modify_image tool — the vectorized SVG paths are auto-generated and very hard to edit by hand. Only use find_replace/replace_lines for trivial attribute changes (e.g. width/height, opacity, transforms) that don\'t alter the image content itself.' }]
+      : []),
     { role: 'developer', content: svgContext },
     { role: 'user', content: userText },
   ];
