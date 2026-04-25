@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { signInWithGoogle, signInWithGithub, logError } from '../lib/firebase';
+import { trackSignIn, trackBeginCheckout } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
@@ -81,16 +82,17 @@ export function PricingPage() {
   const isPro = false; // TODO: read from credits context once available
 
   function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
+    trackBeginCheckout(product);
     window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
   }
 
   const handleSignInGoogle = async () => {
-    try { await signInWithGoogle(); navigate('/'); }
+    try { await signInWithGoogle(); trackSignIn('google'); navigate('/'); }
     catch (err) { logError('signInWithGoogle', err); }
   };
 
   const handleSignInGithub = async () => {
-    try { await signInWithGithub(); navigate('/'); }
+    try { await signInWithGithub(); trackSignIn('github'); navigate('/'); }
     catch (err) { logError('signInWithGithub', err); }
   };
 

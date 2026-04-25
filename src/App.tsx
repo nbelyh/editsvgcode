@@ -1,14 +1,21 @@
+import { useEffect } from 'react';
 import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { IconBrandGithub, IconSun, IconMoon } from '@tabler/icons-react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { trackPageView } from './lib/analytics';
 import './App.css';
 
 declare const __APP_VERSION__: string;
 
 export default function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('dark');
 

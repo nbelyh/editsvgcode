@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { DiffOnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { EditSvgCodeDb, friendlyError } from './firebase';
+import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from './chat-storage';
 import { getAuth } from 'firebase/auth';
@@ -99,6 +100,7 @@ export function useDocument(routeFileId: string | undefined) {
     db.saveDocument(uniqueId, svgCode, isPrivate)
       .then(() => {
         navigate('/' + uniqueId, { replace: true });
+        trackSave();
         notifications.show({ title: 'Saved', message: 'File saved successfully.', color: 'green' });
       })
       .catch((err) => {
@@ -130,12 +132,14 @@ export function useDocument(routeFileId: string | undefined) {
       setFileId(name);
       localStorage.setItem('esvg-local-id', name);
       setSvgCode(formatXml(stripBom(ev.target?.result as string)));
+      trackFileOpen('upload');
     };
     reader.readAsText(file);
     e.target.value = '';
   }, []);
 
   const handleDownload = useCallback(() => {
+    trackDownload();
     const uniqueId = routeFileId || getNewUniqueId();
     const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);

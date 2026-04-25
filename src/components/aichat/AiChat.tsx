@@ -9,6 +9,7 @@ import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import type { DisplayMessage, AiChatProps } from './types';
+import { trackAiChat, trackAiAccept, trackAiReject, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
 import '../AiChat.css';
 
 const HISTORY_KEY = 'esvg-input-history';
@@ -190,11 +191,16 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
       setMessages(prev => [...prev, assistantMsg]);
 
+      trackAiChat(model);
+      if (response.toolCalls?.some(tc => tc.name === 'generate_image' || tc.name === 'modify_image')) {
+        trackImageGen(imageModel);
+      }
       const firstSvg = response.toolCalls?.find(tc => tc.arguments.svg)?.arguments.svg as string | undefined;
       if (firstSvg) onPreviewSvg(firstSvg);
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
       const creditsErr = isCreditsError(err);
+      if (creditsErr) trackCreditsExhausted();
       const errMsg = (err as Error).message;
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
@@ -305,6 +311,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     const tc = msg.toolCalls[tcIndex];
     const svg = tc.arguments.svg as string;
     if (svg) onAcceptSvg(svg);
+    trackAiAccept();
     onPreviewSvg(null);
 
     setMessages(prev => prev.map((m, i) =>
@@ -354,6 +361,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   }, [messages, onPreviewSvg, onRestore]);
 
   const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
+    trackAiReject();
     onPreviewSvg(null);
 
     const userMsgIndex = msgIndex - 1;

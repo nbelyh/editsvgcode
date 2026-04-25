@@ -4,6 +4,7 @@ import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard,
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
+import { trackSignIn } from '../lib/analytics';
 import { subscribeCredits } from '../lib/credits-listener';
 import type { Credits } from '../lib/api-client';
 
@@ -40,6 +41,7 @@ export function UserMenu() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+      trackSignIn('google');
     } catch (err) {
       logError('signInWithGoogle', err);
     }
@@ -48,6 +50,7 @@ export function UserMenu() {
   const handleGithubSignIn = async () => {
     try {
       await signInWithGithub();
+      trackSignIn('github');
     } catch (err) {
       logError('signInWithGithub', err);
     }
