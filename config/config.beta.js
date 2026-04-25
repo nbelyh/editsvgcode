@@ -7,6 +7,6 @@ window.__CONFIG__ = {
   FIREBASE_STORAGE_BUCKET: 'editsvgcode-beta.firebasestorage.app',
   FIREBASE_MESSAGING_SENDER_ID: '366560324726',
   FIREBASE_APP_ID: '1:366560324726:web:f10e714569671e2de48357',
-  FIREBASE_MEASUREMENT_ID: '',
+  FIREBASE_MEASUREMENT_ID: 'G-WJ6JLX9VZV',
   API_URL: 'https://editsvgcode-api-beta.azurewebsites.net',
 };
