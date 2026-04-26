@@ -9,7 +9,8 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
       allow update, delete: if request.auth != null
-                             && resource.data.uid == request.auth.uid;
+                             && (resource.data.uid == null
+                                 || resource.data.uid == request.auth.uid);
     }
 
     // User profile / subscription tier — owner read-only, server writes via Admin SDK
@@ -19,12 +20,6 @@ service cloud.firestore {
     }
     match /users/{userId}/{document=**} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if false;
-    }
-
-    // Pricing config — publicly readable, server writes only
-    match /config/{document} {
-      allow read: if true;
       allow write: if false;
     }
 
