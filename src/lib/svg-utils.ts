@@ -2,6 +2,8 @@
  * Pure utility functions extracted from App.tsx for testability.
  */
 
+import xmlFormat from 'xml-formatter';
+
 /** Extract document ID from the URL pathname (first segment after '/') */
 export function getUniqueId(): string {
   return document.location.pathname.split('/')[1] || '';
@@ -19,29 +21,12 @@ export function stripBom(text: string): string {
 
 /** Pretty-print XML/SVG with proper indentation */
 export function formatXml(xml: string): string {
-  const PADDING = '  ';
-  const reg = /(>)(<)(\/*)/g;
-  let pad = 0;
-  xml = xml.replace(reg, '$1\n$2$3');
-  return xml
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((rawNode) => {
-      const node = rawNode.trim();
-      let indent = 0;
-      if (node.match(/.+<\/\w[^>]*>$/)) {
-        indent = 0;
-      } else if (node.match(/^<\/\w/) && pad > 0) {
-        pad -= 1;
-      } else if (node.match(/^<\w[^>]*[^/]>.*$/)) {
-        indent = 1;
-      } else {
-        indent = 0;
-      }
-      pad += indent;
-      return PADDING.repeat(pad - indent) + node;
-    })
-    .join('\n');
+  if (!xml.trim()) return xml;
+  return xmlFormat(xml, {
+    indentation: '  ',
+    collapseContent: true,
+    lineSeparator: '\n',
+  });
 }
 
 /**
