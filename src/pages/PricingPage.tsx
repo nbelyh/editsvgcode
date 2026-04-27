@@ -110,6 +110,7 @@ export function PricingPage() {
           features={[
             'Only -mini models',
             `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor((pricing.anonymousTrialCredits - 1) / 10)} image gen`,
+            `SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
             'Credits never reset',
           ]}
           ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
@@ -122,6 +123,7 @@ export function PricingPage() {
             'Google or GitHub sign-in',
             'Only -mini models',
             `~${pricing.freeMonthlyCredits} AI edits or ${Math.floor((pricing.freeMonthlyCredits - 1) / 10)} image gens`,
+            `SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
             'Credits reset monthly',
             'Save files to cloud',
           ]}
@@ -138,6 +140,7 @@ export function PricingPage() {
           features={[
             'Everything in Free',
             'All models (gpt-5.4, gpt-5.2-codex, etc.)',
+            'Unlimited SVG size for AI',
             'Better image generation',
             'Priority support',
           ]}
