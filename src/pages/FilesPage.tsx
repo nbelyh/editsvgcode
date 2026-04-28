@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Container, Title, Text, Table, Anchor, Loader, ActionIcon, Tooltip } from '@mantine/core';
+import { Container, Title, Text, Table, Anchor, Loader, ActionIcon, Tooltip, Alert, Box, Stack } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconLock, IconWorld } from '@tabler/icons-react';
+import { IconTrash, IconLock, IconWorld, IconInfoCircle } from '@tabler/icons-react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { config } from '../lib/config';
 import { Link } from 'react-router-dom';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 
@@ -80,9 +81,16 @@ export function FilesPage() {
     }
   }, [files]);
 
+  const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
+
   return (
-    <Container py="xl" style={{ overflow: 'auto', height: '100%' }}>
+    <Container py="xl" className="page-scroll">
       <Title order={2} mb="md">Files</Title>
+      {isBeta && (
+        <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" mb="md">
+          This is a <strong>beta environment</strong> — files are not guaranteed to be preserved.
+        </Alert>
+      )}
 
       {loading ? (
         <Loader size="sm" />

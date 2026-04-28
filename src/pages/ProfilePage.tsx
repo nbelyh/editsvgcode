@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Title, Text, Loader, Group, Avatar, Badge, Stack, Table, Anchor, Divider, Button } from '@mantine/core';
-import { IconExternalLink } from '@tabler/icons-react';
+import { Container, Title, Text, Loader, Group, Avatar, Badge, Stack, Table, Anchor, Divider, Button, Alert, Box } from '@mantine/core';
+import { IconExternalLink, IconInfoCircle } from '@tabler/icons-react';
+import { config } from '../lib/config';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
@@ -81,9 +82,16 @@ export function ProfilePage() {
   const tier = credits?.tier ?? userDoc?.tier ?? 'free';
   const isPro = tier === 'pro';
 
+  const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
+
   return (
-    <Container py="xl" style={{ overflow: 'auto', height: '100%' }}>
+    <Container py="xl" className="page-scroll">
       <Title order={2} mb="md">Profile</Title>
+      {isBeta && (
+        <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" mb="md">
+          This is a <strong>beta environment</strong> — accounts and data will not be preserved.
+        </Alert>
+      )}
 
       {loading ? (
         <Loader size="sm" />

@@ -1,7 +1,9 @@
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 import { getApp } from 'firebase/app';
+import { config } from './config';
 
 function getAnalyticsInstance(): Analytics | null {
+  if (config.FIREBASE_AUTH_DOMAIN === 'localhost') return null;
   try {
     return getAnalytics(getApp());
   } catch {

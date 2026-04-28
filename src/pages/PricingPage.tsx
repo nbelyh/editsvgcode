@@ -1,5 +1,6 @@
-import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table } from '@mantine/core';
-import { IconCheck, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
+import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table, Alert } from '@mantine/core';
+import { IconCheck, IconBrandGoogle, IconBrandGithub, IconInfoCircle } from '@tabler/icons-react';
+import { config } from '../lib/config';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
@@ -96,8 +97,15 @@ export function PricingPage() {
     catch (err) { logError('signInWithGithub', err); }
   };
 
+  const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
+
   return (
-    <Stack align="center" gap="xl" py="xl" px="md" style={{ overflow: 'auto', height: '100%' }}>
+    <Stack align="center" gap="xl" pb="xl" pt="md" px="md" className="page-scroll">
+      {isBeta && (
+        <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" style={{ maxWidth: 700, width: '100%', flexShrink: 0 }}>
+          <strong>Beta:</strong> payments are disabled — upgrade buttons are for preview only.
+        </Alert>
+      )}
       <Stack align="center" gap="xs">
         <Title order={2}>Simple, transparent pricing</Title>
         <Text c="dimmed" size="md">Start for free. Upgrade when you need more.</Text>
