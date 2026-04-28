@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
-import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard, IconFiles, IconStar } from '@tabler/icons-react';
+import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard, IconFiles, IconStar, IconMessageReport } from '@tabler/icons-react';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
@@ -106,6 +106,10 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconBrandGithub size={14} />} onClick={handleGithubSignIn}>
               Sign in with GitHub
             </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item leftSection={<IconMessageReport size={14} />} component="a" href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer">
+              Feedback / Report Issue
+            </Menu.Item>
           </>
         ) : (
           <>
@@ -133,6 +137,10 @@ export function UserMenu() {
             )}
             <Menu.Item leftSection={<IconLogout size={14} />} onClick={handleSignOut}>
               Sign out
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item leftSection={<IconMessageReport size={14} />} component="a" href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer">
+              Feedback / Report Issue
             </Menu.Item>
           </>
         )}
