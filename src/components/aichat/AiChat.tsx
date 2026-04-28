@@ -440,6 +440,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           imageConfirmSummary={imageConfirmSummary}
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
+          onSamplePrompt={setInput}
         />
         <ChatComposer
           input={input}

@@ -60,6 +60,30 @@
   opacity: 0.7;
 }
 
+.aui-sample-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.aui-sample-prompt {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mantine-color-default-border);
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.aui-sample-prompt:hover {
+  background: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4));
+  color: var(--mantine-color-text);
+}
+
 /* Messages */
 .aui-msg {
   padding: 8px;

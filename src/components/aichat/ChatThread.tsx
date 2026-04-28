@@ -35,6 +35,7 @@ interface ChatThreadProps {
   imageConfirmSummary: string | null;
   onImageConfirm: () => void;
   onImageDecline: () => void;
+  onSamplePrompt: (text: string) => void;
 }
 
 function ReadToolCallsBlock({ calls }: { calls: ReadToolCall[] }) {
@@ -123,6 +124,13 @@ function EditMessageForm({ text, onChange, onSubmit, onCancel }: {
   );
 }
 
+const SAMPLE_PROMPTS = [
+  'Draw me a cute kitten',
+  'Change color of all boxes to red',
+  'Add a blue sky background',
+  'Translate all text to German',
+];
+
 export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
@@ -130,6 +138,7 @@ export function ChatThread({
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
+  onSamplePrompt,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -139,7 +148,13 @@ export function ChatThread({
         <div className="aui-empty">
           <IconSparkles size={32} className="aui-empty-icon" />
           <p>Ask AI to edit your SVG</p>
-          <p className="aui-empty-hint">e.g. select an item and tell it to &quot;change the fill to blue&quot;</p>
+          <div className="aui-sample-prompts">
+            {SAMPLE_PROMPTS.map(prompt => (
+              <button key={prompt} className="aui-sample-prompt" onClick={() => onSamplePrompt(prompt)}>
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
