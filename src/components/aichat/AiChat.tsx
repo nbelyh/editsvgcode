@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type CreditsError } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../../lib/chat-storage';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
@@ -202,10 +202,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       const creditsErr = isCreditsError(err);
       if (creditsErr) trackCreditsExhausted();
       const errMsg = (err as Error).message;
+      const anonCreditsExhausted = creditsErr && isAnonymous && (err as CreditsError).creditCode === 'INSUFFICIENT_CREDITS';
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: creditsErr ? errMsg : `Error: ${errMsg}`,
-        buyCredits: creditsErr || undefined,
+        signIn: anonCreditsExhausted || undefined,
+        buyCredits: (creditsErr && !anonCreditsExhausted) || undefined,
       };
       setMessages(prev => [...prev, assistantMsg]);
     } finally {

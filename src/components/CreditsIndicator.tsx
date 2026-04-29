@@ -17,7 +17,7 @@ export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel
     ? Object.entries(creditsByModel).sort(([, a], [, b]) => b - a)
     : [];
   const label = depleted ? (
-    <Text size="sm">No credits remaining — click to buy more</Text>
+    <Text size="sm">{isAnonymous ? 'Guest credits used — sign in for 100 free credits/month' : 'No credits remaining — click to buy more'}</Text>
   ) : (
     <div>
       <Text size="sm" fw={600}>{remaining} / {effectiveLimit} credits remaining</Text>
@@ -46,8 +46,8 @@ export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel
     </svg>
   );
   return (
-    <Tooltip label={label} multiline w={modelEntries.length > 0 ? 220 : undefined}>
-      {depleted ? (
+    <Tooltip label={label} multiline w={modelEntries.length > 0 ? 220 : (isAnonymous && depleted ? 280 : undefined)}>
+      {depleted && !isAnonymous ? (
         <Link to={BUY_CREDITS_URL} style={{ display: 'block', lineHeight: 0 }}>
           {indicator}
         </Link>

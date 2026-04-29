@@ -1,9 +1,11 @@
 import { useState, Fragment, useRef, useEffect } from 'react';
-import { ActionIcon, Tooltip } from '@mantine/core';
-import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp } from '@tabler/icons-react';
+import { ActionIcon, Tooltip, Button, Group } from '@mantine/core';
+import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
+import { signInWithGoogle, signInWithGithub, logError } from '../../lib/firebase';
+import { trackSignIn } from '../../lib/analytics';
 import { IconPicker } from './IconPicker';
 import { ImageConfirm } from './ImageConfirm';
 import type { DisplayMessage, ProgressStatus } from './types';
@@ -238,6 +240,28 @@ export function ChatThread({
                   <> — <Link to={BUY_CREDITS_URL}>Buy Credits</Link></>
                 )}
               </div>
+            )}
+            {msg.signIn && (
+              <Group gap="xs" mt="xs">
+                <Button
+                  size="xs"
+                  variant="default"
+                  leftSection={<IconBrandGoogle size={14} />}
+                  onClick={async () => {
+                    try { await signInWithGoogle(); trackSignIn('google'); }
+                    catch (err) { logError('signInWithGoogle', err); }
+                  }}
+                >Sign in with Google</Button>
+                <Button
+                  size="xs"
+                  variant="default"
+                  leftSection={<IconBrandGithub size={14} />}
+                  onClick={async () => {
+                    try { await signInWithGithub(); trackSignIn('github'); }
+                    catch (err) { logError('signInWithGithub', err); }
+                  }}
+                >Sign in with GitHub</Button>
+              </Group>
             )}
             {hasAcceptedGenImage && (
               <div className="aui-checkpoint">
