@@ -261,6 +261,12 @@ export function ChatThread({
                     catch (err) { logError('signInWithGithub', err); }
                   }}
                 >Sign in with GitHub</Button>
+                <Button
+                  size="xs"
+                  variant="subtle"
+                  component={Link}
+                  to={BUY_CREDITS_URL}
+                >Buy credits</Button>
               </Group>
             )}
             {hasAcceptedGenImage && (
