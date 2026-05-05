@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { AppShell, Group, Text, ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconBrandGithub, IconSun, IconMoon } from '@tabler/icons-react';
+import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { IconBrandGithub, IconSun, IconMoon, IconBug } from '@tabler/icons-react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
@@ -42,9 +42,17 @@ export default function App() {
             </Group>
           </Group>
           <Group gap="xs">
-            <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme">
-              {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
-            </ActionIcon>
+            <Tooltip label="Send feedback or report a bug">
+              <ActionIcon variant="subtle" color="gray" size="lg" component="a" href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer" aria-label="Feedback">
+                <IconBug size={20} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={computedColorScheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme">
+                {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+              </ActionIcon>
+            </Tooltip>
+            <div style={{ width: 8 }} />
             <UserMenu />
           </Group>
         </Group>
