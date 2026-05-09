@@ -15,6 +15,28 @@ import '../AiChat.css';
 const HISTORY_KEY = 'esvg-input-history';
 const MAX_HISTORY = 100;
 
+/**
+ * Heuristic: detect prompts that primarily request raster image generation.
+ * Reasoning effort doesn't help much here — the model's job is to call
+ * generate_image. Using lower effort cuts latency significantly.
+ *
+ * Conservative match — only clearly-generative phrases. Icon/logo prompts are
+ * deliberately excluded because the model still needs to decide between
+ * search_icons and generate_image, which benefits from higher reasoning.
+ */
+function looksLikeImageGen(text: string): boolean {
+  const t = text.toLowerCase();
+  const keywords = [
+    'draw ', 'draw me ', 'draw a ', 'draw an ',
+    'generate an image', 'generate image', 'generate a picture',
+    'create an image', 'create a picture',
+    'make me an image', 'make a picture',
+    'picture of ', 'photo of ', 'image of ', 'illustration of ',
+    'render ', 'paint ', 'sketch ',
+  ];
+  return keywords.some(k => t.includes(k));
+}
+
 function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
@@ -167,7 +189,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         imageModel,
         abort.signal,
         setProgressStatus,
-        effort,
+        // Lower effort for image-generation prompts — reasoning doesn't help much there
+        supportedEfforts && looksLikeImageGen(text) ? 'low' : effort,
         handleIconPick,
         (tc) => collectedToolCalls.push(tc),
         handleImageConfirm,

@@ -1,4 +1,4 @@
-export type ImageProgressStatus = 'generating-image' | 'vectorizing';
+export type ImageProgressStatus = 'generating-image' | 'modifying-image' | 'vectorizing';
 
 export interface VectorizerParams {
   mode: 'spline' | 'polygon' | 'none';

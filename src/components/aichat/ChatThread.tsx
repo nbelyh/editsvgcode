@@ -144,6 +144,25 @@ export function ChatThread({
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
+  // Elapsed seconds since the request started — reassures the user the system is alive
+  const [elapsed, setElapsed] = useState(0);
+  const startedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isRunning) {
+      startedAtRef.current = null;
+      setElapsed(0);
+      return;
+    }
+    startedAtRef.current = Date.now();
+    setElapsed(0);
+    const id = window.setInterval(() => {
+      if (startedAtRef.current) {
+        setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000));
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [isRunning]);
+
   return (
     <div className="aui-viewport" ref={viewportRef}>
       {messages.length === 0 && (
@@ -309,9 +328,19 @@ export function ChatThread({
           <div className="aui-status-indicator">
             <span className="aui-spinner" />
             {progressLabel === 'thinking' && 'Thinking…'}
-            {progressLabel === 'generating-image' && 'Generating image…'}
+            {progressLabel === 'generating-image' && (
+              <span>
+                Generating image… <span className="aui-status-hint">this can take 30–60s, please don't panic</span>
+              </span>
+            )}
+            {progressLabel === 'modifying-image' && (
+              <span>
+                Modifying image… <span className="aui-status-hint">this can take 30–60s, please don't panic</span>
+              </span>
+            )}
             {progressLabel === 'vectorizing' && 'Vectorizing…'}
             {typeof progressStatus === 'object' && `Calling ${progressStatus.tool}… (round ${progressStatus.round})`}
+            {elapsed > 1 && <span className="aui-status-elapsed"> · {elapsed}s</span>}
           </div>
         </div>
       )}

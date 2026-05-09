@@ -120,6 +120,7 @@ async function callServer(
 export type ProgressStatus =
   | 'thinking'
   | 'generating-image'
+  | 'modifying-image'
   | 'vectorizing'
   | { tool: string; round: number };
 
@@ -342,7 +343,7 @@ export async function sendChatRequest(
         if (!currentPngDataUrl) {
           toolOutput = 'Error: No previously generated image available to modify. Use generate_image to create a new image first.';
         } else {
-          onProgress?.('generating-image');
+          onProgress?.('modifying-image');
           let result;
           try {
             result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s));

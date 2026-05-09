@@ -183,6 +183,16 @@
   flex-shrink: 0;
 }
 
+.aui-status-elapsed {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.aui-status-hint {
+  opacity: 0.7;
+  font-style: italic;
+}
+
 @keyframes aui-spin {
   to { transform: rotate(360deg); }
 }
