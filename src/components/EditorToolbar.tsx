@@ -12,9 +12,10 @@ interface EditorToolbarProps {
   onTogglePrivate: () => void;
   showPreview: boolean;
   onTogglePreview: () => void;
+  showPreviewToggle?: boolean;
 }
 
-export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, onTogglePrivate, showPreview, onTogglePreview }: EditorToolbarProps) {
+export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, onTogglePrivate, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
   return (
     <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}>
       <Group gap="xs">
@@ -46,11 +47,13 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
           </Tooltip>
         )}
       </Group>
-      <Tooltip label={showPreview ? 'Hide preview' : 'Show preview'}>
-        <ActionIcon variant="subtle" color="gray" size="sm" onClick={onTogglePreview}>
-          {showPreview ? <IconEye size={14} /> : <IconEyeOff size={14} />}
-        </ActionIcon>
-      </Tooltip>
+      {showPreviewToggle && (
+        <Tooltip label={showPreview ? 'Hide preview' : 'Show preview'}>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={onTogglePreview}>
+            {showPreview ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+          </ActionIcon>
+        </Tooltip>
+      )}
     </Group>
   );
 }

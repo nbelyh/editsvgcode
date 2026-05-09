@@ -4,6 +4,39 @@
   overflow: hidden;
 }
 
+/* Mobile/tablet bottom tab bar */
+.mobile-tab-bar {
+  display: flex;
+  flex-shrink: 0;
+  background-color: var(--esvg-chrome-bg);
+  border-top: 1px solid var(--esvg-chrome-border);
+  height: 52px;
+}
+
+.mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--mantine-color-dimmed);
+  font-size: 11px;
+  padding: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-tab.active {
+  color: var(--mantine-primary-color-filled);
+}
+
+.mobile-tab svg {
+  flex-shrink: 0;
+}
+
 /* Make AppShell.Main fill remaining vertical space */
 .mantine-AppShell-main {
   height: 100vh !important;
