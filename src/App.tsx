@@ -119,14 +119,17 @@ export default function App() {
         <Group h="100%" px="xs" justify="space-between">
           <Group gap="xs">
             <Text size="sm" c="dimmed">v{__APP_VERSION__}</Text>
-            <FooterLink href="https://unmanagedvisio.com" target="_blank">© UnmanagedVisio</FooterLink>
-            <FooterLink href="/privacy">Privacy Policy</FooterLink>
-            <FooterLink href="/terms">Terms of Service</FooterLink>
-            <FooterLink href="/imprint">Imprint</FooterLink>
-            <FooterLink href="/refund-policy">Refund Policy</FooterLink>
+            <FooterLink href="https://unmanagedvisio.com" target="_blank" title="Visit UnmanagedVisio website">© UnmanagedVisio</FooterLink>
+            <FooterLink href="/privacy" title="Read our privacy policy">Privacy Policy</FooterLink>
+            <FooterLink href="/terms" title="Read the terms of service">Terms of Service</FooterLink>
+            <FooterLink href="/imprint" title="Legal information">Imprint</FooterLink>
+            <FooterLink href="/refund-policy" title="Read the refund policy">Refund Policy</FooterLink>
+            {Date.now() < new Date('2026-07-11').getTime() && (
+              <FooterLink href="https://editsvgcode-legacy.web.app" target="_blank" title="The legacy version of the editor (available until July 2026)">Legacy version</FooterLink>
+            )}
           </Group>
           <Group gap="xs">
-            <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />}>
+            <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />} title="View source code on GitHub">
               {' '}GitHub
             </FooterLink>
           </Group>
@@ -137,3 +140,5 @@ export default function App() {
     </AppShell>
   );
 }
+
+

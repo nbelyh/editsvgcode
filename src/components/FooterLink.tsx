@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
-import { Text } from '@mantine/core';
+import { Text, Tooltip } from '@mantine/core';
 import './FooterLink.css';
 
-export function FooterLink({ href, target, rel, icon, children }: { href: string; target?: string; rel?: string; icon?: ReactNode; children: ReactNode }) {
-  return (
+export function FooterLink({ href, target, rel, icon, title, children }: { href: string; target?: string; rel?: string; icon?: ReactNode; title?: string; children: ReactNode }) {
+  const link = (
     <Text
       component="a"
       href={href}
@@ -15,5 +15,13 @@ export function FooterLink({ href, target, rel, icon, children }: { href: string
     >
       {icon}{children}
     </Text>
+  );
+
+  if (!title) return link;
+
+  return (
+    <Tooltip label={title} withArrow position="top" withinPortal>
+      <span>{link}</span>
+    </Tooltip>
   );
 }
