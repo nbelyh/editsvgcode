@@ -1,11 +1,11 @@
 import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table, Alert } from '@mantine/core';
-import { IconCheck, IconBrandGoogle, IconBrandGithub, IconInfoCircle } from '@tabler/icons-react';
+import { IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { config } from '../lib/config';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { signInWithGoogle, signInWithGithub, logError } from '../lib/firebase';
-import { trackSignIn, trackBeginCheckout } from '../lib/analytics';
+import { trackBeginCheckout } from '../lib/analytics';
+import { SignInButtons } from '../components/SignInButtons';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
@@ -87,16 +87,6 @@ export function PricingPage() {
     window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
   }
 
-  const handleSignInGoogle = async () => {
-    try { await signInWithGoogle(); trackSignIn('google'); navigate('/'); }
-    catch (err) { logError('signInWithGoogle', err); }
-  };
-
-  const handleSignInGithub = async () => {
-    try { await signInWithGithub(); trackSignIn('github'); navigate('/'); }
-    catch (err) { logError('signInWithGithub', err); }
-  };
-
   const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
 
   return (
@@ -136,10 +126,7 @@ export function PricingPage() {
             'Save files to cloud',
           ]}
           ctas={isAnonymous
-            ? [
-                { label: 'Sign in with Google', onClick: handleSignInGoogle },
-                { label: 'Sign in with GitHub', onClick: handleSignInGithub },
-              ]
+            ? [{ label: 'Sign in', onClick: () => navigate('/signin') }]
             : [{ label: 'Current plan' }]
           }
         />
@@ -181,14 +168,7 @@ export function PricingPage() {
       {isAnonymous && (
         <Stack align="center" gap="xs">
           <Text size="sm" c="dimmed">Sign in to unlock 100 free credits/month</Text>
-          <Group gap="sm">
-            <Button leftSection={<IconBrandGoogle size={16} />} variant="default" onClick={handleSignInGoogle}>
-              Sign in with Google
-            </Button>
-            <Button leftSection={<IconBrandGithub size={16} />} variant="default" onClick={handleSignInGithub}>
-              Sign in with GitHub
-            </Button>
-          </Group>
+          <SignInButtons onSuccess={() => navigate('/')} />
         </Stack>
       )}
 

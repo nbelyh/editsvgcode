@@ -20,6 +20,7 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ImprintPage } from './pages/ImprintPage';
 import { RefundPolicyPage } from './pages/RefundPolicyPage';
+import { SignInPage } from './pages/SignInPage';
 import { theme } from './theme';
 
 createRoot(document.getElementById('root')!).render(
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="files" element={<FilesPage />} />
             <Route path="features" element={<FeaturesPage />} />
             <Route path="pricing" element={<PricingPage />} />
+            <Route path="signin" element={<SignInPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="support" element={<SupportPage />} />
             <Route path="terms" element={<TermsPage />} />

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Menu, ActionIcon, Avatar, Text, Group } from '@mantine/core';
-import { IconBrandGithub, IconBrandGoogle, IconLogout, IconUser, IconCreditCard, IconFiles, IconStar, IconMessageReport } from '@tabler/icons-react';
+import { IconBrandGithub, IconBrandGoogle, IconBrandWindows, IconLogout, IconUser, IconCreditCard, IconFiles, IconStar, IconMessageReport, IconLogin } from '@tabler/icons-react';
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { signInWithGoogle, signInWithGithub, signOutUser, logError } from '../lib/firebase';
-import { trackSignIn } from '../lib/analytics';
+import { signOutUser, logError } from '../lib/firebase';
 import { subscribeCredits } from '../lib/credits-listener';
 import type { Credits } from '../lib/api-client';
 
@@ -37,24 +36,6 @@ export function UserMenu() {
 
   const isAnonymous = !user || user.isAnonymous;
   const isPro = credits?.tier === 'pro';
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      trackSignIn('google');
-    } catch (err) {
-      logError('signInWithGoogle', err);
-    }
-  };
-
-  const handleGithubSignIn = async () => {
-    try {
-      await signInWithGithub();
-      trackSignIn('github');
-    } catch (err) {
-      logError('signInWithGithub', err);
-    }
-  };
 
   const handleSignOut = async () => {
     try {
@@ -100,11 +81,8 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
               Upgrade to Pro
             </Menu.Item>
-            <Menu.Item leftSection={<IconBrandGoogle size={14} />} onClick={handleGoogleSignIn}>
-              Sign in with Google
-            </Menu.Item>
-            <Menu.Item leftSection={<IconBrandGithub size={14} />} onClick={handleGithubSignIn}>
-              Sign in with GitHub
+            <Menu.Item leftSection={<IconLogin size={14} />} onClick={() => navigate('/signin')}>
+              Sign in
             </Menu.Item>
             <Menu.Divider />
             <Menu.Item leftSection={<IconMessageReport size={14} />} component="a" href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer">

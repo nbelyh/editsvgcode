@@ -221,6 +221,10 @@ export function signInWithGithub(): Promise<User> {
   return signInWithProvider(new GithubAuthProvider());
 }
 
+export function signInWithMicrosoft(): Promise<User> {
+  return signInWithProvider(new OAuthProvider('microsoft.com'));
+}
+
 /** Sign out and fall back to anonymous auth. */
 export async function signOutUser(): Promise<void> {
   const auth = getAuth();
