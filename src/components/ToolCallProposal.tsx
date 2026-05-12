@@ -144,7 +144,7 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
   const pngDataUrl = (tc.name === 'generate_image' || tc.name === 'modify_image') ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
 
   return (
-    <div className="aui-proposal" style={{ marginBottom: 8 }}>
+    <div className="aui-proposal" style={{ marginBottom: 2 }}>
       <div className="aui-proposal-header">
         {tc.name === 'find_replace' ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">

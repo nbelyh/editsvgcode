@@ -30,9 +30,21 @@ export function trackAiAccept(): void {
 }
 
 /** User rejected an AI SVG edit. */
-export function trackAiReject(): void {
+export function trackAiReject(meta: { model: string; effort?: string; tool: string; prompt_len: number }): void {
   const a = getAnalyticsInstance();
-  if (a) logEvent(a, 'ai_reject');
+  if (a) logEvent(a, 'ai_reject', meta);
+}
+
+/** User rated an AI response with thumbs up. */
+export function trackAiThumbsUp(meta: { model: string; effort?: string; prompt_len: number }): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'ai_thumbs_up', meta);
+}
+
+/** User rated an AI response with thumbs down. */
+export function trackAiThumbsDown(meta: { model: string; effort?: string; prompt_len: number; shared: boolean }): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'ai_thumbs_down', meta);
 }
 
 /** AI image generation completed. */

@@ -1,6 +1,6 @@
 import { useState, Fragment, useRef, useEffect } from 'react';
 import { ActionIcon, Tooltip, Button, Group } from '@mantine/core';
-import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconBrandGoogle, IconBrandGithub } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconBrandGoogle, IconBrandGithub, IconThumbUp, IconThumbDown } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
@@ -23,6 +23,8 @@ interface ChatThreadProps {
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
   onUndoAccept: (msgIndex: number, tcIndex: number) => void;
   onRestore: (msgIdx: number) => void;
+  onThumbsUp: (msgIndex: number) => void;
+  onThumbsDown: (msgIndex: number, prompt: string) => void;
   editingIndex: number | null;
   editingText: string;
   onEditStart: (msgIdx: number) => void;
@@ -137,12 +139,24 @@ export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef, endRef,
   onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
+  onThumbsUp, onThumbsDown,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
   onSamplePrompt,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
+
+  // Thumbs feedback state: which message index has been rated, and whether the share prompt is showing
+  const [ratedMsgs, setRatedMsgs] = useState<Record<number, 'up' | 'down'>>({}); 
+  const [sharePromptIdx, setSharePromptIdx] = useState<number | null>(null);
+
+  // Reset ratings when messages change (e.g. re-run)
+  const msgLen = messages.length;
+  useEffect(() => {
+    setRatedMsgs({});
+    setSharePromptIdx(null);
+  }, [msgLen]);
 
   // Elapsed seconds since the request started — reassures the user the system is alive
   const [elapsed, setElapsed] = useState(0);
@@ -215,7 +229,8 @@ export function ChatThread({
         const hasAcceptedGenImage = msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
 
         if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon) {
-          return (<div key={msgIdx}>
+          const rated = ratedMsgs[msgIdx];
+          return (<div key={msgIdx} style={{ position: 'relative' }}>
             {hasAcceptedGenImage && (
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
@@ -235,8 +250,43 @@ export function ChatThread({
                 onUpdateSvg={(svg) => onUpdateToolCallSvg(msgIdx, tcIdx, svg)}
               />
             ))}
+            {!isRunning && (
+              <div className="aui-thumbs">
+                {sharePromptIdx === msgIdx ? (
+                  <div className="aui-share-prompt">
+                    <span>Share prompt to improve?</span>
+                    <button className="aui-action-btn aui-action-btn-primary" onClick={() => {
+                      const userMsg = messages[msgIdx - 1];
+                      onThumbsDown(msgIdx, userMsg?.role === 'user' ? userMsg.content : '');
+                      setSharePromptIdx(null);
+                    }}>Share</button>
+                    <button className="aui-action-btn" onClick={() => {
+                      onThumbsDown(msgIdx, '');
+                      setSharePromptIdx(null);
+                    }}>Skip</button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className={`aui-thumb-btn${rated === 'up' ? ' active' : ''}`}
+                      title="Good response"
+                      disabled={!!rated}
+                      onClick={() => { setRatedMsgs(p => ({ ...p, [msgIdx]: 'up' })); onThumbsUp(msgIdx); }}
+                    ><IconThumbUp size={16} /></button>
+                    <button
+                      className={`aui-thumb-btn${rated === 'down' ? ' active' : ''}`}
+                      title="Bad response"
+                      disabled={!!rated}
+                      onClick={() => { setRatedMsgs(p => ({ ...p, [msgIdx]: 'down' })); setSharePromptIdx(msgIdx); }}
+                    ><IconThumbDown size={16} /></button>
+                  </>
+                )}
+              </div>
+            )}
           </div>);
         }
+
+        const rated = ratedMsgs[msgIdx];
 
         return (
           <div key={msgIdx} className="aui-msg aui-msg-assistant">
@@ -307,6 +357,39 @@ export function ChatThread({
                 onUpdateSvg={(svg) => onUpdateToolCallSvg(msgIdx, tcIdx, svg)}
               />
             ))}
+            {!isRunning && (msg.content || msg.toolCalls?.length) && (
+              <div className="aui-thumbs">
+                {sharePromptIdx === msgIdx ? (
+                  <div className="aui-share-prompt">
+                    <span>Share prompt to improve?</span>
+                    <button className="aui-action-btn aui-action-btn-primary" onClick={() => {
+                      const userMsg = messages[msgIdx - 1];
+                      onThumbsDown(msgIdx, userMsg?.role === 'user' ? userMsg.content : '');
+                      setSharePromptIdx(null);
+                    }}>Share</button>
+                    <button className="aui-action-btn" onClick={() => {
+                      onThumbsDown(msgIdx, '');
+                      setSharePromptIdx(null);
+                    }}>Skip</button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className={`aui-thumb-btn${rated === 'up' ? ' active' : ''}`}
+                      title="Good response"
+                      disabled={!!rated}
+                      onClick={() => { setRatedMsgs(p => ({ ...p, [msgIdx]: 'up' })); onThumbsUp(msgIdx); }}
+                    ><IconThumbUp size={16} /></button>
+                    <button
+                      className={`aui-thumb-btn${rated === 'down' ? ' active' : ''}`}
+                      title="Bad response"
+                      disabled={!!rated}
+                      onClick={() => { setRatedMsgs(p => ({ ...p, [msgIdx]: 'down' })); setSharePromptIdx(msgIdx); }}
+                    ><IconThumbDown size={16} /></button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

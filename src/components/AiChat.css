@@ -99,6 +99,7 @@
 }
 
 .aui-msg-assistant {
+  position: relative;
 }
 
 .aui-msg-header {
@@ -271,6 +272,55 @@
 
 .aui-status-rejected {
   color: var(--mantine-color-dimmed);
+}
+
+/* Thumbs up/down rating */
+.aui-thumbs {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.aui-thumb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--mantine-color-dimmed);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.aui-thumb-btn:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.aui-thumb-btn.active {
+  opacity: 1;
+  color: var(--mantine-primary-color-filled);
+}
+
+.aui-thumb-btn:disabled {
+  cursor: default;
+}
+
+/* Share prompt after thumbs down */
+.aui-share-prompt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--mantine-color-dimmed);
+  margin-left: auto;
 }
 
 /* Collapsible read tool calls */

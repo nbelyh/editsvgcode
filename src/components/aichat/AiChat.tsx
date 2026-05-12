@@ -9,7 +9,7 @@ import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import type { DisplayMessage, AiChatProps } from './types';
-import { trackAiChat, trackAiAccept, trackAiReject, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
+import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
 import '../AiChat.css';
 
 const HISTORY_KEY = 'esvg-input-history';
@@ -386,16 +386,32 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   }, [messages, onPreviewSvg, onRestore]);
 
   const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
-    trackAiReject();
+    const tc = messages[msgIndex]?.toolCalls?.[tcIndex];
+    const userMsg = messages[msgIndex - 1];
+    const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
+
+    trackAiReject({ model, effort: effort, tool: tc?.name ?? '', prompt_len: promptLen });
+
     onPreviewSvg(null);
 
     const userMsgIndex = msgIndex - 1;
-    const userMsg = messages[userMsgIndex];
     const restoredText = userMsg?.role === 'user' ? userMsg.content : '';
 
     setMessages(prev => prev.filter((_, i) => i !== userMsgIndex && i !== msgIndex));
     setInput(restoredText);
-  }, [messages, onPreviewSvg]);
+  }, [messages, onPreviewSvg, model, effort]);
+
+  const handleThumbsUp = useCallback((msgIndex: number) => {
+    const userMsg = messages[msgIndex - 1];
+    const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
+    trackAiThumbsUp({ model, effort, prompt_len: promptLen });
+  }, [messages, model, effort]);
+
+  const handleThumbsDown = useCallback((msgIndex: number, prompt: string) => {
+    const userMsg = messages[msgIndex - 1];
+    const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
+    trackAiThumbsDown({ model, effort, prompt_len: promptLen, shared: !!prompt });
+  }, [messages, model, effort]);
 
   const handleModelChange = useCallback((v: string) => {
     setModel(v);
@@ -451,6 +467,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           onUpdateToolCallSvg={handleUpdateToolCallSvg}
           onUndoAccept={handleUndoAccept}
           onRestore={handleRestore}
+          onThumbsUp={handleThumbsUp}
+          onThumbsDown={handleThumbsDown}
           editingIndex={editingIndex}
           editingText={editingText}
           onEditStart={handleEditStart}
