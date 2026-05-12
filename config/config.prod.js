@@ -1,7 +1,7 @@
 // Production runtime config
 window.__CONFIG__ = {
   FIREBASE_API_KEY: 'AIzaSyDFV9DY9TO1wKlKa4JNlG-J3XPh162X6tk',
-  FIREBASE_AUTH_DOMAIN: 'editsvgcode-db.firebaseapp.com',
+  FIREBASE_AUTH_DOMAIN: 'editsvgcode.com',
   FIREBASE_DATABASE_URL: 'https://editsvgcode-db.firebaseio.com',
   FIREBASE_PROJECT_ID: 'editsvgcode-db',
   FIREBASE_STORAGE_BUCKET: 'editsvgcode-db.appspot.com',
