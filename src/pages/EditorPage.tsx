@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Group, ActionIcon, Text, Tooltip, useComputedColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { IconSparkles, IconInfoCircle, IconEye, IconCode } from '@tabler/icons-react';
+import { IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { useParams } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { DiffEditor } from '@monaco-editor/react';
@@ -36,9 +36,8 @@ export function EditorPage() {
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem('esvg-show-preview') !== 'false');
   const [showSidebar, setShowSidebar] = useState(() => localStorage.getItem('esvg-show-sidebar') !== 'false');
-  const [mobileTab, setMobileTab] = useState<'preview' | 'ai' | 'code'>('preview');
-  const isDesktop = useMediaQuery('(min-width: 75em)');
-  const isPhone = useMediaQuery('(max-width: 47.99em)');
+  const isDesktop = useMediaQuery('(min-width: 64em)');
+  const isPhone = useMediaQuery('(max-width: 35.99em)');
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -198,6 +197,7 @@ export function EditorPage() {
 
   if (!isDesktop) {
     if (isPhone) {
+      // Phone: preview (30%) stacked over AI chat
       return (
         <>
           {sharedInput}
@@ -214,53 +214,42 @@ export function EditorPage() {
       );
     }
 
+    // Tablet: preview (60%) + code on the left, AI chat sidebar on the right
     return (
       <>
         {sharedInput}
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           {sharedToolbar}
-          <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
-            <div style={{ height: '100%', display: mobileTab === 'preview' ? 'block' : 'none' }}>
-              {previewPanel}
+          <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            <div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ flex: '0 0 60%', minHeight: 0, overflow: 'hidden' }}>
+                {previewPanel}
+              </div>
+              <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', borderTop: '1px solid var(--esvg-chrome-border)', display: 'flex', flexDirection: 'column' }}>
+                {proposedSvg ? (
+                  <>
+                    <Group gap="xs" p={4} style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)' }}>
+                      <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
+                    </Group>
+                    <div style={{ flex: 1 }}>
+                      <DiffEditor
+                        original={svgCode}
+                        modified={proposedSvg}
+                        language="xml"
+                        theme={monacoTheme}
+                        options={{ readOnly: true, renderSideBySide: false }}
+                        onMount={handleDiffMount}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} theme={monacoTheme} onCursorElement={handleCursorElement} />
+                )}
+              </div>
             </div>
-            <div style={{ height: '100%', display: mobileTab === 'ai' ? 'block' : 'none' }}>
+            <div style={{ flex: '0 0 320px', minWidth: 0, overflow: 'hidden', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
               {aiChatPanel}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', visibility: mobileTab === 'code' ? 'visible' : 'hidden', position: mobileTab === 'code' ? 'relative' : 'absolute', inset: 0 }}>
-              {proposedSvg ? (
-                <>
-                  <Group gap="xs" p={4} style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)' }}>
-                    <Text size="xs" c="dimmed" fw={600}>AI Proposal — accept or reject in chat</Text>
-                  </Group>
-                  <div style={{ flex: 1 }}>
-                    <DiffEditor
-                      original={svgCode}
-                      modified={proposedSvg}
-                      language="xml"
-                      theme={monacoTheme}
-                      options={{ readOnly: true, renderSideBySide: false }}
-                      onMount={handleDiffMount}
-                    />
-                  </div>
-                </>
-              ) : (
-                <Editor ref={editorRef} value={svgCode} onChange={setSvgCode} readOnly={readOnly} theme={monacoTheme} onCursorElement={handleCursorElement} />
-              )}
-            </div>
-          </div>
-          <div className="mobile-tab-bar">
-            <button className={`mobile-tab${mobileTab === 'preview' ? ' active' : ''}`} onClick={() => setMobileTab('preview')}>
-              <IconEye size={20} />
-              <span>Preview</span>
-            </button>
-            <button className={`mobile-tab${mobileTab === 'ai' ? ' active' : ''}`} onClick={() => setMobileTab('ai')}>
-              <IconSparkles size={20} />
-              <span>AI Chat</span>
-            </button>
-            <button className={`mobile-tab${mobileTab === 'code' ? ' active' : ''}`} onClick={() => setMobileTab('code')}>
-              <IconCode size={20} />
-              <span>Code</span>
-            </button>
           </div>
         </div>
       </>
