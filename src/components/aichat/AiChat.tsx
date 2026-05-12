@@ -54,7 +54,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   });
   const currentModelDef = useMemo(() => EDIT_MODELS.find(m => m.value === model), [model]);
   const supportedEfforts = currentModelDef?.efforts;
-  const effort: ReasoningEffort | undefined = supportedEfforts ? (effortByModel[model] ?? 'high') : undefined;
+  const effort: ReasoningEffort | undefined = supportedEfforts ? (effortByModel[model] ?? currentModelDef?.defaultEffort ?? 'high') : undefined;
   const setEffort = useCallback((v: ReasoningEffort) => {
     setEffortByModel(prev => {
       const next = { ...prev, [model]: v };
