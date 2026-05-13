@@ -9,16 +9,16 @@
     "build": "tsc && vitest run && vite build",
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth --import .emulators/firebase --export-on-exit",
-    "ship": "npm run build && playwright test && npm run deploy",
-    "ship:beta": "npm run build && playwright test && npm run deploy:beta",
+    "ship": "npm run build && npm run deploy",
+    "ship:beta": "npm run build && npm run deploy:beta",
     "deploy": "firebase deploy --only hosting,firestore",
     "deploy:beta": "firebase deploy --only hosting,firestore -P beta",
     "preview:deploy": "npm run build && firebase hosting:channel:deploy preview --expires 7d",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "e2e": "npm run build && playwright test",
+    "e2e:ui": "npm run build && playwright test --ui"
   },
   "dependencies": {
     "@mantine/core": "^9.0.2",
