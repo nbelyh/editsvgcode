@@ -122,6 +122,11 @@
   max-height: 200px !important;
 }
 
+/* Limit hover tooltip width */
+.monaco-editor .monaco-hover {
+  max-width: 500px !important;
+}
+
 /* Carbon Ads */
 
 #carbonads * {

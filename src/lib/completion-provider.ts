@@ -5,6 +5,14 @@ import { formatXml } from './svg-utils';
 
 const schema = SvgSchema as Record<string, any>;
 
+/** Format a schema description for multi-line display. */
+function formatDescription(desc: string): string {
+  // Split before *Value*/*Value type*/*Default*/*Animatable* fields and [more...] links
+  return desc
+    .replace(/[;.]\s*\*(Value|Default|Animatable)/g, '  \n*$1')
+    .replace(/\s*\[more\.\.\.\]/g, '  \n[more...]');
+}
+
 export function getAreaInfo(text: string) {
   const items = ['"', "'", '<!--', '<![CDATA['];
   let isCompletionAvailable = true;
@@ -70,7 +78,7 @@ function getAvailableAttributes(monaco: Monaco, lastOpenedTag: { tagName: string
         kind: monaco.languages.CompletionItemKind.Property,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
         detail: attribute.detail || (deprecated ? '(deprecated)' : undefined),
-        documentation: { value: attribute.description || '', isTrusted: true },
+        documentation: { value: formatDescription(attribute.description || ''), isTrusted: true },
         tags: deprecated ? [monaco.languages.CompletionItemTag.Deprecated] : undefined,
         sortText: deprecated ? `zzz_${attribute.name}` : attribute.name,
       });
@@ -109,7 +117,7 @@ function getAvailableElements(monaco: Monaco, lastOpenedTag: { tagName: string }
       kind: monaco.languages.CompletionItemKind.Class,
       detail: elementInfo.detail,
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      documentation: { value: elementInfo.description || '', isTrusted: true },
+      documentation: { value: formatDescription(elementInfo.description || ''), isTrusted: true },
       tags: deprecated ? [monaco.languages.CompletionItemTag.Deprecated] : undefined,
       sortText: deprecated ? `zzz_${element}` : element,
     });
@@ -275,14 +283,6 @@ export function registerSvgProviders(monaco: Monaco) {
     },
   });
 
-/** Format a schema description for multi-line hover display. */
-function formatHoverDescription(desc: string): string {
-  // Split before *Value*/*Value type*/*Default*/*Animatable* fields and [more...] links
-  return desc
-    .replace(/;\s*\*(Value|Default|Animatable)/g, '  \n*$1')
-    .replace(/\s*\[more\.\.\.\]/g, '  \n[more...]');
-}
-
   // Hover provider
   monaco.languages.registerHoverProvider('xml', {
     provideHover(model: editor.ITextModel, position: Position) {
@@ -295,7 +295,7 @@ function formatHoverDescription(desc: string): string {
         if (info) {
           const prefix = info.deprecated ? '~~**`' + wordInfo.word + '`**~~ *(deprecated)*' : `**${wordInfo.word}**`;
           return {
-            contents: [{ value: prefix }, { value: formatHoverDescription(info.description) }],
+            contents: [{ value: prefix }, { value: formatDescription(info.description) }],
             range: new monaco.Range(position.lineNumber, wordInfo.startColumn, position.lineNumber, wordInfo.endColumn),
           };
         }
@@ -327,10 +327,19 @@ function formatHoverDescription(desc: string): string {
                   ? '~~**`' + attrWord + '`**~~ *(deprecated)*'
                   : `**${attrWord}**`;
                 const parts = [{ value: prefix }];
-                if (attribute.description) parts.push({ value: formatHoverDescription(attribute.description) });
+                let desc = attribute.description ? formatDescription(attribute.description) : '';
+                // Move [more...] link to the end, after options
+                let moreLink = '';
+                const moreMatch = desc.match(/\s*\[more\.\.\.]\(.*?\)\s*$/);
+                if (moreMatch) {
+                  moreLink = moreMatch[0];
+                  desc = desc.substring(0, moreMatch.index);
+                }
+                if (desc) parts.push({ value: desc });
                 if (attribute.options) {
                   parts.push({ value: 'Values: `' + attribute.options.join('` | `') + '`' });
                 }
+                if (moreLink) parts.push({ value: moreLink.trim() });
                 return {
                   contents: parts,
                   range: new monaco.Range(position.lineNumber, start + 1, position.lineNumber, end + 1),
