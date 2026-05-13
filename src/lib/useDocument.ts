@@ -6,7 +6,7 @@ import type { editor } from 'monaco-editor';
 import { EditSvgCodeDb, friendlyError } from './firebase';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
-import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints } from './chat-storage';
+import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints, migrateChatData } from './chat-storage';
 import { getAuth } from 'firebase/auth';
 import DEFAULT_SVG from '../assets/default.svg?raw';
 
@@ -91,11 +91,14 @@ export function useDocument(routeFileId: string | undefined) {
     return () => document.removeEventListener('dbinit', handleDbInit);
   }, [routeFileId]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const db = dbRef.current;
     if (!db) return;
     const uniqueId = routeFileId || getNewUniqueId();
     setSaving(true);
+    if (uniqueId !== fileId) {
+      await migrateChatData(fileId, uniqueId);
+    }
     setFileId(uniqueId);
     db.saveDocument(uniqueId, svgCode, isPrivate)
       .then(() => {
@@ -107,7 +110,7 @@ export function useDocument(routeFileId: string | undefined) {
         notifications.show({ title: 'Save failed', message: friendlyError(err), color: 'red' });
       })
       .finally(() => setSaving(false));
-  }, [svgCode, routeFileId, navigate, isPrivate]);
+  }, [svgCode, routeFileId, navigate, isPrivate, fileId]);
 
   const handleTogglePrivate = useCallback(async () => {
     const db = dbRef.current;

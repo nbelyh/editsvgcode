@@ -125,6 +125,33 @@ export async function popCheckpoints(count: number, fileId: string): Promise<str
   }
 }
 
+/**
+ * Copy all chat data (messages, svgCode, checkpoints) from one fileId to another.
+ * Used when saving a new file assigns a permanent ID.
+ */
+export async function migrateChatData(oldFileId: string, newFileId: string): Promise<void> {
+  try {
+    const db = await openDb();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const keys = ['messages', 'svgCode', 'svgCheckpoints'] as const;
+    await Promise.all(keys.map(base =>
+      new Promise<void>((resolve) => {
+        const req = store.get(keyFor(base, oldFileId));
+        req.onsuccess = () => {
+          if (req.result !== undefined) {
+            store.put(req.result, keyFor(base, newFileId));
+          }
+          resolve();
+        };
+        req.onerror = () => resolve();
+      })
+    ));
+  } catch {
+    // Silently ignore
+  }
+}
+
 export async function hasCheckpoints(fileId: string): Promise<boolean> {
   try {
     const db = await openDb();
