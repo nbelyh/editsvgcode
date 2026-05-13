@@ -22,11 +22,16 @@ export function stripBom(text: string): string {
 /** Pretty-print XML/SVG with proper indentation */
 export function formatXml(xml: string): string {
   if (!xml.trim()) return xml;
-  return xmlFormat(xml, {
-    indentation: '  ',
-    collapseContent: true,
-    lineSeparator: '\n',
-  });
+  try {
+    return xmlFormat(xml, {
+      indentation: '  ',
+      collapseContent: true,
+      lineSeparator: '\n',
+    });
+  } catch {
+    // Return unformatted if xml-formatter can't parse (e.g. CSS in <style>)
+    return xml;
+  }
 }
 
 /**
