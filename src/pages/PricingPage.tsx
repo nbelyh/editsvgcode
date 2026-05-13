@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { trackBeginCheckout } from '../lib/analytics';
-import { SignInButtons } from '../components/SignInButtons';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
@@ -103,13 +102,14 @@ export function PricingPage() {
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         <PlanCard
-          title="Anonymous"
+          title="Guest"
           credits={`${pricing.anonymousTrialCredits} credits, one-time`}
           features={[
             'Only -mini models',
             `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor((pricing.anonymousTrialCredits - 1) / 10)} image gen`,
             `AI SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
             'Credits never reset',
+            'Saved files are always public',
           ]}
           ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
         />
@@ -124,6 +124,7 @@ export function PricingPage() {
             `AI SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
             'Credits reset monthly',
             'Save files to cloud',
+            'Private or public files',
           ]}
           ctas={isAnonymous
             ? [{ label: 'Sign in', onClick: () => navigate('/signin') }]
@@ -164,13 +165,6 @@ export function PricingPage() {
           ]}
         />
       </Group>
-
-      {isAnonymous && (
-        <Stack align="center" gap="xs">
-          <Text size="sm" c="dimmed">Sign in to unlock 100 free credits/month</Text>
-          <SignInButtons onSuccess={() => navigate('/')} />
-        </Stack>
-      )}
 
       <Container size="sm" py="xl">
         <Stack gap="xl">

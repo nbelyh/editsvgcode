@@ -91,6 +91,8 @@ export function useDocument(routeFileId: string | undefined) {
     return () => document.removeEventListener('dbinit', handleDbInit);
   }, [routeFileId]);
 
+  const isAnonymous = getAuth().currentUser?.isAnonymous ?? true;
+
   const handleSave = useCallback(async () => {
     const db = dbRef.current;
     if (!db) return;
@@ -100,7 +102,9 @@ export function useDocument(routeFileId: string | undefined) {
       await migrateChatData(fileId, uniqueId);
     }
     setFileId(uniqueId);
-    db.saveDocument(uniqueId, svgCode, isPrivate)
+    // Anonymous users always save as public
+    const effectivePrivate = getAuth().currentUser?.isAnonymous ? false : isPrivate;
+    db.saveDocument(uniqueId, svgCode, effectivePrivate)
       .then(() => {
         navigate('/' + uniqueId, { replace: true });
         trackSave();
@@ -115,6 +119,8 @@ export function useDocument(routeFileId: string | undefined) {
   const handleTogglePrivate = useCallback(async () => {
     const db = dbRef.current;
     if (!db || !routeFileId) return;
+    // Anonymous users cannot change privacy
+    if (getAuth().currentUser?.isAnonymous) return;
     const newValue = !isPrivate;
     setIsPrivate(newValue);
     try {
@@ -188,6 +194,7 @@ export function useDocument(routeFileId: string | undefined) {
     readOnly,
     saving,
     isPrivate,
+    isAnonymous,
     fileId,
     canUndo,
     proposedSvg,

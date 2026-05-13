@@ -20,7 +20,7 @@ export function EditorPage() {
 
   const {
     svgCode, setSvgCode,
-    readOnly, saving, isPrivate, fileId, canUndo, proposedSvg,
+    readOnly, saving, isPrivate, isAnonymous, fileId, canUndo, proposedSvg,
     handleDiffMount, handleSave, handleTogglePrivate,
     handleFileChange, handleDownload, handleNew,
     handlePreviewSvg, handleAcceptSvg, handleUndo,
@@ -164,6 +164,7 @@ export function EditorPage() {
       saving={saving}
       routeFileId={routeFileId}
       isPrivate={isPrivate}
+      isAnonymous={isAnonymous}
       onTogglePrivate={handleTogglePrivate}
       showPreview={showPreview}
       onTogglePreview={togglePreview}
@@ -277,6 +278,7 @@ export function EditorPage() {
               saving={saving}
               routeFileId={routeFileId}
               isPrivate={isPrivate}
+              isAnonymous={isAnonymous}
               onTogglePrivate={handleTogglePrivate}
               showPreview={showPreview}
               onTogglePreview={togglePreview}

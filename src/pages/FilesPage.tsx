@@ -29,10 +29,12 @@ function SvgThumb({ text }: { text: string }) {
 export function FilesPage() {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(true);
 
   useEffect(() => {
     const auth = getAuth();
     return onAuthStateChanged(auth, (u) => {
+      setIsAnonymous(!u || u.isAnonymous);
       if (u) {
         const db = new EditSvgCodeDb();
         db.listUserDocuments()
@@ -126,9 +128,9 @@ export function FilesPage() {
                   <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Tooltip label={f.public ? 'Public — click to make private' : 'Private — click to make public'}>
-                    <ActionIcon variant="subtle" color={f.public ? 'blue' : 'gray'} size="sm" onClick={() => handleTogglePrivate(f.id)}>
-                      {f.public ? <IconWorld size={14} /> : <IconLock size={14} />}
+                  <Tooltip label={isAnonymous ? 'Public — sign in to save private files' : f.public ? 'Public — click to make private' : 'Private — click to make public'}>
+                    <ActionIcon variant="subtle" color={f.public ? 'blue' : 'gray'} size="sm" onClick={isAnonymous ? undefined : () => handleTogglePrivate(f.id)} style={isAnonymous ? { cursor: 'default', opacity: 0.6 } : undefined}>
+                      {isAnonymous ? <IconWorld size={14} /> : f.public ? <IconWorld size={14} /> : <IconLock size={14} />}
                     </ActionIcon>
                   </Tooltip>
                 </Table.Td>
