@@ -97,6 +97,7 @@ function ensureFilters(svg: SVGSVGElement) {
 export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);
   const containerRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<ShadowRoot | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const naturalSize = useRef<{ w: number; h: number } | null>(null);
   const prevZoomRef = useRef(100);
@@ -108,12 +109,22 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
+  // Attach shadow DOM on mount for CSS isolation
+  useEffect(() => {
+    if (containerRef.current && !shadowRef.current) {
+      shadowRef.current = containerRef.current.attachShadow({ mode: 'open' });
+    }
+  }, []);
+
+  /** Get the SVG element from the shadow root */
+  const getSvg = useCallback(() => shadowRef.current?.querySelector('svg') as SVGSVGElement | null, []);
+
   useImperativeHandle(ref, () => ({
     focus() { scrollRef.current?.focus(); },
   }), []);
 
   const clearAllSelections = useCallback(() => {
-    const svg = containerRef.current?.querySelector('svg');
+    const svg = getSvg();
     if (!svg) return;
     svg.querySelectorAll(`[${DATA_SELECTED}]`).forEach((el) => {
       el.removeAttribute(DATA_SELECTED);
@@ -132,7 +143,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   }, []);
 
   const notifySelection = useCallback(() => {
-    const svg = containerRef.current?.querySelector('svg');
+    const svg = getSvg();
     if (!svg) { onElementSelect?.('', -1); return; }
     const selected = svg.querySelectorAll(`[${DATA_SELECTED}]`);
     if (selected.length === 0) { onElementSelect?.('', -1); return; }
@@ -161,10 +172,11 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   const handleClick = useCallback((e: React.MouseEvent) => {
     const container = containerRef.current;
     if (!container) return;
-    const svg = container.querySelector('svg');
+    const svg = getSvg();
     if (!svg) return;
 
-    const target = findSvgTarget(e.target as Element, svg, container);
+    const actual = (e.nativeEvent.composedPath()[0] as Element) || e.target;
+    const target = findSvgTarget(actual, svg, container);
 
     if (!target || !(target instanceof SVGElement)) {
       clearAllSelections();
@@ -199,10 +211,11 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
     const container = containerRef.current;
     if (!container) return;
-    const svg = container.querySelector('svg');
+    const svg = getSvg();
     if (!svg) return;
 
-    const target = findSvgTarget(e.target as Element, svg, container) as SVGElement | null;
+    const actual = (e.nativeEvent.composedPath()[0] as Element) || e.target;
+    const target = findSvgTarget(actual, svg, container) as SVGElement | null;
     const prev = hoveredRef.current;
 
     if (target === prev) return;
@@ -256,15 +269,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
   // Render sanitized SVG, determine natural size, auto-fit
   useEffect(() => {
-    if (!containerRef.current) return;
+    const shadow = shadowRef.current;
+    if (!shadow) return;
     // Save scroll position before DOM replacement
     const el = scrollRef.current;
     if (el) savedScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
-    containerRef.current.innerHTML = DOMPurify.sanitize(svgCode, {
+    shadow.innerHTML = DOMPurify.sanitize(svgCode, {
       USE_PROFILES: { svg: true, svgFilters: true },
       ADD_TAGS: ['use'],
     });
-    const svg = containerRef.current.querySelector('svg');
+    const svg = shadow.querySelector('svg');
     if (!svg) { naturalSize.current = null; return; }
     ensureFilters(svg);
 
@@ -273,13 +287,34 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     const vb = svg.getAttribute('viewBox')?.split(/[\s,]+/).map(Number);
     const hasVb = vb && vb.length === 4 && vb[2] > 0 && vb[3] > 0;
 
+    // Detect CSS-specified dimensions (e.g. <style>svg { width: 50px }</style>)
+    // by reading the rendered size before we apply any inline overrides.
     let size: { w: number; h: number } | null = null;
-    if (hasVb) {
-      size = { w: vb[2], h: vb[3] };
-    } else if (isAbsoluteLength(wAttr) && isAbsoluteLength(hAttr)) {
-      size = synthesizeViewBox(svg, parseFloat(wAttr), parseFloat(hAttr));
-    } else {
-      size = synthesizeViewBox(svg, 0, 0);
+    const hasStyleSheet = shadow.querySelector('style') !== null;
+    if (hasStyleSheet) {
+      // Temporarily strip attrs so only CSS determines size
+      const savedW = svg.getAttribute('width');
+      const savedH = svg.getAttribute('height');
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.style.width = '';
+      svg.style.height = '';
+      const rect = svg.getBoundingClientRect();
+      if (savedW) svg.setAttribute('width', savedW);
+      if (savedH) svg.setAttribute('height', savedH);
+      // Use CSS size if it looks intentional (not the default 300x150)
+      if (rect.width > 0 && rect.height > 0 && !(rect.width === 300 && rect.height === 150)) {
+        size = { w: rect.width, h: rect.height };
+      }
+    }
+    if (!size) {
+      if (hasVb) {
+        size = { w: vb[2], h: vb[3] };
+      } else if (isAbsoluteLength(wAttr) && isAbsoluteLength(hAttr)) {
+        size = synthesizeViewBox(svg, parseFloat(wAttr), parseFloat(hAttr));
+      } else {
+        size = synthesizeViewBox(svg, 0, 0);
+      }
     }
 
     if (!isAbsoluteLength(wAttr)) svg.removeAttribute('width');
@@ -300,7 +335,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
   // Sync external selection (from editor cursor) via xpath
   useEffect(() => {
-    const svg = containerRef.current?.querySelector('svg');
+    const svg = getSvg();
     if (!svg) return;
 
     clearAllSelections();
@@ -314,7 +349,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
   // Apply zoom + background + border
   useEffect(() => {
-    const svg = containerRef.current?.querySelector('svg');
+    const svg = getSvg();
     const el = scrollRef.current;
     if (!svg || !naturalSize.current || !el) return;
     const { w, h } = naturalSize.current;
@@ -325,6 +360,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
     svg.setAttribute('width', String(w * zoomPct / 100));
     svg.setAttribute('height', String(h * zoomPct / 100));
+    // Inline styles override any <style>svg{width/height}</style> rules in the SVG
+    svg.style.width = `${w * zoomPct / 100}px`;
+    svg.style.height = `${h * zoomPct / 100}px`;
 
     svg.style.border = '1px solid lightgray';
     const bg = BG[bgMode];

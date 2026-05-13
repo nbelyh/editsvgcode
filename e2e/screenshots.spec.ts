@@ -14,7 +14,8 @@ async function loadDefaultSvg(page: Page) {
   await waitForEditor(page);
   // The app loads the default SVG on startup, so just wait for the preview to render
   await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="svg-preview"] svg');
+    const host = document.querySelector('[data-testid="svg-preview"]');
+    const el = host?.shadowRoot?.querySelector('svg') ?? host?.querySelector('svg');
     return el && el.children.length > 0;
   }, { timeout: 10000 });
 }

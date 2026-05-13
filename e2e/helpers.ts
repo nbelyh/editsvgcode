@@ -10,7 +10,8 @@ export async function waitForEditor(page: Page) {
 export async function setSvgContent(page: Page, svg: string) {
   // Capture the current preview SVG so we can detect when it changes
   const oldHtml = await page.evaluate(() => {
-    const el = document.querySelector('[data-testid="svg-preview"] svg');
+    const host = document.querySelector('[data-testid="svg-preview"]');
+    const el = host?.shadowRoot?.querySelector('svg') ?? host?.querySelector('svg');
     return el ? el.outerHTML : '';
   });
 
@@ -24,7 +25,8 @@ export async function setSvgContent(page: Page, svg: string) {
 
   // Wait for the preview to actually update (accounts for 300ms debounce)
   await page.waitForFunction((prevHtml) => {
-    const el = document.querySelector('[data-testid="svg-preview"] svg');
+    const host = document.querySelector('[data-testid="svg-preview"]');
+    const el = host?.shadowRoot?.querySelector('svg') ?? host?.querySelector('svg');
     return el && el.outerHTML !== prevHtml;
   }, oldHtml, { timeout: 10000 });
 }
