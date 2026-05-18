@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import type { DiffOnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { EditSvgCodeDb, friendlyError } from './firebase';
+import { EditSvgCodeDb, friendlyError, logError } from './firebase';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints, migrateChatData } from './chat-storage';
@@ -60,6 +60,7 @@ export function useDocument(routeFileId: string | undefined) {
             setIsPrivate(result.private);
             const currentUid = getAuth().currentUser?.uid ?? null;
             setIsOwner(currentUid !== null && result.uid === currentUid);
+            db.incrementViews(uniqueId).catch((err) => logError('incrementViews', err));
             const savedSvg = await loadSvgCode(currentFileId);
             setCanUndo(await hasCheckpoints(currentFileId));
             if (savedSvg && savedSvg.includes('<svg')) {
@@ -153,7 +154,10 @@ export function useDocument(routeFileId: string | undefined) {
 
   const handleDownload = useCallback(() => {
     trackDownload();
-    const uniqueId = routeFileId || getNewUniqueId();
+    if (routeFileId) {
+      dbRef.current?.incrementDownloads(routeFileId).catch((err) => logError('incrementDownloads', err));
+    }
+    const uniqueId = routeFileId || fileId;
     const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const element = document.createElement('a');
@@ -164,7 +168,7 @@ export function useDocument(routeFileId: string | undefined) {
     element.click();
     document.body.removeChild(element);
     URL.revokeObjectURL(url);
-  }, [svgCode, routeFileId]);
+  }, [svgCode, routeFileId, fileId]);
 
   const handleNew = useCallback(() => {
     setSvgCode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">\n\n</svg>');

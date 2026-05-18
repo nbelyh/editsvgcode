@@ -13,6 +13,8 @@ interface FileEntry {
   modified: Date;
   text: string;
   public: boolean;
+  views: number;
+  downloads: number;
 }
 
 function formatSize(bytes: number): string {
@@ -105,6 +107,8 @@ export function FilesPage() {
               <Table.Th w={50} />
               <Table.Th>File ID</Table.Th>
               <Table.Th>Size</Table.Th>
+              <Table.Th>Views</Table.Th>
+              <Table.Th>Downloads</Table.Th>
               <Table.Th>Modified</Table.Th>
               <Table.Th w={40} />
               <Table.Th w={40} />
@@ -123,6 +127,12 @@ export function FilesPage() {
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">{formatSize(new Blob([f.text]).size)}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">{f.views}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">{f.downloads}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>

@@ -11,6 +11,7 @@ import {
   orderBy,
   getDocs,
   connectFirestoreEmulator,
+  increment,
   type Firestore,
 } from 'firebase/firestore';
 import {
@@ -144,12 +145,24 @@ export class EditSvgCodeDb {
     await updateDoc(ref, { private: isPrivate });
   }
 
+  async incrementViews(uniqueId: string): Promise<void> {
+    const { updateDoc } = await import('firebase/firestore');
+    const ref = doc(this.db, 'files', uniqueId);
+    await updateDoc(ref, { views: increment(1) });
+  }
+
+  async incrementDownloads(uniqueId: string): Promise<void> {
+    const { updateDoc } = await import('firebase/firestore');
+    const ref = doc(this.db, 'files', uniqueId);
+    await updateDoc(ref, { downloads: increment(1) });
+  }
+
   async deleteDocument(uniqueId: string): Promise<void> {
     const ref = doc(this.db, 'files', uniqueId);
     await deleteDoc(ref);
   }
 
-  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean }>> {
+  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean; views: number; downloads: number }>> {
     const auth = getAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return [];
@@ -165,6 +178,8 @@ export class EditSvgCodeDb {
       modified: d.data().modified?.toDate?.() ?? new Date(),
       text: d.data().text ?? '',
       public: !(d.data().private ?? false),
+      views: d.data().views ?? 0,
+      downloads: d.data().downloads ?? 0,
     }));
   }
 }

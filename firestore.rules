@@ -8,9 +8,19 @@ service cloud.firestore {
                   || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if request.auth != null
-                             && (resource.data.uid == null
-                                 || resource.data.uid == request.auth.uid);
+      allow update: if request.auth != null
+                    && (resource.data.uid == null
+                        || resource.data.uid == request.auth.uid);
+      // Allow any authenticated user to increment view/download counters by 1
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'downloads'])
+                    && (request.resource.data.get('views', resource.data.get('views', 0)) == resource.data.get('views', 0)
+                        || request.resource.data.views == resource.data.get('views', 0) + 1)
+                    && (request.resource.data.get('downloads', resource.data.get('downloads', 0)) == resource.data.get('downloads', 0)
+                        || request.resource.data.downloads == resource.data.get('downloads', 0) + 1);
+      allow delete: if request.auth != null
+                    && (resource.data.uid == null
+                        || resource.data.uid == request.auth.uid);
     }
 
     // User profile / subscription tier — owner read-only, server writes via Admin SDK
