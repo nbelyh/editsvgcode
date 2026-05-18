@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+  <rect width="300" height="200" fill="#f0ffe0" stroke="#333" stroke-width="2"/>
+  <ellipse cx="150" cy="90" rx="80" ry="50" fill="#6abf4b"/>
+  <text x="150" y="180" text-anchor="middle" font-size="12">2: viewBox only (no width/height)</text>
+</svg>

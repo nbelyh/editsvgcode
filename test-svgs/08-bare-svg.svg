@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="10" width="180" height="130" fill="#ffeaa7" stroke="#333" stroke-width="2"/>
+  <text x="100" y="60" text-anchor="middle" font-size="16" fill="#2d3436">Hello</text>
+  <text x="100" y="90" text-anchor="middle" font-size="12" fill="#636e72">8: bare SVG (no dims, no viewBox)</text>
+</svg>

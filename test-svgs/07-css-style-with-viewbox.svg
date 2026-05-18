@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <style>svg { width: 300px; height: 225px; }</style>
+  <rect width="400" height="300" fill="#e0e0ff" stroke="#333" stroke-width="2"/>
+  <path d="M200,40 L350,260 L50,260 Z" fill="#3498db" opacity="0.7"/>
+  <circle cx="200" cy="180" r="60" fill="#2980b9" opacity="0.7"/>
+  <text x="200" y="290" text-anchor="middle" font-size="12">7: CSS style + viewBox</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <style>svg { width: 250px; height: 200px; }</style>
+  <rect width="250" height="200" fill="#ffe0e0" stroke="#333" stroke-width="2"/>
+  <line x1="0" y1="0" x2="250" y2="200" stroke="#c0392b" stroke-width="3"/>
+  <line x1="250" y1="0" x2="0" y2="200" stroke="#c0392b" stroke-width="3"/>
+  <text x="125" y="190" text-anchor="middle" font-size="12">6: CSS style dims</text>
+</svg>

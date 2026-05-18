@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+  <rect width="250" height="200" fill="#fff0e0" stroke="#333" stroke-width="2"/>
+  <polygon points="125,30 200,170 50,170" fill="#d9834a"/>
+  <text x="125" y="190" text-anchor="middle" font-size="12">3: absolute dims, no viewBox</text>
+</svg>
