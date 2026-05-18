@@ -23,6 +23,7 @@ export function useDocument(routeFileId: string | undefined) {
     return id;
   })());
   const [canUndo, setCanUndo] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
   const dbRef = useRef<EditSvgCodeDb | null>(null);
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
@@ -57,6 +58,8 @@ export function useDocument(routeFileId: string | undefined) {
           const result = await db.loadDocument(uniqueId);
           if (result) {
             setIsPrivate(result.private);
+            const currentUid = getAuth().currentUser?.uid ?? null;
+            setIsOwner(currentUid !== null && result.uid === currentUid);
             const savedSvg = await loadSvgCode(currentFileId);
             setCanUndo(await hasCheckpoints(currentFileId));
             if (savedSvg && savedSvg.includes('<svg')) {
@@ -119,8 +122,9 @@ export function useDocument(routeFileId: string | undefined) {
   const handleTogglePrivate = useCallback(async () => {
     const db = dbRef.current;
     if (!db || !routeFileId) return;
-    // Anonymous users cannot change privacy
+    // Anonymous users and non-owners cannot change privacy
     if (getAuth().currentUser?.isAnonymous) return;
+    if (!isOwner) return;
     const newValue = !isPrivate;
     setIsPrivate(newValue);
     try {
@@ -195,6 +199,7 @@ export function useDocument(routeFileId: string | undefined) {
     saving,
     isPrivate,
     isAnonymous,
+    isOwner,
     fileId,
     canUndo,
     proposedSvg,

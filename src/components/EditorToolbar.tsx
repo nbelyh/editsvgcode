@@ -10,13 +10,14 @@ interface EditorToolbarProps {
   routeFileId?: string;
   isPrivate: boolean;
   isAnonymous: boolean;
+  isOwner: boolean;
   onTogglePrivate: () => void;
   showPreview: boolean;
   onTogglePreview: () => void;
   showPreviewToggle?: boolean;
 }
 
-export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, isAnonymous, onTogglePrivate, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
+export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, isAnonymous, isOwner, onTogglePrivate, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
   return (
     <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}>
       <Group gap="xs">
@@ -41,9 +42,9 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
           </Button>
         </Tooltip>
         {routeFileId && (
-          <Tooltip label={isAnonymous ? 'Public — sign in to save private files' : isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
-            <ActionIcon variant="subtle" color={isAnonymous ? 'blue' : isPrivate ? 'gray' : 'blue'} size="sm" onClick={isAnonymous ? undefined : onTogglePrivate} style={isAnonymous ? { cursor: 'default', opacity: 0.6 } : undefined}>
-              {isAnonymous ? <IconWorld size={14} /> : isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
+          <Tooltip label={isAnonymous ? 'Public — sign in to save private files' : !isOwner ? 'Public — you are not the owner of this file' : isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
+            <ActionIcon variant="subtle" color={isAnonymous || !isOwner ? 'blue' : isPrivate ? 'gray' : 'blue'} size="sm" onClick={isAnonymous || !isOwner ? undefined : onTogglePrivate} style={isAnonymous || !isOwner ? { cursor: 'default', opacity: 0.6 } : undefined}>
+              {isAnonymous || !isOwner ? <IconWorld size={14} /> : isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
             </ActionIcon>
           </Tooltip>
         )}

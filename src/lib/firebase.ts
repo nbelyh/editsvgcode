@@ -120,12 +120,12 @@ export class EditSvgCodeDb {
     this.db = firebaseDb;
   }
 
-  async loadDocument(uniqueId: string): Promise<{ text: string; private: boolean } | null> {
+  async loadDocument(uniqueId: string): Promise<{ text: string; private: boolean; uid: string | null } | null> {
     const ref = doc(this.db, 'files', uniqueId);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
-      return { text: data.text ?? '', private: data.private ?? false };
+      return { text: data.text ?? '', private: data.private ?? false, uid: data.uid ?? null };
     }
     logError('loadDocument', 'file id does not exist: ' + uniqueId);
     return null;
