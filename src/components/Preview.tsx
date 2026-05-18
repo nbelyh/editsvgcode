@@ -311,10 +311,14 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     const isPercentW = wAttr.trim().endsWith('%');
     const isPercentH = hAttr.trim().endsWith('%');
     if (!size && (isPercentW || isPercentH)) {
-      // Percentage SVGs are meant to fill their container; use the scroll pane size
-      const el = scrollRef.current;
-      if (el) {
-        size = { w: el.clientWidth, h: el.clientHeight };
+      // Prefer viewBox for natural size so 100% zoom = true 1:1 pixels
+      if (hasVb) {
+        size = { w: vb[2], h: vb[3] };
+      } else {
+        const el = scrollRef.current;
+        if (el) {
+          size = { w: el.clientWidth, h: el.clientHeight };
+        }
       }
     }
 
