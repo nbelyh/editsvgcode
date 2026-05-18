@@ -307,6 +307,17 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
         size = { w: rect.width, h: rect.height };
       }
     }
+    // Detect percentage-based dimensions (e.g. width="100%" height="100%")
+    const isPercentW = wAttr.trim().endsWith('%');
+    const isPercentH = hAttr.trim().endsWith('%');
+    if (!size && (isPercentW || isPercentH)) {
+      // Percentage SVGs are meant to fill their container; use the scroll pane size
+      const el = scrollRef.current;
+      if (el) {
+        size = { w: el.clientWidth, h: el.clientHeight };
+      }
+    }
+
     if (!size) {
       if (hasVb) {
         size = { w: vb[2], h: vb[3] };
@@ -317,8 +328,8 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       }
     }
 
-    if (!isAbsoluteLength(wAttr)) svg.removeAttribute('width');
-    if (!isAbsoluteLength(hAttr)) svg.removeAttribute('height');
+    if (!isAbsoluteLength(wAttr) && !isPercentW) svg.removeAttribute('width');
+    if (!isAbsoluteLength(hAttr) && !isPercentH) svg.removeAttribute('height');
     naturalSize.current = size;
 
     // Auto-fit only when a new/different SVG is loaded (not on every edit)
