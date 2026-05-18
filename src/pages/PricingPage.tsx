@@ -110,6 +110,8 @@ export function PricingPage() {
             `AI SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
             'Credits never reset',
             'Saved files are always public',
+            'Public files may be indexed by search engines',
+            'Delete your files anytime',
           ]}
           ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
         />
@@ -125,6 +127,7 @@ export function PricingPage() {
             'Credits reset monthly',
             'Save files to cloud',
             'Private or public files',
+            'Files are not indexed',
           ]}
           ctas={isAnonymous
             ? [{ label: 'Sign in', onClick: () => navigate('/signin') }]

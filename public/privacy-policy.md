@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated October, 2023
+Last updated May, 2026
 
 Your privacy is important to us, and so is being transparent about how we collect, use, and share information about you.
 This Privacy Policy covers the information we collect about you when you use the "editsvgcode.com" website.
@@ -15,6 +15,12 @@ We collect this data so that we can:
 
 - improve the quality of the app, by finding the defects from the error information
 - improve the quality of the app, based on the usage statistics
+
+## Public files and search indexing
+
+Files saved by anonymous (guest) users are always public. Public files, including their SVG content, may be indexed by search engines and displayed in search results. All users can delete their files at any time via the "Files" page.
+
+To keep your files private and prevent indexing, sign in and set your files to private. Private files are never shared, indexed, or made available to third parties.
 
 ## How we store your data
 
