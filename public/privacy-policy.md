@@ -7,7 +7,7 @@ This Privacy Policy covers the information we collect about you when you use the
 
 ## What data we do collect?
 
-We collect anonymized statistical usage information (such visitor count as application crashes) using Google Analytics. We do not collect any personal data.
+We collect anonymized statistical usage information (such as visitor count and application crashes) using Google Analytics and Microsoft Azure Application Insights. We do not collect any personal data. Both services may store anonymized telemetry data (page views, error reports) on servers in the EU. Telemetry data is automatically deleted after 90 days.
 
 ## How will we use your data?
 
