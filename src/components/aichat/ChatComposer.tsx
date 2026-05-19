@@ -1,6 +1,7 @@
 import { useRef, useCallback, useMemo, useState } from 'react';
 import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
-import { IconArrowUp, IconPlayerStop } from '@tabler/icons-react';
+import { IconArrowUp, IconPlayerStop, IconAlertTriangle } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../../lib/models';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
 import type { Credits, ReasoningEffort } from './types';
@@ -96,8 +97,17 @@ export function ChatComposer({
     }
   }, [onSend, history, historyIdx, input, onInputChange, autoGrow]);
 
+  const LOW_CREDITS_THRESHOLD = 5;
+  const showLowCredits = credits && credits.remaining > 0 && credits.remaining <= LOW_CREDITS_THRESHOLD;
+
   return (
     <div className="aui-composer-area">
+      {showLowCredits && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', marginBottom: 4, borderRadius: 4, background: 'var(--mantine-color-yellow-light)', fontSize: 12 }}>
+          <IconAlertTriangle size={14} color="var(--mantine-color-yellow-filled)" />
+          <span>Only {credits.remaining} credit{credits.remaining !== 1 ? 's' : ''} left — <Link to={BUY_CREDITS_URL} style={{ fontWeight: 600 }}>upgrade</Link></span>
+        </div>
+      )}
       {selectedElement && (
         <div style={{ marginBottom: 4 }}>
           <Badge size="xs" variant="light" color="violet" style={{ maxWidth: '100%', textTransform: 'none' }}>
