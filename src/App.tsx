@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme, Burger, Drawer, Stack, Divider } from '@mantine/core';
+import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme, Burger, Drawer, Stack, Divider, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconBrandGithub, IconSun, IconMoon, IconBug } from '@tabler/icons-react';
+import { IconBrandGithub, IconSun, IconMoon, IconBug, IconSparkles } from '@tabler/icons-react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
@@ -13,7 +13,6 @@ declare const __APP_VERSION__: string;
 
 const NAV_LINKS = [
   { to: '/features', label: 'Features' },
-  { to: '/pricing', label: 'Upgrade' },
   { to: '/support', label: 'Support' },
   { to: '/about', label: 'About' },
 ];
@@ -64,6 +63,15 @@ export default function App() {
               {link.label}
             </Text>
           ))}
+          <Button
+              component={Link}
+              to="/pricing"
+              size="xs"
+              variant="filled"
+              leftSection={<IconSparkles size={12} />}
+              visibleFrom="sm"
+              style={{ paddingInline: 10, height: 28, fontWeight: 600 }}
+            >Upgrade</Button>
           <Divider />
           <ActionIcon
             variant="subtle"
@@ -94,6 +102,15 @@ export default function App() {
             </Group>
           </Group>
           <Group gap="xs">
+            <Button
+              component={Link}
+              to="/pricing"
+              size="xs"
+              variant="filled"
+              leftSection={<IconSparkles size={12} />}
+              visibleFrom="sm"
+              style={{ paddingInline: 10, height: 28, fontWeight: 600 }}
+            >Upgrade</Button>
             <Tooltip label="Send feedback or report a bug">
               <ActionIcon variant="subtle" color="gray" size="lg" component="a" href="https://github.com/nbelyh/editsvgcode/issues" target="_blank" rel="noopener noreferrer" aria-label="Feedback" visibleFrom="sm">
                 <IconBug size={20} />

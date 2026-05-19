@@ -22,6 +22,7 @@ interface CheckoutOptions {
 export function buildCheckoutUrl(product: PpgProductKey, opts: CheckoutOptions = {}): string {
   const params = new URLSearchParams({
     'products[1][id]': String(PPG_PRODUCT_IDS[product]),
+    'currency': 'USD',
   });
   if (opts.uid)  params.set('x-uid', opts.uid);
   if (opts.email) {
