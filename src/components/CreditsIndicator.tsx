@@ -17,7 +17,7 @@ export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel
     ? Object.entries(creditsByModel).sort(([, a], [, b]) => b - a)
     : [];
   const label = depleted ? (
-    <Text size="sm">{isAnonymous ? 'Guest credits used — sign in for 100 free credits/month' : 'No credits remaining — click to buy more'}</Text>
+    <Text size="sm">{isAnonymous ? 'Guest credits used — sign in for 50 free credits/month' : 'No credits remaining — click to buy more'}</Text>
   ) : (
     <div>
       <Text size="sm" fw={600}>{remaining} / {effectiveLimit} credits remaining</Text>

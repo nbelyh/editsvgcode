@@ -188,7 +188,7 @@ export function PricingPage() {
                 <Table.Th>Model tier</Table.Th>
                 <Table.Th>Examples</Table.Th>
                 <Table.Th>Credits per request</Table.Th>
-                <Table.Th>Free (100/mo)</Table.Th>
+                <Table.Th>Free (50/mo)</Table.Th>
                 <Table.Th>Pro (1,000/mo)</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -197,21 +197,21 @@ export function PricingPage() {
                 <Table.Td>Mini models</Table.Td>
                 <Table.Td>gpt-4.1-mini, gpt-5-mini</Table.Td>
                 <Table.Td>1 – 3</Table.Td>
-                <Table.Td>~30–100 edits</Table.Td>
+                <Table.Td>~15–50 edits</Table.Td>
                 <Table.Td>~300–1,000 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Full-size models</Table.Td>
                 <Table.Td>gpt-4.1, gpt-5, gpt-5.2-codex</Table.Td>
                 <Table.Td>5 – 20</Table.Td>
-                <Table.Td>~5–20 edits</Table.Td>
+                <Table.Td>~2–10 edits</Table.Td>
                 <Table.Td>~50–200 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Image generation</Table.Td>
                 <Table.Td>gpt-image-1-mini, gpt-image-1</Table.Td>
                 <Table.Td>10 – 50</Table.Td>
-                <Table.Td>~2–10 images</Table.Td>
+                <Table.Td>~1–5 images</Table.Td>
                 <Table.Td>~20–100 images</Table.Td>
               </Table.Tr>
             </Table.Tbody>
