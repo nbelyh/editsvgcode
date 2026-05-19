@@ -394,12 +394,12 @@ export function ChatThread({
             {progressLabel === 'thinking' && 'Thinking…'}
             {progressLabel === 'generating-image' && (
               <span>
-                Generating image… <span className="aui-status-hint">this can take 30–60s, please don't panic</span>
+                Generating image… <span className="aui-status-hint">this usually takes 30–60s</span>
               </span>
             )}
             {progressLabel === 'modifying-image' && (
               <span>
-                Modifying image… <span className="aui-status-hint">this can take 30–60s, please don't panic</span>
+                Modifying image… <span className="aui-status-hint">this usually takes 30–60s</span>
               </span>
             )}
             {progressLabel === 'vectorizing' && 'Vectorizing…'}
