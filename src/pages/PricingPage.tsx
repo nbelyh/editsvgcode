@@ -4,7 +4,7 @@ import { config } from '../lib/config';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { trackBeginCheckout } from '../lib/analytics';
+import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 
@@ -71,6 +71,10 @@ export function PricingPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const pricing = DEFAULT_PRICING;
+
+  useEffect(() => {
+    trackViewPricing();
+  }, []);
 
   useEffect(() => {
     const auth = getAuth();
