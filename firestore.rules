@@ -33,12 +33,6 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Error logs — any authenticated user can create, no reads/updates/deletes from client
-    match /errors/{errorId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if false;
-    }
-
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;

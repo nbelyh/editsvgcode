@@ -9,4 +9,5 @@ window.__CONFIG__ = {
   FIREBASE_APP_ID: '1:366560324726:web:f10e714569671e2de48357',
   FIREBASE_MEASUREMENT_ID: 'G-WJ6JLX9VZV',
   API_URL: 'https://editsvgcode-api-beta.azurewebsites.net',
+  APPINSIGHTS_CONNECTION_STRING: 'InstrumentationKey=5a776226-a602-4599-b6fb-25f9af4883a3;IngestionEndpoint=https://swedencentral-0.in.applicationinsights.azure.com/;LiveEndpoint=https://swedencentral.livediagnostics.monitor.azure.com/;ApplicationId=cf513bf0-7136-42fe-945a-3e9dab732953',
 };

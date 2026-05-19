@@ -10,6 +10,7 @@ interface AppConfig {
   FIREBASE_APP_ID: string;
   FIREBASE_MEASUREMENT_ID: string;
   API_URL: string;
+  APPINSIGHTS_CONNECTION_STRING?: string;
 }
 
 declare global {

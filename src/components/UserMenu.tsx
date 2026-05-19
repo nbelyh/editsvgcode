@@ -67,7 +67,7 @@ export function UserMenu() {
           <>
             <Menu.Label>
               <div style={{ overflow: 'hidden' }}>
-                <Text size="xs" c="dimmed">Anonymous</Text>
+                <Text size="xs" c="dimmed">Guest</Text>
                 <Text size="xs" c="dimmed" truncate style={{ fontFamily: 'monospace' }}>{user?.uid}</Text>
               </div>
             </Menu.Label>

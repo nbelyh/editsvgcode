@@ -8,6 +8,7 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import 'allotment/dist/style.css';
 import './lib/firebase'; // Initialize Firebase before anything else
+import { initAppInsights } from './lib/appinsights';
 import App from './App';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -22,6 +23,8 @@ import { ImprintPage } from './pages/ImprintPage';
 import { RefundPolicyPage } from './pages/RefundPolicyPage';
 import { SignInPage } from './pages/SignInPage';
 import { theme } from './theme';
+
+initAppInsights();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

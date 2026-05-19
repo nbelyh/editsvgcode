@@ -32,6 +32,7 @@ import {
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 import { config } from './config';
 import { getConsent } from './cookie-consent';
+import { trackException } from './appinsights';
 
 const firebaseConfig = {
   apiKey: config.FIREBASE_API_KEY,
@@ -71,19 +72,21 @@ export function enableAnalytics(): void {
   }
 }
 
-/** Log an error to Firebase Analytics (production) and console. */
+/** Log an error to App Insights (full stack trace) and Firebase Analytics. */
 export function logError(context: string, err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
   const auth = getAuth();
   const uid = auth.currentUser?.uid ?? 'unknown';
   const isAnon = auth.currentUser?.isAnonymous ?? true;
   console.error(`[${context}] uid=${uid} anon=${isAnon}`, err);
+
+  // App Insights — full exception with stack trace
+  trackException(err, context);
+
   if (firebaseAnalytics) {
     logEvent(firebaseAnalytics, 'exception', {
       description: `${context}: ${message}`.slice(0, 150),
       fatal: false,
-      uid,
-      anonymous: isAnon,
     });
   }
 }
