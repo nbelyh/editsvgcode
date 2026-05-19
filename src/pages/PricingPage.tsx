@@ -101,7 +101,7 @@ export function PricingPage() {
       )}
       <Stack align="center" gap="xs">
         <Title order={2}>Simple, transparent pricing</Title>
-        <Text c="dimmed" size="md">Start for free. Upgrade when you need more. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor></Text>
+        <Text c="dimmed" size="md">Start for free. Upgrade for more AI credits. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor></Text>
       </Stack>
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
