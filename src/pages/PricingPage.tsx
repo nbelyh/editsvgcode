@@ -101,7 +101,7 @@ export function PricingPage() {
       )}
       <Stack align="center" gap="xs">
         <Title order={2}>Simple, transparent pricing</Title>
-        <Text c="dimmed" size="md">Start for free. Upgrade when you need more.</Text>
+        <Text c="dimmed" size="md">Start for free. Upgrade when you need more. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor></Text>
       </Stack>
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -177,7 +177,7 @@ export function PricingPage() {
         <Stack gap="xl">
           <Divider />
 
-          <Title order={3}>How credits work</Title>
+          <Title order={3} id="how-credits-work">How credits work</Title>
           <Text size="sm">
             Credits are a virtual currency used by AI features — chat, code editing, and image generation.
             Each AI request costs a fixed number of credits depending on the model:
@@ -188,6 +188,8 @@ export function PricingPage() {
                 <Table.Th>Model tier</Table.Th>
                 <Table.Th>Examples</Table.Th>
                 <Table.Th>Credits per request</Table.Th>
+                <Table.Th>Free (100/mo)</Table.Th>
+                <Table.Th>Pro (1,000/mo)</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -195,16 +197,22 @@ export function PricingPage() {
                 <Table.Td>Mini models</Table.Td>
                 <Table.Td>gpt-4.1-mini, gpt-5-mini</Table.Td>
                 <Table.Td>1 – 3</Table.Td>
+                <Table.Td>~30–100 edits</Table.Td>
+                <Table.Td>~300–1,000 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Full-size models</Table.Td>
                 <Table.Td>gpt-4.1, gpt-5, gpt-5.2-codex</Table.Td>
                 <Table.Td>5 – 20</Table.Td>
+                <Table.Td>~5–20 edits</Table.Td>
+                <Table.Td>~50–200 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Image generation</Table.Td>
                 <Table.Td>gpt-image-1-mini, gpt-image-1</Table.Td>
                 <Table.Td>10 – 50</Table.Td>
+                <Table.Td>~2–10 images</Table.Td>
+                <Table.Td>~20–100 images</Table.Td>
               </Table.Tr>
             </Table.Tbody>
           </Table>
