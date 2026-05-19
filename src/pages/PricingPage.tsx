@@ -124,7 +124,7 @@ export function PricingPage() {
           title="Free"
           credits={`${pricing.freeMonthlyCredits} credits / month`}
           features={[
-            'Google or GitHub sign-in',
+            'Google / GitHub / Microsoft sign-in',
             'Only -mini models',
             `~${pricing.freeMonthlyCredits} AI edits or ${Math.floor((pricing.freeMonthlyCredits - 1) / 10)} image gens`,
             `AI SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
