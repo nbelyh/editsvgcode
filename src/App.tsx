@@ -66,26 +66,31 @@ export default function App() {
           <Button
               component={Link}
               to="/pricing"
-              size="xs"
               variant="filled"
-              leftSection={<IconSparkles size={12} />}
-              visibleFrom="sm"
-              style={{ paddingInline: 10, height: 28, fontWeight: 600 }}
+              leftSection={<IconSparkles size={14} />}
             >Upgrade</Button>
           <Divider />
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="lg"
+          <Button
             component="a"
             href="https://github.com/nbelyh/editsvgcode/issues"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Feedback"
+            variant="subtle"
+            color="gray"
+            leftSection={<IconBug size={16} />}
+            justify="left"
           >
-            <IconBug size={20} />
-            <Text size="sm" ml="xs">Send feedback</Text>
-          </ActionIcon>
+            Send feedback
+          </Button>
+          <Button
+            variant="subtle"
+            color="gray"
+            leftSection={computedColorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+            justify="left"
+            onClick={toggleColorScheme}
+          >
+            {computedColorScheme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </Button>
         </Stack>
       </Drawer>
 
@@ -117,7 +122,7 @@ export default function App() {
               </ActionIcon>
             </Tooltip>
             <Tooltip label={computedColorScheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-              <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme">
+              <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Toggle color scheme" visibleFrom="sm">
                 {computedColorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
               </ActionIcon>
             </Tooltip>
