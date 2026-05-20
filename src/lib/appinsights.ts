@@ -16,8 +16,17 @@ export function initAppInsights(): void {
       connectionString: config.APPINSIGHTS_CONNECTION_STRING,
       enableAutoRouteTracking: true,
       enableUnhandledPromiseRejectionTracking: true,
-      disableAjaxTracking: true,
-      disableFetchTracking: true,
+      correlationHeaderExcludedDomains: [
+        '*.google-analytics.com',
+        '*.analytics.google.com',
+        '*.carbonads.com',
+        '*.carbonads.net',
+      ],
+      excludeRequestFromAutoTrackingPatterns: [
+        /google-analytics\.com/,
+        /analytics\.google\.com/,
+        /carbonads/,
+      ],
     },
   });
   appInsights.loadAppInsights();
