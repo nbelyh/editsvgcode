@@ -77,6 +77,12 @@ export function trackDownload(): void {
   if (a) logEvent(a, 'file_download');
 }
 
+/** User opened the sign-in modal. */
+export function trackViewSignIn(): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'view_sign_in');
+}
+
 /** User visited the pricing page. */
 export function trackViewPricing(): void {
   const a = getAnalyticsInstance();

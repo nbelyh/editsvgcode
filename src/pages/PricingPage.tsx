@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
+import { openSignInModal } from '../components/SignInModal';
 
 interface PlanCta {
   label: string;
@@ -134,7 +135,7 @@ export function PricingPage() {
             'Files are not indexed',
           ]}
           ctas={isAnonymous
-            ? [{ label: 'Sign in', onClick: () => navigate('/signin') }]
+            ? [{ label: 'Sign in', onClick: openSignInModal }]
             : [{ label: 'Current plan' }]
           }
         />

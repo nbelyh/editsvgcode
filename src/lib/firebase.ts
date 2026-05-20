@@ -17,12 +17,13 @@ import {
 import {
   getAuth,
   signInAnonymously,
-  signInWithPopup,
+  signInWithRedirect,
   signInWithCredential,
+  getRedirectResult,
   GoogleAuthProvider,
   GithubAuthProvider,
   OAuthProvider,
-  linkWithPopup,
+  linkWithRedirect,
   updateProfile,
   onAuthStateChanged,
   connectAuthEmulator,
@@ -33,6 +34,8 @@ import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 import { config } from './config';
 import { getConsent } from './cookie-consent';
 import { trackException } from './appinsights';
+import { trackSignIn } from './analytics';
+import { notifications } from '@mantine/notifications';
 
 const firebaseConfig = {
   apiKey: config.FIREBASE_API_KEY,
@@ -187,37 +190,9 @@ export class EditSvgCodeDb {
   }
 }
 
-/** Sign in with a provider. If anonymous, link the account to preserve data. */
-async function signInWithProvider(provider: AuthProvider): Promise<User> {
-  const auth = getAuth();
-  let user: User;
-
-  if (auth.currentUser?.isAnonymous) {
-    try {
-      const result = await linkWithPopup(auth.currentUser, provider);
-      await result.user.reload();
-      const linked = result.user.providerData[0];
-      if (linked && (!result.user.displayName || !result.user.photoURL)) {
-        await updateProfile(result.user, {
-          displayName: linked.displayName || result.user.displayName || undefined,
-          photoURL: linked.photoURL || result.user.photoURL || undefined,
-        });
-      }
-      user = result.user;
-    } catch (err: unknown) {
-      if ((err as { code?: string }).code !== 'auth/credential-already-in-use') throw err;
-      const credential = OAuthProvider.credentialFromError(err as Parameters<typeof OAuthProvider.credentialFromError>[0]);
-      if (!credential) throw err;
-      user = (await signInWithCredential(auth, credential)).user;
-    }
-  } else {
-    user = (await signInWithPopup(auth, provider)).user;
-  }
-
-  // Refresh token so onIdTokenChanged fires in UI components
+/** Refresh token and initialize credits for a newly signed-in user. */
+async function finalizeSignIn(user: User): Promise<void> {
   await user.getIdToken(true);
-
-  // Initialize usage doc with proper credits for the signed-in tier
   try {
     const idToken = await user.getIdToken();
     await fetch(`${config.API_URL}/api/init-credits`, {
@@ -227,20 +202,65 @@ async function signInWithProvider(provider: AuthProvider): Promise<User> {
   } catch {
     // Non-critical — ensureCurrentPeriod will catch up on first API call
   }
-
-  return user;
 }
 
-export function signInWithGoogle(): Promise<User> {
-  return signInWithProvider(new GoogleAuthProvider());
+/** Handle redirect result on page load (after OAuth redirect back). */
+getRedirectResult(getAuth()).then(async (result) => {
+  if (result) {
+    const user = result.user;
+    await user.reload();
+    const linked = user.providerData[0];
+    if (linked && (!user.displayName || !user.photoURL)) {
+      await updateProfile(user, {
+        displayName: linked.displayName || user.displayName || undefined,
+        photoURL: linked.photoURL || user.photoURL || undefined,
+      });
+    }
+    await finalizeSignIn(user);
+    trackSignIn(user.providerData[0]?.providerId ?? 'unknown');
+    setTimeout(() => notifications.show({ title: 'Signed in', message: `Welcome, ${user.displayName || 'user'}!`, color: 'green' }), 100);
+    return true;
+  }
+  return false;
+}).catch(async (err: unknown) => {
+  const code = (err as { code?: string }).code;
+  if (code === 'auth/credential-already-in-use') {
+    const credential = OAuthProvider.credentialFromError(err as Parameters<typeof OAuthProvider.credentialFromError>[0]);
+    if (credential) {
+      const result = await signInWithCredential(getAuth(), credential);
+      await finalizeSignIn(result.user);
+      return true;
+    }
+  }
+  if (code === 'auth/email-already-in-use' || code === 'auth/account-exists-with-different-credential') {
+    notifications.show({ title: 'Sign-in failed', message: 'An account with this email already exists. Please sign in with your original provider.', color: 'yellow' });
+  } else if (code) {
+    notifications.show({ title: 'Sign-in failed', message: (err as Error).message || 'Please try again.', color: 'red' });
+    logError('auth-redirect', err);
+  }
+  return false;
+});
+
+/** Sign in with a provider via redirect. */
+function signInWithProvider(provider: AuthProvider): void {
+  const auth = getAuth();
+  if (auth.currentUser?.isAnonymous) {
+    linkWithRedirect(auth.currentUser, provider);
+  } else {
+    signInWithRedirect(auth, provider);
+  }
 }
 
-export function signInWithGithub(): Promise<User> {
-  return signInWithProvider(new GithubAuthProvider());
+export function signInWithGoogle(): void {
+  signInWithProvider(new GoogleAuthProvider());
 }
 
-export function signInWithMicrosoft(): Promise<User> {
-  return signInWithProvider(new OAuthProvider('microsoft.com'));
+export function signInWithGithub(): void {
+  signInWithProvider(new GithubAuthProvider());
+}
+
+export function signInWithMicrosoft(): void {
+  signInWithProvider(new OAuthProvider('microsoft.com'));
 }
 
 /** Sign out and fall back to anonymous auth. */

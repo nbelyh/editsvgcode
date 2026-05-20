@@ -4,6 +4,7 @@ import { IconBrandGithub, IconBrandGoogle, IconBrandWindows, IconLogout, IconUse
 import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { signOutUser, logError } from '../lib/firebase';
+import { openSignInModal } from './SignInModal';
 import { subscribeCredits } from '../lib/credits-listener';
 import type { Credits } from '../lib/api-client';
 
@@ -81,7 +82,7 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
               Upgrade to Pro
             </Menu.Item>
-            <Menu.Item leftSection={<IconLogin size={14} />} onClick={() => navigate('/signin')}>
+            <Menu.Item leftSection={<IconLogin size={14} />} onClick={openSignInModal}>
               Sign in
             </Menu.Item>
             <Menu.Divider />
