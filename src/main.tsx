@@ -30,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <ModalsProvider>
-      <Notifications position="bottom-left" />
+      <Notifications position="top-right" mt={40} />
       <BrowserRouter>
         <Routes>
           <Route element={<App />}>

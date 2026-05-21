@@ -218,7 +218,7 @@ getRedirectResult(getAuth()).then(async (result) => {
     }
     await finalizeSignIn(user);
     trackSignIn(user.providerData[0]?.providerId ?? 'unknown');
-    setTimeout(() => notifications.show({ title: 'Signed in', message: `Welcome, ${user.displayName || 'user'}!`, color: 'green' }), 100);
+    notifications.show({ title: 'Signed in', message: `Welcome, ${user.displayName || 'user'}!`, color: 'green' });
     return true;
   }
   return false;
@@ -229,6 +229,8 @@ getRedirectResult(getAuth()).then(async (result) => {
     if (credential) {
       const result = await signInWithCredential(getAuth(), credential);
       await finalizeSignIn(result.user);
+      trackSignIn(result.user.providerData[0]?.providerId ?? 'unknown');
+      notifications.show({ title: 'Signed in', message: `Welcome, ${result.user.displayName || 'user'}!`, color: 'green' });
       return true;
     }
   }
@@ -252,15 +254,21 @@ function signInWithProvider(provider: AuthProvider): void {
 }
 
 export function signInWithGoogle(): void {
-  signInWithProvider(new GoogleAuthProvider());
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  signInWithProvider(provider);
 }
 
 export function signInWithGithub(): void {
-  signInWithProvider(new GithubAuthProvider());
+  const provider = new GithubAuthProvider();
+  provider.setCustomParameters({ allow_signup: 'true' });
+  signInWithProvider(provider);
 }
 
 export function signInWithMicrosoft(): void {
-  signInWithProvider(new OAuthProvider('microsoft.com'));
+  const provider = new OAuthProvider('microsoft.com');
+  provider.setCustomParameters({ prompt: 'select_account' });
+  signInWithProvider(provider);
 }
 
 /** Sign out and fall back to anonymous auth. */
