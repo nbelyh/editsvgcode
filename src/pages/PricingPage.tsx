@@ -87,6 +87,14 @@ export function PricingPage() {
   const isPro = false; // TODO: read from credits context once available
 
   function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
+    // Require a real (non-anonymous) account before purchase. An anonymous UID
+    // is tied to browser storage — a purchase made while anonymous is lost the
+    // moment the user clears cookies, and the backend gates Pro models on the
+    // sign-in provider, so anonymous Pro buyers can't use what they paid for.
+    if (isAnonymous) {
+      openSignInModal();
+      return;
+    }
     trackBeginCheckout(product);
     window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
   }
