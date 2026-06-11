@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeSvg } from '../../lib/sanitize';
 import type { IconResult } from '../../lib/api-client';
 
 interface IconPickerProps {
@@ -19,7 +20,7 @@ export function IconPicker({ icons, onSelect, onMore, onNone, selectedIcon }: Ic
         <div className="aui-icon-picker-selected">
           <div
             className="aui-icon-picker-svg"
-            dangerouslySetInnerHTML={{ __html: selectedIcon.svg }}
+            dangerouslySetInnerHTML={{ __html: sanitizeSvg(selectedIcon.svg) }}
           />
           <span className="aui-icon-picker-selected-name">{selectedIcon.name}</span>
         </div>
@@ -42,7 +43,7 @@ export function IconPicker({ icons, onSelect, onMore, onNone, selectedIcon }: Ic
           >
             <div
               className="aui-icon-picker-svg"
-              dangerouslySetInnerHTML={{ __html: icon.svg }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSvg(icon.svg) }}
             />
           </button>
         ))}

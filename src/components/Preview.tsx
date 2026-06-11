@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardR
 import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
-import DOMPurify from 'dompurify';
+import { sanitizeSvg } from '../lib/sanitize';
 import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
 interface PreviewProps {
@@ -274,10 +274,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     // Save scroll position before DOM replacement
     const el = scrollRef.current;
     if (el) savedScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
-    shadow.innerHTML = DOMPurify.sanitize(svgCode, {
-      USE_PROFILES: { svg: true, svgFilters: true },
-      ADD_TAGS: ['use'],
-    });
+    shadow.innerHTML = sanitizeSvg(svgCode);
     const svg = shadow.querySelector('svg');
     if (!svg) { naturalSize.current = null; return; }
     ensureFilters(svg);

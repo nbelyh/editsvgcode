@@ -3,6 +3,7 @@ import { ActionIcon, Tooltip, Button, Group } from '@mantine/core';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
+import { sanitizeSvg } from '../../lib/sanitize';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { buildCheckoutUrl, type PpgProductKey } from '../../lib/ppg-checkout';
@@ -306,7 +307,7 @@ export function ChatThread({
               <div className="aui-icon-picker aui-icon-picker-collapsed">
                 <span className="aui-icon-picker-label">Icon:</span>
                 <div className="aui-icon-picker-selected">
-                  <div className="aui-icon-picker-svg" dangerouslySetInnerHTML={{ __html: msg.selectedIcon.svg }} />
+                  <div className="aui-icon-picker-svg" dangerouslySetInnerHTML={{ __html: sanitizeSvg(msg.selectedIcon.svg) }} />
                   <span className="aui-icon-picker-selected-name">{msg.selectedIcon.name}</span>
                 </div>
               </div>

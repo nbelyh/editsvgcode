@@ -3,6 +3,8 @@
  * Renders the SVG in a hidden off-screen container and uses getBBox() to measure elements.
  */
 
+import { sanitizeSvg } from './sanitize';
+
 export interface ElementBounds {
   selector: string;
   tagName: string;
@@ -24,7 +26,8 @@ export function getElementBounds(svgCode: string, selector: string): string {
   document.body.appendChild(container);
 
   try {
-    container.innerHTML = svgCode;
+    // Strips scripts/event handlers; geometry is unaffected
+    container.innerHTML = sanitizeSvg(svgCode);
     const svgEl = container.querySelector('svg');
     if (!svgEl) {
       return 'Error: no <svg> element found in the document.';
