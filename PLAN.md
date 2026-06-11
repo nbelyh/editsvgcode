@@ -150,7 +150,30 @@ One-time alternative to subscription for occasional users.
 - [x] AI Chat UI library: **assistant-ui** — headless primitives, custom runtime via useExternalStoreRuntime, dark theme CSS
 - [x] BYOL: direct client-to-provider calls (skip proxy) — decided, keys stay in localStorage, never touch server
 - [x] Auth for AI endpoint: Firebase ID tokens from Phase 2 (anonymous auth already exists), server-side Firestore rate limiting
-- [ ] **Mid-tier credit option:** Gap between free (50) and pro (1000) is large. A user wanting ~200 credits must choose between $15 one-time pack or $9/month subscription. Revisit after launch with real usage data — consider a $5/month "Lite" tier (200 credits) or smaller top-up pack.
+- [x] **Mid-tier credit option:** Decided **against** a separate "Lite" subscription tier — the existing **$5 / 100-credit one-time pack** fills the casual-user gap without adding a third tier to maintain (occasional users also tend to prefer a one-time top-up over a second subscription). Revisit only if pack purchases start displacing Pro subscriptions.
+
+---
+
+## Post-launch monetization decisions
+
+Revisions to the plan above, based on running the AI in production. These concern the **AI
+assistant** only — the SVG **editor** stays free and open to everyone (no account needed); it is
+the top-of-funnel and only the AI is gated.
+
+- [x] **AI requires sign-in (no anonymous AI).** The Guest / anonymous-trial tier is removed —
+  using the AI assistant (chat editing or image generation) requires a free account
+  (Google / GitHub / Microsoft). Rationale: anonymous trial usage does not convert and cannot be
+  re-engaged, yet it consumes inference cost; requiring an identity is the minimum bar for AI
+  access and makes every AI user the entrance to the funnel. Enforced **server-side** (the API
+  rejects anonymous tokens), not just in the UI.
+- [x] **Sign-in required before checkout** — prevents a purchase being tied to a throwaway
+  anonymous identity (which is lost on cache-clear, orphaning the subscription).
+- [x] **Default reasoning effort = `high`** for reasoning models (not `xhigh`). Benchmarked on
+  real documents with the production prompt/tools: `high` gives equal-or-better edit quality at
+  much lower and more predictable token use, whereas `xhigh` can spend the whole output budget on
+  reasoning and return no edit at all. `xhigh` stays user-selectable (with a larger token budget).
+- [x] **Upgrade prompt at the credits-exhausted moment** — when a signed-in user runs out of
+  credits, show the ladder (**$5 / 100-credit pack** and **Pro**) instead of a bare link.
 
 ---
 

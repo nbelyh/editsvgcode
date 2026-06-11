@@ -2,8 +2,11 @@ import { useState, Fragment, useRef, useEffect } from 'react';
 import { ActionIcon, Tooltip, Button, Group } from '@mantine/core';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
+import { getAuth } from 'firebase/auth';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
+import { buildCheckoutUrl, type PpgProductKey } from '../../lib/ppg-checkout';
+import { trackBeginCheckout } from '../../lib/analytics';
 
 import { IconPicker } from './IconPicker';
 import { ImageConfirm } from './ImageConfirm';
@@ -39,6 +42,13 @@ interface ChatThreadProps {
   onImageConfirm: () => void;
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
+}
+
+/** Open PayPro checkout for the given product. Only reachable by signed-in users (AI requires sign-in). */
+function startCheckout(product: PpgProductKey) {
+  const user = getAuth().currentUser;
+  trackBeginCheckout(product);
+  window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
 }
 
 function ReadToolCallsBlock({ calls }: { calls: ReadToolCall[] }) {
@@ -304,19 +314,13 @@ export function ChatThread({
             {msg.content && (
               <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
                 {msg.content}
-                {msg.buyCredits && (
-                  <> — <Link to={BUY_CREDITS_URL}>Buy Credits</Link></>
-                )}
               </div>
             )}
-            {msg.signIn && (
+            {msg.buyCredits && (
               <Group gap="xs" mt="xs">
-                <Button
-                  size="xs"
-                  variant="filled"
-                  component={Link}
-                  to={BUY_CREDITS_URL}
-                >Get More Credits</Button>
+                <Button size="xs" variant="default" onClick={() => startCheckout('credits-100')}>100 credits — $5</Button>
+                <Button size="xs" variant="filled" onClick={() => startCheckout('pro-monthly')}>Go Pro — $10/mo</Button>
+                <Button size="xs" variant="subtle" component={Link} to={BUY_CREDITS_URL}>Compare plans</Button>
               </Group>
             )}
             {hasAcceptedGenImage && (

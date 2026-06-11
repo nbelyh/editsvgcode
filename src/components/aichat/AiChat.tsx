@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth } from 'firebase/auth';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type CreditsError } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, saveChatMessages, clearChatMessages } from '../../lib/chat-storage';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
+import { openSignInModal } from '../SignInModal';
 import type { DisplayMessage, AiChatProps } from './types';
 import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
 import '../AiChat.css';
@@ -108,6 +109,12 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   }, [messages, isRunning]);
 
   const handleSend = useCallback(async () => {
+    // AI requires a real account — guests get the sign-in modal instead.
+    // The server enforces this too; this is just the friendly path.
+    if (isAnonymous) {
+      openSignInModal();
+      return;
+    }
     const text = input.trim();
     if (!text || isRunning) return;
 
@@ -225,12 +232,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       const creditsErr = isCreditsError(err);
       if (creditsErr) trackCreditsExhausted();
       const errMsg = (err as Error).message;
-      const anonCreditsExhausted = creditsErr && isAnonymous && (err as CreditsError).creditCode === 'INSUFFICIENT_CREDITS';
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
         content: creditsErr ? errMsg : `Error: ${errMsg}`,
-        signIn: anonCreditsExhausted || undefined,
-        buyCredits: (creditsErr && !anonCreditsExhausted) || undefined,
+        buyCredits: creditsErr || undefined,
       };
       setMessages(prev => [...prev, assistantMsg]);
     } finally {
@@ -241,7 +246,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       setImageConfirmSummary(null);
       imageConfirmResolveRef.current = null;
     }
-  }, [input, isRunning, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
+  }, [input, isRunning, isAnonymous, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

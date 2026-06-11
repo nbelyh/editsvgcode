@@ -6,10 +6,8 @@ export interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
   toolCalls?: StoredToolCall[];
-  /** Signed-in free/pro user ran out of credits — show "Buy Credits" link. */
+  /** User ran out of credits — show the upgrade ladder ($5 pack / Pro). */
   buyCredits?: true;
-  /** Anonymous user ran out of trial credits — show sign-in buttons instead of buy link. */
-  signIn?: true;
   /** Raw API input/output items for this turn — replayed on subsequent requests. */
   rawItems?: unknown[];
   /** Icon selected from the icon picker (search_icons tool). */

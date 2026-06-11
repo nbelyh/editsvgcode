@@ -1,7 +1,6 @@
 import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table, Alert } from '@mantine/core';
 import { IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { config } from '../lib/config';
-import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
@@ -69,7 +68,6 @@ function PlanCard({
 }
 
 export function PricingPage() {
-  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const pricing = DEFAULT_PRICING;
 
@@ -109,26 +107,14 @@ export function PricingPage() {
         </Alert>
       )}
       <Stack align="center" gap="xs">
-        <Title order={2}>Simple, transparent pricing</Title>
-        <Text c="dimmed" size="md">Start for free. Upgrade for more AI credits. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor></Text>
+        <Title order={2}>AI assistant pricing</Title>
+        <Text c="dimmed" size="md" ta="center">
+          The SVG editor is free for everyone — no account needed.<br />
+          Credits power the AI assistant: chat editing and image generation. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor>
+        </Text>
       </Stack>
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-        <PlanCard
-          title="Guest"
-          credits={`${pricing.anonymousTrialCredits} credits, one-time`}
-          features={[
-            'Only -mini models',
-            `~${pricing.anonymousTrialCredits} AI edits or ${Math.floor((pricing.anonymousTrialCredits - 1) / 10)} image gen`,
-            `AI SVG size limit: ${pricing.maxSvgCharsFree / 1000}K chars`,
-            'Credits never reset',
-            'Saved files are always public',
-            'Public files may be indexed by search engines',
-            'Delete your files anytime',
-          ]}
-          ctas={[{ label: 'Start editing', onClick: () => navigate('/') }]}
-        />
-
         <PlanCard
           title="Free"
           credits={`${pricing.freeMonthlyCredits} credits / month`}

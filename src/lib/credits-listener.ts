@@ -22,7 +22,8 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
     unsubSnapshot?.();
     unsubSnapshot = null;
 
-    if (!user) return;
+    // AI (and therefore credits) requires a real account — nothing to subscribe to for guests.
+    if (!user || user.isAnonymous) return;
 
     unsubSnapshot = onSnapshot(
       doc(firebaseDb, 'users', user.uid),
@@ -30,16 +31,6 @@ export function subscribeCredits(onChange: (credits: Credits) => void): () => vo
         try {
           const pricing = DEFAULT_PRICING;
           const data = snap.data();
-
-          if (user.isAnonymous) {
-            onChange({
-              remaining: data?.credits ?? pricing.anonymousTrialCredits,
-              limit: pricing.anonymousTrialCredits,
-              tier: 'free',
-              creditsByModel: data?.credits_by_model,
-            });
-            return;
-          }
 
           // For signed-in users, all values are maintained by the backend
           const tier = (data?.tier as 'free' | 'pro') ?? 'free';
