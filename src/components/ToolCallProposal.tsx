@@ -14,6 +14,21 @@ interface ToolCallProposalProps {
   onUpdateSvg?: (newSvg: string) => void;
 }
 
+// Build the popup via DOM properties rather than HTML interpolation: no markup context
+// means no injection, regardless of where pngDataUrl comes from (stored transcripts will
+// cross user boundaries once threads are shared/cloud-synced) or what scheme it uses later.
+function openImageInNewTab(pngDataUrl: string) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const d = w.document;
+  d.title = 'Generated Image';
+  d.body.style.cssText = 'margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a';
+  const img = d.createElement('img');
+  img.src = pngDataUrl;
+  img.style.cssText = 'max-width:100%;max-height:100vh';
+  d.body.appendChild(img);
+}
+
 function SegmentedControl({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
   return (
     <div className="aui-vectorizer-seg">
@@ -80,11 +95,7 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
           href="#"
           onClick={e => {
             e.preventDefault();
-            const w = window.open('', '_blank');
-            if (w) {
-              w.document.write(`<!DOCTYPE html><html><head><title>Generated Image</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a}</style></head><body><img src="${pngDataUrl}" style="max-width:100%;max-height:100vh" /></body></html>`);
-              w.document.close();
-            }
+            openImageInNewTab(pngDataUrl);
           }}
           title="Open full size"
         >
@@ -160,11 +171,7 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
             href="#"
             onClick={e => {
               e.preventDefault();
-              const w = window.open('', '_blank');
-              if (w) {
-                w.document.write(`<!DOCTYPE html><html><head><title>Generated Image</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a}</style></head><body><img src="${pngDataUrl}" style="max-width:100%;max-height:100vh" /></body></html>`);
-                w.document.close();
-              }
+              openImageInNewTab(pngDataUrl);
             }}
             title="Open full size"
           >
