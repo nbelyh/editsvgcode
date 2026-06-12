@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Container, Title, Text, Stack, Image, SimpleGrid, Card, Badge, Group, Modal, UnstyledButton } from '@mantine/core';
+import { DEFAULT_PRICING } from '../lib/pricing';
 
 interface Feature {
   title: string;
@@ -151,7 +152,9 @@ export function FeaturesPage() {
         <Stack gap="md">
           <Title order={1}>Features</Title>
           <Text size="lg" c="dimmed">
-            An SVG code editor with AI assistance, schema-aware autocomplete, and live preview.
+            A free SVG code editor with schema-aware autocomplete and live preview. The optional AI assistance
+            (marked <Badge color="blue" variant="light" component="span">Pro</Badge>) runs on credits — every account gets
+            {' '}{DEFAULT_PRICING.freeMonthlyCredits} free each month — while everything else is free.
           </Text>
           <FeatureSection title="AI Tools (Pro)" features={AI_FEATURES} onImageClick={handleImageClick} />
           <FeatureSection title="Code Editor" features={CODE_EDITOR_FEATURES} onImageClick={handleImageClick} />

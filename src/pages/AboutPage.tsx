@@ -1,5 +1,6 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
 import { IconBrandGithub, IconBrandTelegram, IconMail, IconBug } from '@tabler/icons-react';
+import { DEFAULT_PRICING } from '../lib/pricing';
 
 export function AboutPage() {
   return (
@@ -11,10 +12,13 @@ export function AboutPage() {
         <Text>
           <strong>editsvgcode.com</strong> is a free online SVG code editor with live preview, built for designers and developers
           who work with SVG graphics. Write and edit SVG code with syntax highlighting and see changes rendered in real time.
+          The editor itself is <strong>completely free</strong> — no account, no payment, no limits.
         </Text>
         <Text>
-          The Pro tier adds AI-powered features such as image-to-SVG conversion and natural-language editing,
-          powered by large language models.
+          The optional <strong>AI assistant</strong> — generate images from a text prompt and convert them to SVG, plus
+          edit your SVG with natural-language instructions, powered by large language models — runs on credits. Every
+          account gets <strong>{DEFAULT_PRICING.freeMonthlyCredits} free credits each month</strong>; you only pay if you
+          need more. You never need AI to use the editor.
         </Text>
 
         <Title order={3}>Developer</Title>

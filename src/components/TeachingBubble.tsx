@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Paper, Text, CloseButton, Group, Stack, ThemeIcon, Anchor } from '@mantine/core';
 import { IconCode, IconSparkles } from '@tabler/icons-react';
+import { DEFAULT_PRICING } from '../lib/pricing';
 
 const DISMISSED_KEY = 'esvg-teaching-bubble-dismissed';
+// Give the user a moment to settle into the editor before surfacing the bubble.
+const REVEAL_DELAY_MS = 3000;
 
 interface TeachingBubbleProps {
   anchorSelector: string;
@@ -25,7 +28,7 @@ export function TeachingBubble({ anchorSelector, active, onActivate }: TeachingB
 
   useEffect(() => {
     if (!visible) return;
-    const timer = setTimeout(() => setReady(true), 1000);
+    const timer = setTimeout(() => setReady(true), REVEAL_DELAY_MS);
     return () => clearTimeout(timer);
   }, [visible]);
 
@@ -106,6 +109,7 @@ export function TeachingBubble({ anchorSelector, active, onActivate }: TeachingB
           <ThemeIcon size="sm" variant="light" color="blue"><IconCode size={14} /></ThemeIcon>
           <Text size="xs" c="dimmed">Review proposals with a diff view before accepting</Text>
         </Group>
+        <Text size="xs" c="dimmed" mt={2}>The AI assistant is free to start — {DEFAULT_PRICING.freeMonthlyCredits} credits every month.</Text>
       </Stack>
     </Paper>,
     document.body,

@@ -109,8 +109,8 @@ export function PricingPage() {
       <Stack align="center" gap="xs">
         <Title order={2}>AI assistant pricing</Title>
         <Text c="dimmed" size="md" ta="center">
-          The SVG editor is free for everyone — no account needed.<br />
-          Credits power the AI assistant: chat editing and image generation. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor>
+          The SVG editor is free for everyone — no account, no payment needed.<br />
+          The optional AI assistant runs on credits, and every account gets {pricing.freeMonthlyCredits} free each month — you only pay if you need more. <Anchor size="md" onClick={(e: React.MouseEvent) => { e.preventDefault(); document.getElementById('how-credits-work')?.scrollIntoView({ behavior: 'smooth' }); }}>How do credits work?</Anchor>
         </Text>
       </Stack>
 
