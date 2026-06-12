@@ -1,5 +1,6 @@
 import { Stack, Title, Text, Anchor, Kbd } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { subscribeCredits } from '../lib/credits-listener';
 
 interface SidebarProps {
@@ -12,9 +13,18 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
   const [showAds, setShowAds] = useState(false);
 
   useEffect(() => {
-    return subscribeCredits((credits) => {
+    // Guests never trigger subscribeCredits (it only subscribes for real accounts),
+    // so drive ads off auth state for them: guests and free users see ads, Pro users don't.
+    const unsubAuth = onAuthStateChanged(getAuth(), (user) => {
+      if (!user || user.isAnonymous) setShowAds(true);
+    });
+    const unsubCredits = subscribeCredits((credits) => {
       setShowAds(credits.tier !== 'pro');
     });
+    return () => {
+      unsubAuth();
+      unsubCredits();
+    };
   }, []);
 
   useEffect(() => {

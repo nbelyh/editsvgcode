@@ -3,6 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { MantineProvider } from '@mantine/core';
 import { Sidebar } from '../../components/Sidebar';
 
+vi.mock('firebase/auth', () => ({
+  getAuth: () => ({}),
+  onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => {
+    cb(null);
+    return () => {};
+  },
+}));
+
 vi.mock('../credits-listener', () => ({
   subscribeCredits: (cb: (c: { tier: string }) => void) => {
     cb({ tier: 'free' });
