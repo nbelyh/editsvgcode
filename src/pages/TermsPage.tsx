@@ -9,7 +9,9 @@ export function TermsPage() {
         <Text c="dimmed" size="sm">Last updated: April 2026</Text>
 
         <Text>
-          By accessing or using the editsvgcode.com website and services ("Service"), operated by Nikolay Belykh ("we", "us", "our"),
+          By accessing or using the editsvgcode.com website and services ("Service"), operated by{' '}
+          <Anchor href="https://unmanagedvisio.com" target="_blank" rel="noopener noreferrer">UnmanagedVisio</Anchor>{' '}
+          ("we", "us", "our"),
           you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Service.
         </Text>
 
