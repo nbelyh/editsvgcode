@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Paper, Text, CloseButton, Group, Stack, ThemeIcon, Anchor } from '@mantine/core';
-import { IconCode, IconSparkles } from '@tabler/icons-react';
+import { Paper, Text, CloseButton, Group, Stack, ThemeIcon, Anchor, Button } from '@mantine/core';
+import { IconCode, IconSparkles, IconArrowRight } from '@tabler/icons-react';
 import { DEFAULT_PRICING } from '../lib/pricing';
 
 const DISMISSED_KEY = 'esvg-teaching-bubble-dismissed';
@@ -110,6 +110,15 @@ export function TeachingBubble({ anchorSelector, active, onActivate }: TeachingB
           <Text size="xs" c="dimmed">Review proposals with a diff view before accepting</Text>
         </Group>
         <Text size="xs" c="dimmed" mt={2}>The AI assistant is free to start — {DEFAULT_PRICING.freeMonthlyCredits} credits every month.</Text>
+        <Button
+          size="xs"
+          mt={4}
+          fullWidth
+          rightSection={<IconArrowRight size={14} />}
+          onClick={() => { onActivate?.(); dismiss(); }}
+        >
+          Open AI Chat
+        </Button>
       </Stack>
     </Paper>,
     document.body,
