@@ -30,6 +30,7 @@ import {
   type AuthProvider,
   type User,
 } from 'firebase/auth';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
 import { config } from './config';
 import { getConsent } from './cookie-consent';
@@ -51,7 +52,8 @@ const firebaseConfig = {
 // Initialize Firebase eagerly at module level so getAuth() works from any module
 const firebaseApp = initializeApp(firebaseConfig);
 const firebaseDb = getFirestore(firebaseApp);
-export { firebaseDb };
+const firebaseStorage = getStorage(firebaseApp);
+export { firebaseDb, firebaseStorage };
 const firebaseAuth = getAuth(firebaseApp);
 
 const isLocalhost =
@@ -64,6 +66,7 @@ if (isLocalhost) {
   console.log('Running on localhost - using Firebase Emulators');
   connectFirestoreEmulator(firebaseDb, 'localhost', 8080);
   connectAuthEmulator(firebaseAuth, 'http://localhost:9099', { disableWarnings: true });
+  connectStorageEmulator(firebaseStorage, 'localhost', 9199);
 } else if (getConsent() === 'accepted') {
   firebaseAnalytics = getAnalytics(firebaseApp);
 }
