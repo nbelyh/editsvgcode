@@ -4,7 +4,7 @@ import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
-import { loadChatMessages, saveChatMessages, clearChatMessages } from '../../lib/chat-storage';
+import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages } from '../../lib/chat-history';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
@@ -85,21 +85,24 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     return subscribeCredits(setCredits);
   }, []);
 
-  // Load messages from IndexedDB on mount and when fileId changes
+  // Load messages from the server on mount and when fileId changes.
   useEffect(() => {
     loadedRef.current = false;
     setMessages([]);
     onPreviewSvg(null);
-    loadChatMessages<DisplayMessage>(fileId).then((stored) => {
+    let cancelled = false;
+    loadChatMessages(fileId).then((stored) => {
+      if (cancelled) return;
       setMessages(stored);
       loadedRef.current = true;
     });
+    return () => { cancelled = true; };
   }, [fileId]);
 
-  // Save messages to IndexedDB on change
+  // Persist messages on change — debounced write to the server.
   useEffect(() => {
     if (loadedRef.current) {
-      saveChatMessages(messages, fileId);
+      scheduleSaveChatMessages(fileId, messages);
     }
   }, [messages, fileId]);
 
@@ -279,7 +282,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
     const kept = messages.slice(0, msgIdx);
     setMessages(kept);
-    saveChatMessages(kept, fileId);
+    scheduleSaveChatMessages(fileId, kept);
 
     onPreviewSvg(null);
     if (popCount > 0) onRestore(popCount);
@@ -313,7 +316,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
     const kept = messages.slice(0, msgIdx);
     setMessages(kept);
-    saveChatMessages(kept, fileId);
+    scheduleSaveChatMessages(fileId, kept);
     onPreviewSvg(null);
     if (popCount > 0) onRestore(popCount);
 
