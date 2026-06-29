@@ -10,12 +10,15 @@ service firebase.storage {
 
     match /blobs/{uid}/{name} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
+      // create OR update: paths are content-addressed (sha256), so overwriting
+      // with the same bytes is harmless — and it lets the client upload
+      // unconditionally, with no (404-noisy) existence check first.
+      allow create, update: if request.auth != null
                     && request.auth.uid == uid
                     && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.resource.size < 8 * 1024 * 1024
                     && request.resource.contentType == 'image/png';
-      allow update, delete: if false;
+      allow delete: if false;
     }
 
     // Deny everything else by default.

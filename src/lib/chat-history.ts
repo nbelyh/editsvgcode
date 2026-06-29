@@ -11,7 +11,7 @@
 import {
   doc, getDoc, setDoc, collection, getDocs, query, orderBy, writeBatch, serverTimestamp,
 } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getBytes, getMetadata } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { firebaseDb, firebaseStorage } from './firebase';
 import type { DisplayMessage } from '../components/aichat/types';
@@ -55,16 +55,12 @@ async function uploadPng(dataUrl: string): Promise<string> {
   const sha = await sha256Hex(bytes);
   const path = `blobs/${owner}/${sha}.png`;
   if (uploadedPaths.has(path)) return path;
-  const r = storageRef(firebaseStorage, path);
-  // Content-addressed = immutable; rules are create-only, so skip if it exists.
-  try {
-    await getMetadata(r);
-  } catch {
-    await uploadBytes(r, bytes as unknown as Uint8Array<ArrayBuffer>, {
-      contentType: 'image/png',
-      cacheControl: 'public, max-age=31536000, immutable',
-    });
-  }
+  // Content-addressed path → upload unconditionally (overwrite is harmless and
+  // allowed by the rule); no existence probe, so no 404s on the normal path.
+  await uploadBytes(storageRef(firebaseStorage, path), bytes as unknown as Uint8Array<ArrayBuffer>, {
+    contentType: 'image/png',
+    cacheControl: 'public, max-age=31536000, immutable',
+  });
   uploadedPaths.add(path);
   return path;
 }
@@ -127,6 +123,7 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
   if (toolCalls) {
     toolCalls = await Promise.all(toolCalls.map(async (tc) => {
       if (typeof tc.pngRef === 'string') {
+        uploadedPaths.add(tc.pngRef); // already on the server — don't re-upload on the next save
         const { pngRef, ...rest } = tc;
         const args = (rest.arguments ?? {}) as Record<string, unknown>;
         return { ...rest, arguments: { ...args, pngDataUrl: await fetchPngDataUrl(pngRef as string) } };

@@ -4,7 +4,11 @@ service cloud.firestore {
 
     // SVG files — readable by anyone unless private, only owner can write
     match /files/{fileId} {
-      allow read: if resource.data.get('private', false) != true
+      // resource is null when the doc doesn't exist yet (e.g. ensureFileDoc's
+      // existence check, or opening an unknown id) — allow that read so it
+      // resolves to "not found" instead of erroring on null.data.
+      allow read: if resource == null
+                  || resource.data.get('private', false) != true
                   || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
@@ -26,7 +30,10 @@ service cloud.firestore {
       // the document's privacy (so public chats show in the gallery); only the
       // owner writes, and chat requires a real (non-anonymous) account.
       match /messages/{messageId} {
-        allow read: if get(/databases/$(database)/documents/files/$(fileId)).data.get('private', false) != true
+        // A fresh document may have no files/{id} doc yet — get() would return
+        // null and error. Treat "no parent doc" as an empty, readable chat.
+        allow read: if !exists(/databases/$(database)/documents/files/$(fileId))
+                    || get(/databases/$(database)/documents/files/$(fileId)).data.get('private', false) != true
                     || (request.auth != null
                         && get(/databases/$(database)/documents/files/$(fileId)).data.uid == request.auth.uid);
         allow write: if request.auth != null
