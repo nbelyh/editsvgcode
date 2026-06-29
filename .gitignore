@@ -11,3 +11,4 @@ firebase-debug.log
 test-results
 playwright-report
 .emulators
+firebase-export*
