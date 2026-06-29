@@ -1,24 +1,18 @@
 rules_version = '2';
 
-// Blob storage for generated PNGs. SVG stays inline in Firestore; only the
-// large binaries (gpt-image PNGs) live here, scoped to their document.
-// Read mirrors the document's privacy; writes are owner-only and create-only.
+// Per-user blob space for generated PNGs (SVG stays inline in Firestore).
+// Writes are owner-only via the uid in the PATH — deliberately no cross-service
+// firestore.get(), which the Storage emulator does not support. Reads require a
+// session; paths are content-addressed (sha256) and only discoverable through
+// access-controlled Firestore docs, so privacy follows the Firestore layer.
 service firebase.storage {
   match /b/{bucket}/o {
 
-    function file(fileId) {
-      return firestore.get(/databases/(default)/documents/files/$(fileId)).data;
-    }
-
-    // files/{fileId}/png/{name}
-    match /files/{fileId}/png/{name} {
-      // Readable if the document is public, or the requester owns it.
-      // `!= true` treats a missing `private` field as public (matches firestore.rules).
-      allow read: if file(fileId).private != true
-                  || (request.auth != null && file(fileId).uid == request.auth.uid);
-      // Only the document owner may add PNGs, and only PNGs under 8 MB.
+    match /blobs/{uid}/{name} {
+      allow read: if request.auth != null;
       allow create: if request.auth != null
-                    && file(fileId).uid == request.auth.uid
+                    && request.auth.uid == uid
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.resource.size < 8 * 1024 * 1024
                     && request.resource.contentType == 'image/png';
       allow update, delete: if false;

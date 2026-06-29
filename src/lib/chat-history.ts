@@ -48,10 +48,12 @@ function bytesToDataUrl(bytes: Uint8Array): string {
   return `data:image/png;base64,${btoa(bin)}`;
 }
 
-async function uploadPng(fileId: string, dataUrl: string): Promise<string> {
+async function uploadPng(dataUrl: string): Promise<string> {
+  const owner = uid();
+  if (!owner) throw new Error('Not signed in');
   const bytes = dataUrlToBytes(dataUrl);
   const sha = await sha256Hex(bytes);
-  const path = `files/${fileId}/png/${sha}.png`;
+  const path = `blobs/${owner}/${sha}.png`;
   if (uploadedPaths.has(path)) return path;
   const r = storageRef(firebaseStorage, path);
   // Content-addressed = immutable; rules are create-only, so skip if it exists.
@@ -84,7 +86,7 @@ interface StoredMessage {
 
 const seqId = (seq: number) => String(seq).padStart(6, '0');
 
-async function toStored(msg: DisplayMessage, seq: number, fileId: string): Promise<StoredMessage> {
+async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage> {
   let toolCalls = msg.toolCalls as Array<Record<string, unknown>> | undefined;
   if (toolCalls) {
     toolCalls = await Promise.all(toolCalls.map(async (tc) => {
@@ -92,7 +94,7 @@ async function toStored(msg: DisplayMessage, seq: number, fileId: string): Promi
       const pngDataUrl = args?.pngDataUrl;
       if (typeof pngDataUrl === 'string' && pngDataUrl) {
         try {
-          const pngRef = await uploadPng(fileId, pngDataUrl);
+          const pngRef = await uploadPng(pngDataUrl);
           const { pngDataUrl: _omit, ...restArgs } = args;
           return { ...tc, arguments: restArgs, pngRef };
         } catch (err) {
@@ -178,7 +180,7 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
 export async function saveChatMessages(fileId: string, messages: DisplayMessage[]): Promise<void> {
   if (!uid()) return;
   await ensureFileDoc(fileId);
-  const stored = await Promise.all(messages.map((m, i) => toStored(m, i, fileId)));
+  const stored = await Promise.all(messages.map((m, i) => toStored(m, i)));
   const col = collection(firebaseDb, 'files', fileId, 'messages');
   const existing = await getDocs(col);
   const batch = writeBatch(firebaseDb);
