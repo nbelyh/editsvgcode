@@ -91,8 +91,15 @@ async function toStored(msg: DisplayMessage, seq: number, fileId: string): Promi
       const args = tc.arguments as Record<string, unknown>;
       const pngDataUrl = args?.pngDataUrl;
       if (typeof pngDataUrl === 'string' && pngDataUrl) {
-        const { pngDataUrl: _omit, ...restArgs } = args;
-        return { ...tc, arguments: restArgs, pngRef: await uploadPng(fileId, pngDataUrl) };
+        try {
+          const pngRef = await uploadPng(fileId, pngDataUrl);
+          const { pngDataUrl: _omit, ...restArgs } = args;
+          return { ...tc, arguments: restArgs, pngRef };
+        } catch (err) {
+          // Non-fatal: keep the image inline so the message still persists.
+          console.warn('[chat-history] PNG upload failed; keeping image inline', err);
+          return tc;
+        }
       }
       return tc;
     }));
@@ -161,7 +168,8 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
     const col = collection(firebaseDb, 'files', fileId, 'messages');
     const snap = await getDocs(query(col, orderBy('seq')));
     return await Promise.all(snap.docs.map((d) => fromStored(d.data() as StoredMessage)));
-  } catch {
+  } catch (err) {
+    console.error('[chat-history] load failed', err);
     return [];
   }
 }
@@ -202,6 +210,6 @@ export function scheduleSaveChatMessages(fileId: string, messages: DisplayMessag
   if (prev) clearTimeout(prev);
   timers.set(fileId, setTimeout(() => {
     timers.delete(fileId);
-    saveChatMessages(fileId, messages).catch(() => {});
+    saveChatMessages(fileId, messages).catch((err) => console.error('[chat-history] save failed', err));
   }, 600));
 }
