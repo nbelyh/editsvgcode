@@ -259,17 +259,9 @@ async function vectorizeInBrowser(imageUrl: string, params: VectorizerParams = D
 
     const converter = ColorImageConverter.new_with_string(vtracerParams);
 
-    // vtracer's WASM logs "Clustering/Vectorizing tick" to the console on every
-    // iteration. The loop is synchronous, so silence console.log around it.
-    const origLog = console.log;
-    console.log = () => {};
-    try {
-      converter.init();
-      while (!converter.tick()) {
-        // incremental processing — converter writes SVG paths into svgEl
-      }
-    } finally {
-      console.log = origLog;
+    converter.init();
+    while (!converter.tick()) {
+      // incremental processing — converter writes SVG paths into svgEl
     }
 
     converter.free();
