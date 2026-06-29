@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { ActionIcon, Tooltip } from '@mantine/core';
 import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
@@ -85,23 +85,32 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     return subscribeCredits(setCredits);
   }, []);
 
-  // Load messages from the server on mount and when fileId changes.
+  // Load messages from the server on mount and when fileId changes. Wait for
+  // Firebase to RESTORE auth first: loading before the user is known returns
+  // empty, and the subsequent debounced save would then wipe the stored chat.
   useEffect(() => {
     loadedRef.current = false;
     setMessages([]);
     onPreviewSvg(null);
     let cancelled = false;
-    loadChatMessages(fileId).then((stored) => {
-      if (cancelled) return;
-      setMessages(stored);
-      loadedRef.current = true;
+    let loaded = false;
+    const unsub = onAuthStateChanged(getAuth(), (user) => {
+      if (cancelled || !user || loaded) return; // wait until auth is resolved; load once
+      loaded = true;
+      loadChatMessages(fileId).then((stored) => {
+        if (cancelled) return;
+        setMessages(stored);
+        loadedRef.current = true;
+      });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; unsub(); };
   }, [fileId]);
 
-  // Persist messages on change — debounced write to the server.
+  // Persist messages on change — debounced write to the server. Skip empty:
+  // merely opening a document must not create a server doc (only a real first
+  // message does); truncation-to-empty is handled explicitly by its handler.
   useEffect(() => {
-    if (loadedRef.current) {
+    if (loadedRef.current && messages.length > 0) {
       scheduleSaveChatMessages(fileId, messages);
     }
   }, [messages, fileId]);
