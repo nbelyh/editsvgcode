@@ -7,6 +7,7 @@ import { EditSvgCodeDb, friendlyError, logError } from './firebase';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints, migrateChatData } from './chat-storage';
+import { scheduleDraftSvgSave, primeDraftSvg } from './chat-history';
 import { getAuth } from 'firebase/auth';
 import DEFAULT_SVG from '../assets/default.svg?raw';
 
@@ -52,9 +53,14 @@ export function useDocument(routeFileId: string | undefined) {
     diffEditorRef.current = ed;
   };
 
-  // Persist SVG to IndexedDB so it matches chat history on reload
+  // Persist SVG to IndexedDB so it matches chat history on reload (the local
+  // draft for anonymous users), and sync it to the server copy when one exists
+  // (signed-in drafts/saved docs — no-op otherwise).
   useEffect(() => {
-    if (!readOnly) saveSvgCode(svgCode, fileId);
+    if (!readOnly) {
+      saveSvgCode(svgCode, fileId);
+      scheduleDraftSvgSave(fileId, svgCode);
+    }
   }, [svgCode, readOnly, fileId]);
 
   // An uploaded file's download name only applies to that upload — clear it
@@ -79,12 +85,16 @@ export function useDocument(routeFileId: string | undefined) {
             const currentUid = getAuth().currentUser?.uid ?? null;
             setIsOwner(currentUid !== null && result.uid === currentUid);
             db.incrementViews(uniqueId).catch((err) => logError('incrementViews', err));
-            const savedSvg = await loadSvgCode(currentFileId);
             setCanUndo(await hasCheckpoints(currentFileId));
-            if (savedSvg && savedSvg.includes('<svg')) {
-              setSvgCode(formatXml(savedSvg));
+            // Server text is the source of truth (edits/chat accepts sync it);
+            // fall back to the local copy for docs that predate the sync.
+            if (result.text && result.text.includes('<svg')) {
+              const formatted = formatXml(result.text);
+              primeDraftSvg(uniqueId, formatted);
+              setSvgCode(formatted);
             } else {
-              setSvgCode(formatXml(result.text || DEFAULT_SVG));
+              const savedSvg = await loadSvgCode(currentFileId);
+              setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
             }
           } else {
             setSvgCode(DEFAULT_SVG);
@@ -95,12 +105,26 @@ export function useDocument(routeFileId: string | undefined) {
         }
         setReadOnly(false);
       } else {
-        const savedSvg = await loadSvgCode(currentFileId);
+        // Unsaved draft: a signed-in user's draft may exist server-side (chat
+        // syncs it) — that copy wins so the draft follows the account.
+        let serverText: string | null = null;
+        const user = getAuth().currentUser;
+        if (user && !user.isAnonymous) {
+          try {
+            const result = await db.loadDocument(currentFileId, { quiet: true });
+            if (result && result.uid === user.uid && result.text) serverText = result.text;
+          } catch {
+            // not found / not ours — use the local copy
+          }
+        }
         setCanUndo(await hasCheckpoints(currentFileId));
-        if (savedSvg && savedSvg.includes('<svg')) {
-          setSvgCode(formatXml(savedSvg));
+        if (serverText && serverText.includes('<svg')) {
+          const formatted = formatXml(serverText);
+          primeDraftSvg(currentFileId, formatted);
+          setSvgCode(formatted);
         } else {
-          setSvgCode(DEFAULT_SVG);
+          const savedSvg = await loadSvgCode(currentFileId);
+          setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
         }
         setReadOnly(false);
       }

@@ -113,9 +113,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   // Persist messages on change — debounced write to the server. Skip empty:
   // merely opening a document must not create a server doc (only a real first
   // message does); truncation-to-empty is handled explicitly by its handler.
+  // The current SVG rides along (via ref — editor keystrokes must not retrigger
+  // a full message rewrite) so the created draft doc carries its document.
+  const svgRef = useRef(svgCode);
+  svgRef.current = svgCode;
   useEffect(() => {
     if (loadedRef.current && messages.length > 0) {
-      scheduleSaveChatMessages(fileId, messages);
+      scheduleSaveChatMessages(fileId, messages, svgRef.current);
     }
   }, [messages, fileId]);
 

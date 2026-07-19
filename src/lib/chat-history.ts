@@ -143,10 +143,14 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** File docs known to exist and be owned by the current user (avoids re-probing). */
+const knownFileDocs = new Set<string>();
+
 /** Create the files/{id} doc as a draft (saved:false) if it doesn't exist yet. */
 async function ensureFileDoc(fileId: string): Promise<void> {
   const owner = uid();
   if (!owner) return;
+  if (knownFileDocs.has(fileId)) return;
   const ref = doc(firebaseDb, 'files', fileId);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
@@ -158,6 +162,7 @@ async function ensureFileDoc(fileId: string): Promise<void> {
       modified: serverTimestamp(),
     });
   }
+  knownFileDocs.add(fileId);
 }
 
 /** Load a document's chat, rehydrating PNG blobs. Never throws (returns []). */
@@ -173,8 +178,10 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
   }
 }
 
-/** Externalize PNGs + reconcile the messages subcollection (handles truncation). */
-export async function saveChatMessages(fileId: string, messages: DisplayMessage[]): Promise<void> {
+/** Externalize PNGs + reconcile the messages subcollection (handles truncation).
+ * When `svg` is given it is stored inline on the file doc (`text`) so the draft
+ * document travels with its chat. */
+export async function saveChatMessages(fileId: string, messages: DisplayMessage[], svg?: string): Promise<void> {
   if (!uid()) return;
   await ensureFileDoc(fileId);
   const stored = await Promise.all(messages.map((m, i) => toStored(m, i)));
@@ -183,7 +190,9 @@ export async function saveChatMessages(fileId: string, messages: DisplayMessage[
   const batch = writeBatch(firebaseDb);
   stored.forEach((s) => batch.set(doc(col, seqId(s.seq)), s));
   existing.docs.forEach((d) => { if (Number(d.id) >= stored.length) batch.delete(d.ref); });
-  batch.set(doc(firebaseDb, 'files', fileId), { modified: serverTimestamp() }, { merge: true });
+  const fileFields: Record<string, unknown> = { modified: serverTimestamp() };
+  if (svg !== undefined) fileFields.text = svg;
+  batch.set(doc(firebaseDb, 'files', fileId), fileFields, { merge: true });
   await batch.commit();
 }
 
@@ -204,11 +213,47 @@ export async function clearChatMessages(fileId: string): Promise<void> {
 
 /** Debounced save — batches rapid message-state changes. */
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
-export function scheduleSaveChatMessages(fileId: string, messages: DisplayMessage[]): void {
+export function scheduleSaveChatMessages(fileId: string, messages: DisplayMessage[], svg?: string): void {
   const prev = timers.get(fileId);
   if (prev) clearTimeout(prev);
   timers.set(fileId, setTimeout(() => {
     timers.delete(fileId);
-    saveChatMessages(fileId, messages).catch((err) => console.error('[chat-history] save failed', err));
+    saveChatMessages(fileId, messages, svg).catch((err) => console.error('[chat-history] save failed', err));
   }, 600));
+}
+
+/**
+ * Keep the server copy of a draft's SVG in sync with editor changes. No-op
+ * unless signed in AND the file doc already exists and is owned by the user —
+ * merely editing must never create a server doc (only chat or Save do).
+ */
+const lastSyncedSvg = new Map<string, string>();
+
+/** Mark `svg` as already server-synced (call after loading it from the server)
+ * so re-rendering the loaded document doesn't count as an edit. */
+export function primeDraftSvg(fileId: string, svg: string): void {
+  lastSyncedSvg.set(fileId, svg);
+}
+
+async function saveDraftSvg(fileId: string, svg: string): Promise<void> {
+  const owner = uid();
+  if (!owner) return;
+  if (!knownFileDocs.has(fileId)) {
+    const snap = await getDoc(doc(firebaseDb, 'files', fileId));
+    if (!snap.exists() || snap.data().uid !== owner) return;
+    knownFileDocs.add(fileId);
+  }
+  await setDoc(doc(firebaseDb, 'files', fileId), { text: svg, modified: serverTimestamp() }, { merge: true });
+  lastSyncedSvg.set(fileId, svg);
+}
+
+const svgTimers = new Map<string, ReturnType<typeof setTimeout>>();
+export function scheduleDraftSvgSave(fileId: string, svg: string): void {
+  if (lastSyncedSvg.get(fileId) === svg) return;
+  const prev = svgTimers.get(fileId);
+  if (prev) clearTimeout(prev);
+  svgTimers.set(fileId, setTimeout(() => {
+    svgTimers.delete(fileId);
+    saveDraftSvg(fileId, svg).catch((err) => console.error('[chat-history] svg sync failed', err));
+  }, 1000));
 }
