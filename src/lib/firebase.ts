@@ -130,14 +130,15 @@ export class EditSvgCodeDb {
     this.db = firebaseDb;
   }
 
-  async loadDocument(uniqueId: string): Promise<{ text: string; private: boolean; uid: string | null } | null> {
+  async loadDocument(uniqueId: string, opts?: { quiet?: boolean }): Promise<{ text: string; private: boolean; uid: string | null } | null> {
     const ref = doc(this.db, 'files', uniqueId);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
       return { text: data.text ?? '', private: data.private ?? false, uid: data.uid ?? null };
     }
-    logError('loadDocument', 'file id does not exist: ' + uniqueId);
+    // quiet: probing for an optional draft copy — absence is the normal case.
+    if (!opts?.quiet) logError('loadDocument', 'file id does not exist: ' + uniqueId);
     return null;
   }
 
@@ -145,7 +146,9 @@ export class EditSvgCodeDb {
     const ref = doc(this.db, 'files', uniqueId);
     const auth = getAuth();
     const uid = auth.currentUser?.uid ?? null;
-    await setDoc(ref, { text, modified: new Date(), uid, private: isPrivate });
+    // Merge: the doc may already exist as a chat draft (saved:false) — keep its
+    // createdAt/views/downloads and promote it to a saved file.
+    await setDoc(ref, { text, modified: new Date(), uid, private: isPrivate, saved: true }, { merge: true });
   }
 
   async setPrivate(uniqueId: string, isPrivate: boolean): Promise<void> {
@@ -182,7 +185,9 @@ export class EditSvgCodeDb {
       orderBy('modified', 'desc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({
+    // Hide chat drafts (saved:false). Filter client-side: legacy docs predate
+    // the `saved` field and a where('saved','==',true) query would drop them.
+    return snap.docs.filter((d) => d.data().saved !== false).map((d) => ({
       id: d.id,
       modified: d.data().modified?.toDate?.() ?? new Date(),
       text: d.data().text ?? '',
