@@ -1,5 +1,7 @@
 import { Group, ActionIcon, Button, Tooltip } from '@mantine/core';
-import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconLock, IconWorld, IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconEye, IconEyeOff } from '@tabler/icons-react';
+import type { Visibility } from '../lib/firebase';
+import { VisibilityMenu } from './VisibilityMenu';
 
 interface EditorToolbarProps {
   onNew: () => void;
@@ -8,16 +10,16 @@ interface EditorToolbarProps {
   onSave: () => void;
   saving: boolean;
   routeFileId?: string;
-  isPrivate: boolean;
+  visibility: Visibility;
   isAnonymous: boolean;
   isOwner: boolean;
-  onTogglePrivate: () => void;
+  onSetVisibility: (v: Visibility) => void;
   showPreview: boolean;
   onTogglePreview: () => void;
   showPreviewToggle?: boolean;
 }
 
-export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, isPrivate, isAnonymous, isOwner, onTogglePrivate, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
+export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, visibility, isAnonymous, isOwner, onSetVisibility, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
   return (
     <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}>
       <Group gap="xs">
@@ -36,17 +38,19 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
             Download
           </Button>
         </Tooltip>
-        <Tooltip label={isAnonymous ? (routeFileId ? "Save changes (public)" : "Save to the cloud (public — sign in to save privately)") : routeFileId ? "Save changes" : "Save to the cloud"}>
+        <Tooltip label={isAnonymous ? (routeFileId ? "Save changes (unlisted)" : "Save to the cloud (unlisted — sign in to save privately)") : routeFileId ? "Save changes" : "Save to the cloud"}>
           <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={onSave} loading={saving}>
             Save
           </Button>
         </Tooltip>
         {routeFileId && (
-          <Tooltip label={isAnonymous ? 'Public — sign in to save private files' : !isOwner ? 'Public — you are not the owner of this file' : isPrivate ? 'Private — only you can view. Click to make public.' : 'Public — anyone with the link can view. Click to make private.'}>
-            <ActionIcon variant="subtle" color={isAnonymous || !isOwner ? 'blue' : isPrivate ? 'gray' : 'blue'} size="sm" onClick={isAnonymous || !isOwner ? undefined : onTogglePrivate} style={isAnonymous || !isOwner ? { cursor: 'default', opacity: 0.6 } : undefined}>
-              {isAnonymous || !isOwner ? <IconWorld size={14} /> : isPrivate ? <IconLock size={14} /> : <IconWorld size={14} />}
-            </ActionIcon>
-          </Tooltip>
+          <VisibilityMenu
+            asButton
+            visibility={visibility}
+            onChange={onSetVisibility}
+            shareUrl={`${window.location.origin}/${routeFileId}`}
+            disabledReason={isAnonymous ? 'Unlisted — sign in to manage visibility' : !isOwner ? 'You are not the owner of this file' : undefined}
+          />
         )}
       </Group>
       {showPreviewToggle && (

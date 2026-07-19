@@ -123,6 +123,22 @@ onAuthStateChanged(firebaseAuth, (user) => {
   }
 });
 
+/**
+ * File visibility: 'private' = owner only, 'unlisted' = anyone with the link
+ * (the historic "public" semantic), 'public' = additionally listed in the
+ * gallery. Legacy docs carry only the `private` boolean and map to
+ * private/unlisted — never to 'public', so nothing gets listed without an
+ * explicit opt-in.
+ */
+export type Visibility = 'private' | 'unlisted' | 'public';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function visibilityOf(data: any): Visibility {
+  const v = data?.visibility;
+  if (v === 'private' || v === 'unlisted' || v === 'public') return v;
+  return data?.private === true ? 'private' : 'unlisted';
+}
+
 export class EditSvgCodeDb {
   private db: Firestore;
 
@@ -130,31 +146,35 @@ export class EditSvgCodeDb {
     this.db = firebaseDb;
   }
 
-  async loadDocument(uniqueId: string, opts?: { quiet?: boolean }): Promise<{ text: string; private: boolean; uid: string | null } | null> {
+  async loadDocument(uniqueId: string, opts?: { quiet?: boolean }): Promise<{ text: string; visibility: Visibility; uid: string | null } | null> {
     const ref = doc(this.db, 'files', uniqueId);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
-      return { text: data.text ?? '', private: data.private ?? false, uid: data.uid ?? null };
+      return { text: data.text ?? '', visibility: visibilityOf(data), uid: data.uid ?? null };
     }
     // quiet: probing for an optional draft copy — absence is the normal case.
     if (!opts?.quiet) logError('loadDocument', 'file id does not exist: ' + uniqueId);
     return null;
   }
 
-  async saveDocument(uniqueId: string, text: string, isPrivate: boolean): Promise<void> {
+  async saveDocument(uniqueId: string, text: string, visibility: Visibility): Promise<void> {
     const ref = doc(this.db, 'files', uniqueId);
     const auth = getAuth();
     const uid = auth.currentUser?.uid ?? null;
     // Merge: the doc may already exist as a chat draft (saved:false) — keep its
-    // createdAt/views/downloads and promote it to a saved file.
-    await setDoc(ref, { text, modified: new Date(), uid, private: isPrivate, saved: true }, { merge: true });
+    // createdAt/views/downloads and promote it to a saved file. The legacy
+    // `private` boolean is kept in sync for older readers/rules paths.
+    await setDoc(ref, {
+      text, modified: new Date(), uid, saved: true,
+      visibility, private: visibility === 'private',
+    }, { merge: true });
   }
 
-  async setPrivate(uniqueId: string, isPrivate: boolean): Promise<void> {
+  async setVisibility(uniqueId: string, visibility: Visibility): Promise<void> {
     const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
-    await updateDoc(ref, { private: isPrivate });
+    await updateDoc(ref, { visibility, private: visibility === 'private' });
   }
 
   async incrementViews(uniqueId: string): Promise<void> {
@@ -178,7 +198,7 @@ export class EditSvgCodeDb {
     await deleteDoc(ref);
   }
 
-  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean; views: number; downloads: number; saved: boolean }>> {
+  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; visibility: Visibility; views: number; downloads: number; saved: boolean }>> {
     const auth = getAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return [];
@@ -193,12 +213,32 @@ export class EditSvgCodeDb {
       id: d.id,
       modified: d.data().modified?.toDate?.() ?? new Date(),
       text: d.data().text ?? '',
-      public: !(d.data().private ?? false),
+      visibility: visibilityOf(d.data()),
       views: d.data().views ?? 0,
       downloads: d.data().downloads ?? 0,
       // Legacy docs predate the `saved` field — treat missing as saved.
       saved: d.data().saved !== false,
     }));
+  }
+
+  /** Gallery: files whose owners explicitly listed them (visibility 'public'). */
+  async listPublicDocuments(max = 60): Promise<Array<{ id: string; modified: Date; text: string; views: number }>> {
+    const { limit } = await import('firebase/firestore');
+    const q = query(
+      collection(this.db, 'files'),
+      where('visibility', '==', 'public'),
+      orderBy('modified', 'desc'),
+      limit(max),
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .filter((d) => d.data().saved !== false) // drafts never show, even if marked public
+      .map((d) => ({
+        id: d.id,
+        modified: d.data().modified?.toDate?.() ?? new Date(),
+        text: d.data().text ?? '',
+        views: d.data().views ?? 0,
+      }));
   }
 }
 

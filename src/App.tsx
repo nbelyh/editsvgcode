@@ -13,6 +13,7 @@ declare const __APP_VERSION__: string;
 
 const NAV_LINKS = [
   { to: '/features', label: 'Features' },
+  { to: '/gallery', label: 'Gallery' },
   { to: '/support', label: 'Support' },
   { to: '/about', label: 'About' },
 ];

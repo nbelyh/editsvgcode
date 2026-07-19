@@ -13,6 +13,7 @@ import App from './App';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { FilesPage } from './pages/FilesPage';
+import { GalleryPage } from './pages/GalleryPage';
 import { PricingPage } from './pages/PricingPage';
 import { AboutPage } from './pages/AboutPage';
 import { FeaturesPage } from './pages/FeaturesPage';
@@ -37,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
             <Route index element={<EditorPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="files" element={<FilesPage />} />
+            <Route path="gallery" element={<GalleryPage />} />
             <Route path="features" element={<FeaturesPage />} />
             <Route path="pricing" element={<PricingPage />} />
 

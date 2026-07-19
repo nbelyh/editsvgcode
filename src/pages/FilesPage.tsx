@@ -2,17 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { Container, Title, Text, Table, Anchor, Loader, ActionIcon, Tooltip, Alert, Box, Stack } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconLock, IconWorld, IconInfoCircle } from '@tabler/icons-react';
+import { IconTrash, IconInfoCircle } from '@tabler/icons-react';
+import { VisibilityMenu } from '../components/VisibilityMenu';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { config } from '../lib/config';
 import { Link } from 'react-router-dom';
-import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
+import { EditSvgCodeDb, friendlyError, type Visibility } from '../lib/firebase';
+import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from '../lib/useDocument';
 
 interface FileEntry {
   id: string;
   modified: Date;
   text: string;
-  public: boolean;
+  visibility: Visibility;
   views: number;
   downloads: number;
   saved: boolean;
@@ -75,17 +77,16 @@ export function FilesPage() {
     });
   }, []);
 
-  const handleTogglePrivate = useCallback(async (id: string) => {
+  const handleSetVisibility = useCallback(async (id: string, newValue: Visibility) => {
     const db = new EditSvgCodeDb();
     const file = files.find((f) => f.id === id);
-    if (!file) return;
-    const newPrivate = file.public;
+    if (!file || file.visibility === newValue) return;
     try {
-      await db.setPrivate(id, newPrivate);
-      setFiles((prev) => prev.map((f) => f.id === id ? { ...f, public: !newPrivate } : f));
-      notifications.show({ title: newPrivate ? 'Private' : 'Public', message: newPrivate ? 'Only you can view this file.' : 'Anyone with the link can view.', color: 'blue' });
+      await db.setVisibility(id, newValue);
+      setFiles((prev) => prev.map((f) => f.id === id ? { ...f, visibility: newValue } : f));
+      notifications.show({ title: VISIBILITY_LABEL[newValue], message: VISIBILITY_MESSAGE[newValue], color: 'blue' });
     } catch (err) {
-      notifications.show({ title: 'Failed to update privacy', message: friendlyError(err), color: 'red' });
+      notifications.show({ title: 'Failed to update visibility', message: friendlyError(err), color: 'red' });
     }
   }, [files]);
 
@@ -145,11 +146,12 @@ export function FilesPage() {
                   <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Tooltip label={isAnonymous ? 'Public — sign in to save private files' : f.public ? 'Public — click to make private' : 'Private — click to make public'}>
-                    <ActionIcon variant="subtle" color={f.public ? 'blue' : 'gray'} size="sm" onClick={isAnonymous ? undefined : () => handleTogglePrivate(f.id)} style={isAnonymous ? { cursor: 'default', opacity: 0.6 } : undefined}>
-                      {isAnonymous ? <IconWorld size={14} /> : f.public ? <IconWorld size={14} /> : <IconLock size={14} />}
-                    </ActionIcon>
-                  </Tooltip>
+                  <VisibilityMenu
+                    visibility={f.visibility}
+                    onChange={(v) => handleSetVisibility(f.id, v)}
+                    shareUrl={`${window.location.origin}/${f.id}`}
+                    disabledReason={isAnonymous ? 'Unlisted — sign in to manage visibility' : undefined}
+                  />
                 </Table.Td>
                 <Table.Td>
                   <Tooltip label="Delete">

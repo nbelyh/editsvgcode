@@ -7,6 +7,14 @@
         { "fieldPath": "uid", "order": "ASCENDING" },
         { "fieldPath": "modified", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "files",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "modified", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

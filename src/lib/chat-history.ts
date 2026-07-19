@@ -197,6 +197,7 @@ async function ensureFileDoc(fileId: string): Promise<void> {
   if (!snap.exists()) {
     await setDoc(ref, {
       uid: owner,
+      visibility: 'private',
       private: true,
       saved: false,
       createdAt: serverTimestamp(),
@@ -236,6 +237,26 @@ export async function saveChatMessages(fileId: string, messages: DisplayMessage[
   if (svg !== undefined) fileFields.text = svg;
   batch.set(doc(firebaseDb, 'files', fileId), fileFields, { merge: true });
   await batch.commit();
+}
+
+/**
+ * Deep-copy a (public) document into a new draft owned by the current user:
+ * doc text + chat messages + PNG blobs (loadChatMessages rehydrates them to
+ * data URLs; saving re-externalizes under the cloner's own blob space).
+ * Returns the new draft's id. Requires a signed-in, non-anonymous user.
+ */
+export async function cloneDocument(sourceId: string): Promise<string | null> {
+  const owner = uid();
+  if (!owner) return null;
+  const { getNewUniqueId } = await import('./svg-utils');
+  const srcSnap = await getDoc(doc(firebaseDb, 'files', sourceId));
+  if (!srcSnap.exists()) return null;
+  const text: string = srcSnap.data().text ?? '';
+  const messages = await loadChatMessages(sourceId);
+  const newId = getNewUniqueId();
+  await saveChatMessages(newId, messages, text);
+  await setDoc(doc(firebaseDb, 'files', newId), { forkedFrom: sourceId }, { merge: true });
+  return newId;
 }
 
 /** Delete a document's chat (leaves the file doc). */

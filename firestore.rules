@@ -2,13 +2,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Visibility: 'private' (owner only) / 'unlisted' (anyone with the link) /
+    // 'public' (listed in the gallery). Legacy docs carry only the `private`
+    // boolean and map to private/unlisted.
+    function vis(data) {
+      return data.get('visibility', data.get('private', false) == true ? 'private' : 'unlisted');
+    }
+
     // SVG files — readable by anyone unless private, only owner can write
     match /files/{fileId} {
       // resource is null when the doc doesn't exist yet (e.g. ensureFileDoc's
       // existence check, or opening an unknown id) — allow that read so it
       // resolves to "not found" instead of erroring on null.data.
       allow read: if resource == null
-                  || resource.data.get('private', false) != true
+                  || vis(resource.data) != 'private'
                   || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
@@ -33,7 +40,7 @@ service cloud.firestore {
         // A fresh document may have no files/{id} doc yet — get() would return
         // null and error. Treat "no parent doc" as an empty, readable chat.
         allow read: if !exists(/databases/$(database)/documents/files/$(fileId))
-                    || get(/databases/$(database)/documents/files/$(fileId)).data.get('private', false) != true
+                    || vis(get(/databases/$(database)/documents/files/$(fileId)).data) != 'private'
                     || (request.auth != null
                         && get(/databases/$(database)/documents/files/$(fileId)).data.uid == request.auth.uid);
         allow write: if request.auth != null

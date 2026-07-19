@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import type { DiffOnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { EditSvgCodeDb, friendlyError, logError } from './firebase';
+import { EditSvgCodeDb, friendlyError, logError, type Visibility } from './firebase';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, migrateChatData } from './chat-storage';
@@ -20,13 +20,25 @@ function isCleanId(id: string): boolean {
   return /^[a-z0-9]+$/.test(id);
 }
 
+export const VISIBILITY_LABEL: Record<Visibility, string> = {
+  private: 'Private',
+  unlisted: 'Unlisted',
+  public: 'Public',
+};
+
+export const VISIBILITY_MESSAGE: Record<Visibility, string> = {
+  private: 'Only you can view this file.',
+  unlisted: 'Anyone with the link can view this file.',
+  public: 'Listed in the public gallery — anyone can find and clone it.',
+};
+
 export function useDocument(routeFileId: string | undefined) {
   const navigate = useNavigate();
 
   const [svgCode, setSvgCode] = useState('Loading please wait...');
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(true);
+  const [visibility, setVisibility] = useState<Visibility>('private');
   // A document gets its permanent id at creation and keeps it through save — the
   // chat, blobs, and (once saved) the files/{id} doc all share it. No "_local_"
   // prefix and no id swap on save.
@@ -80,7 +92,7 @@ export function useDocument(routeFileId: string | undefined) {
         try {
           const result = await db.loadDocument(uniqueId);
           if (result) {
-            setIsPrivate(result.private);
+            setVisibility(result.visibility);
             const currentUid = getAuth().currentUser?.uid ?? null;
             setIsOwner(currentUid !== null && result.uid === currentUid);
             db.incrementViews(uniqueId).catch((err) => logError('incrementViews', err));
@@ -150,9 +162,10 @@ export function useDocument(routeFileId: string | undefined) {
     }
     setSaving(true);
     setFileId(uniqueId);
-    // Anonymous users always save as public
-    const effectivePrivate = getAuth().currentUser?.isAnonymous ? false : isPrivate;
-    db.saveDocument(uniqueId, svgCode, effectivePrivate)
+    // Anonymous users can't manage visibility — their saves are link-shareable
+    // (unlisted), never gallery-listed.
+    const effectiveVisibility: Visibility = getAuth().currentUser?.isAnonymous ? 'unlisted' : visibility;
+    db.saveDocument(uniqueId, svgCode, effectiveVisibility)
       .then(() => {
         // Draft promoted to a saved file — forget the draft pointer so a fresh
         // "/" mints a new id instead of reopening this one.
@@ -165,24 +178,27 @@ export function useDocument(routeFileId: string | undefined) {
         notifications.show({ title: 'Save failed', message: friendlyError(err), color: 'red' });
       })
       .finally(() => setSaving(false));
-  }, [svgCode, routeFileId, navigate, isPrivate, fileId]);
+  }, [svgCode, routeFileId, navigate, visibility, fileId]);
 
-  const handleTogglePrivate = useCallback(async () => {
+  const handleSetVisibility = useCallback(async (newValue: Visibility) => {
     const db = dbRef.current;
-    if (!db || !routeFileId) return;
-    // Anonymous users and non-owners cannot change privacy
+    if (!db || !routeFileId || newValue === visibility) return;
+    // Anonymous users and non-owners cannot change visibility
     if (getAuth().currentUser?.isAnonymous) return;
     if (!isOwner) return;
-    const newValue = !isPrivate;
-    setIsPrivate(newValue);
+    setVisibility(newValue);
     try {
-      await db.setPrivate(routeFileId, newValue);
-      notifications.show({ title: newValue ? 'Private' : 'Public', message: newValue ? 'Only you can view this file.' : 'Anyone with the link can view this file.', color: 'blue' });
+      await db.setVisibility(routeFileId, newValue);
+      notifications.show({
+        title: VISIBILITY_LABEL[newValue],
+        message: VISIBILITY_MESSAGE[newValue],
+        color: 'blue',
+      });
     } catch (err) {
-      setIsPrivate(isPrivate);
-      notifications.show({ title: 'Failed to update privacy', message: friendlyError(err), color: 'red' });
+      setVisibility(visibility);
+      notifications.show({ title: 'Failed to update visibility', message: friendlyError(err), color: 'red' });
     }
-  }, [routeFileId, isPrivate]);
+  }, [routeFileId, visibility, isOwner]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,14 +264,14 @@ export function useDocument(routeFileId: string | undefined) {
     svgCode, setSvgCode,
     readOnly,
     saving,
-    isPrivate,
+    visibility,
     isAnonymous,
     isOwner,
     fileId,
     proposedSvg,
     handleDiffMount,
     handleSave,
-    handleTogglePrivate,
+    handleSetVisibility,
     handleFileChange,
     handleDownload,
     handleNew,

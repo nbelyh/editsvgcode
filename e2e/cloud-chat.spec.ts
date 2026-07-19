@@ -15,7 +15,7 @@ const SVG_GREEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><
  * Registers the id for the afterEach purge. */
 function uniqueId(prefix: string): string {
   const id = (prefix + Math.random().toString(36).slice(2, 10)).toLowerCase();
-  currentFileId = id;
+  currentFileIds.push(id);
   return id;
 }
 
@@ -96,14 +96,12 @@ async function purgeUser(uid: string) {
 }
 
 /** What the current test created — purged in afterEach even if it failed. */
-let currentFileId: string | null = null;
+let currentFileIds: string[] = [];
 let currentUids: string[] = [];
 
 test.afterEach(async () => {
-  if (currentFileId) {
-    await purgeDraft(currentFileId);
-    currentFileId = null;
-  }
+  for (const id of currentFileIds) await purgeDraft(id);
+  currentFileIds = [];
   for (const uid of currentUids) await purgeUser(uid);
   currentUids = [];
 });
@@ -219,5 +217,53 @@ test.describe('Cloud chat persistence', () => {
       return (await ch.loadChatMessages(id)).length;
     }, fileId);
     expect(messageCount).toBe(2);
+  });
+
+  test('gallery lists only visibility:public; clone creates an owned draft', async ({ page }) => {
+    const srcId = uniqueId('e2egallery');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page); // owner A
+    await seedDraft(page, srcId);
+    // Publish as UNLISTED first — link-shareable must not mean gallery-listed
+    await page.evaluate(async (id) => {
+      const fb = await import('/src/lib/firebase.ts');
+      const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>';
+      await new fb.EditSvgCodeDb().saveDocument(id, SVG, 'unlisted');
+    }, srcId);
+
+    await page.goto('/gallery');
+    await expect(page.getByText(/Nothing public yet|Public SVGs/)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('link', { name: srcId })).not.toBeVisible();
+
+    // Owner lists it explicitly
+    await page.evaluate(async (id) => {
+      const fb = await import('/src/lib/firebase.ts');
+      await new fb.EditSvgCodeDb().setVisibility(id, 'public');
+    }, srcId);
+    await page.reload();
+    await expect(page.getByRole('link', { name: srcId })).toBeVisible({ timeout: 15000 });
+
+    // A different user clones it from the gallery
+    await signInTestUser(page); // user B
+    await page.getByRole('button', { name: 'Start from this' }).click();
+    await page.waitForURL((url) => url.pathname !== '/gallery', { timeout: 20000 });
+    const newId = page.url().split('/').pop()!;
+    expect(newId).not.toBe(srcId);
+    currentFileIds.push(newId);
+
+    // The clone is a private draft owned by B, chat included
+    await waitForEditor(page);
+    await expect.poll(() => editorValue(page)).toContain('fill="red"');
+    const res = await fetch(`${FIRESTORE_DB}/documents/files/${newId}`, { headers: EMULATOR_AUTH });
+    const fields = (await res.json()).fields ?? {};
+    expect(fields.visibility?.stringValue).toBe('private');
+    expect(fields.saved?.booleanValue).toBe(false);
+    expect(fields.forkedFrom?.stringValue).toBe(srcId);
+    const clonedCount = await page.evaluate(async (id) => {
+      const ch = await import('/src/lib/chat-history.ts');
+      return (await ch.loadChatMessages(id)).length;
+    }, newId);
+    expect(clonedCount).toBe(2);
   });
 });
