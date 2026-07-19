@@ -170,11 +170,15 @@ export class EditSvgCodeDb {
   }
 
   async deleteDocument(uniqueId: string): Promise<void> {
+    // Delete the chat first: subcollections are not removed with their parent,
+    // and the messages rules require the parent doc to resolve ownership.
+    const { clearChatMessages } = await import('./chat-history');
+    await clearChatMessages(uniqueId);
     const ref = doc(this.db, 'files', uniqueId);
     await deleteDoc(ref);
   }
 
-  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean; views: number; downloads: number }>> {
+  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; public: boolean; views: number; downloads: number; saved: boolean }>> {
     const auth = getAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return [];
@@ -185,15 +189,15 @@ export class EditSvgCodeDb {
       orderBy('modified', 'desc'),
     );
     const snap = await getDocs(q);
-    // Hide chat drafts (saved:false). Filter client-side: legacy docs predate
-    // the `saved` field and a where('saved','==',true) query would drop them.
-    return snap.docs.filter((d) => d.data().saved !== false).map((d) => ({
+    return snap.docs.map((d) => ({
       id: d.id,
       modified: d.data().modified?.toDate?.() ?? new Date(),
       text: d.data().text ?? '',
       public: !(d.data().private ?? false),
       views: d.data().views ?? 0,
       downloads: d.data().downloads ?? 0,
+      // Legacy docs predate the `saved` field — treat missing as saved.
+      saved: d.data().saved !== false,
     }));
   }
 }

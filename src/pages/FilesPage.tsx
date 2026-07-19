@@ -15,6 +15,7 @@ interface FileEntry {
   public: boolean;
   views: number;
   downloads: number;
+  saved: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -24,6 +25,9 @@ function formatSize(bytes: number): string {
 }
 
 function SvgThumb({ text }: { text: string }) {
+  if (!text) {
+    return <div style={{ width: 40, height: 40, background: 'var(--mantine-color-gray-1)', borderRadius: 4 }} />;
+  }
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
   return <img src={url} alt="preview" width={40} height={40} style={{ objectFit: 'contain', background: 'var(--mantine-color-gray-1)', borderRadius: 4 }} />;
 }
@@ -87,6 +91,9 @@ export function FilesPage() {
 
   const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
 
+  const savedFiles = files.filter((f) => f.saved);
+  const drafts = files.filter((f) => !f.saved);
+
   return (
     <Container py="xl" className="page-scroll">
       <Title order={2} mb="md">Files</Title>
@@ -98,7 +105,7 @@ export function FilesPage() {
 
       {loading ? (
         <Loader size="sm" />
-      ) : files.length === 0 ? (
+      ) : savedFiles.length === 0 ? (
         <Text c="dimmed" size="sm">No saved files yet. Use &quot;Save&quot; in the editor to save a file.</Text>
       ) : (
         <Table striped highlightOnHover>
@@ -115,7 +122,7 @@ export function FilesPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {files.map((f) => (
+            {savedFiles.map((f) => (
               <Table.Tr key={f.id}>
                 <Table.Td>
                   <SvgThumb text={f.text} />
@@ -155,6 +162,49 @@ export function FilesPage() {
             ))}
           </Table.Tbody>
         </Table>
+      )}
+
+      {!loading && drafts.length > 0 && (
+        <>
+          <Title order={3} mt="xl" mb="xs">Drafts</Title>
+          <Text c="dimmed" size="sm" mb="md">
+            Unsaved documents with an AI chat — open one to continue where you left off.
+          </Text>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th w={50} />
+                <Table.Th>Draft</Table.Th>
+                <Table.Th>Modified</Table.Th>
+                <Table.Th w={40} />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {drafts.map((f) => (
+                <Table.Tr key={f.id}>
+                  <Table.Td>
+                    <SvgThumb text={f.text} />
+                  </Table.Td>
+                  <Table.Td>
+                    <Anchor component={Link} to={`/${f.id}`} size="sm">
+                      {f.id}
+                    </Anchor>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">{f.modified.toLocaleString()}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Tooltip label="Delete">
+                      <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleDelete(f.id)}>
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </>
       )}
     </Container>
   );

@@ -50,15 +50,17 @@ export function PrivacyPolicyPage() {
 
         <Title order={3}>d) SVG content</Title>
         <Text>
-          SVG files you create and edit are stored locally in your browser (localStorage) or, if you are signed in,
-          in Firebase Cloud Storage associated with your account. We do not access or analyze the content of your files.
+          SVG files you create and edit are stored locally in your browser (browser storage) or, if you are signed in,
+          in Firebase (Google Cloud) associated with your account. We do not access or analyze the content of your files.
         </Text>
 
         <Title order={3}>e) AI features</Title>
         <Text>
           When you use AI-powered features, the content you submit (SVG code, images, text prompts) is sent to
           third-party AI model providers (e.g. OpenAI, Google) for processing. We do not store AI request or response data
-          beyond what is needed to deliver the result.
+          beyond what is needed to deliver the result. If you are signed in, your AI chat conversations (including
+          generated images and document snapshots) are stored in Firebase with your account so you can continue them
+          later; deleting a document deletes its conversation.
         </Text>
 
         <Title order={2}>3. Cookies</Title>
