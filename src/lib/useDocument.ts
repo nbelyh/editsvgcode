@@ -6,7 +6,7 @@ import type { editor } from 'monaco-editor';
 import { EditSvgCodeDb, friendlyError, logError } from './firebase';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
-import { saveSvgCode, loadSvgCode, pushCheckpoint, popCheckpoints, hasCheckpoints, migrateChatData } from './chat-storage';
+import { saveSvgCode, loadSvgCode, migrateChatData } from './chat-storage';
 import { scheduleDraftSvgSave, primeDraftSvg } from './chat-history';
 import { getAuth } from 'firebase/auth';
 import DEFAULT_SVG from '../assets/default.svg?raw';
@@ -35,7 +35,6 @@ export function useDocument(routeFileId: string | undefined) {
     localStorage.setItem('esvg-local-id', id);
     return id;
   })());
-  const [canUndo, setCanUndo] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
   // Preserve an uploaded file's original name for download (the id is a guid).
@@ -85,7 +84,6 @@ export function useDocument(routeFileId: string | undefined) {
             const currentUid = getAuth().currentUser?.uid ?? null;
             setIsOwner(currentUid !== null && result.uid === currentUid);
             db.incrementViews(uniqueId).catch((err) => logError('incrementViews', err));
-            setCanUndo(await hasCheckpoints(currentFileId));
             // Server text is the source of truth (edits/chat accepts sync it);
             // fall back to the local copy for docs that predate the sync.
             if (result.text && result.text.includes('<svg')) {
@@ -117,7 +115,6 @@ export function useDocument(routeFileId: string | undefined) {
             // not found / not ours — use the local copy
           }
         }
-        setCanUndo(await hasCheckpoints(currentFileId));
         if (serverText && serverText.includes('<svg')) {
           const formatted = formatXml(serverText);
           primeDraftSvg(currentFileId, formatted);
@@ -237,19 +234,15 @@ export function useDocument(routeFileId: string | undefined) {
   }, [clearProposal]);
 
   const handleAcceptSvg = useCallback((svg: string) => {
-    pushCheckpoint(svgCode, fileId).then(() => setCanUndo(true));
     setSvgCode(svg);
     clearProposal();
-  }, [svgCode, fileId, clearProposal]);
+  }, [clearProposal]);
 
-  const handleUndo = useCallback(async (popCount: number) => {
-    const prev = await popCheckpoints(popCount, fileId);
-    if (prev) {
-      setSvgCode(prev);
-      clearProposal();
-    }
-    setCanUndo(await hasCheckpoints(fileId));
-  }, [fileId, clearProposal]);
+  // Roll back to a snapshot carried by the chat (an accepted call's prevSvg).
+  const handleUndo = useCallback((svg: string) => {
+    setSvgCode(svg);
+    clearProposal();
+  }, [clearProposal]);
 
   return {
     svgCode, setSvgCode,
@@ -259,7 +252,6 @@ export function useDocument(routeFileId: string | undefined) {
     isAnonymous,
     isOwner,
     fileId,
-    canUndo,
     proposedSvg,
     handleDiffMount,
     handleSave,

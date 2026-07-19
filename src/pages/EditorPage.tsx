@@ -20,7 +20,7 @@ export function EditorPage() {
 
   const {
     svgCode, setSvgCode,
-    readOnly, saving, isPrivate, isAnonymous, isOwner, fileId, canUndo, proposedSvg,
+    readOnly, saving, isPrivate, isAnonymous, isOwner, fileId, proposedSvg,
     handleDiffMount, handleSave, handleTogglePrivate,
     handleFileChange, handleDownload, handleNew,
     handlePreviewSvg, handleAcceptSvg, handleUndo,
@@ -182,7 +182,6 @@ export function EditorPage() {
       onPreviewSvg={handlePreviewSvg}
       onAcceptSvg={handleAcceptSvg}
       onRestore={handleUndo}
-      canUndo={canUndo}
     />
   );
 
@@ -323,7 +322,6 @@ export function EditorPage() {
                   onPreviewSvg={handlePreviewSvg}
                   onAcceptSvg={handleAcceptSvg}
                   onRestore={handleUndo}
-                  canUndo={canUndo}
                 />
               </div>
               <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>

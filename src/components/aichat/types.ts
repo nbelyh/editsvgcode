@@ -23,8 +23,8 @@ export interface AiChatProps {
   selectedLineRange?: { start: number; end: number };
   onPreviewSvg: (svg: string | null) => void;
   onAcceptSvg: (svg: string) => void;
-  onRestore: (popCount: number) => void;
-  canUndo: boolean;
+  /** Roll the document back to this SVG (an accepted call's prevSvg). */
+  onRestore: (svg: string) => void;
 }
 
 export type { StoredToolCall, ProgressStatus, Credits, ReasoningEffort };

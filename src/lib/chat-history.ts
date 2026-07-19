@@ -140,6 +140,47 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
 }
 
 // ---------------------------------------------------------------------------
+// prevSvg dedupe — an accepted call's undo snapshot usually equals the SVG of
+// the previous accept, so storing it would double every message. Drop it when
+// redundant on save and reconstruct it on load by the same in-order walk; it
+// is only stored when the user hand-edited between accepts (plus the first
+// accept's baseline, which has no prior accept to reconstruct from).
+// ---------------------------------------------------------------------------
+
+type ToolCallLike = { status?: string; prevSvg?: string; arguments?: { svg?: unknown } };
+
+function walkAcceptedSvgs(
+  messages: DisplayMessage[],
+  visit: (tc: ToolCallLike, lastAccepted: string | undefined) => ToolCallLike,
+): DisplayMessage[] {
+  let last: string | undefined;
+  return messages.map((m) => {
+    if (!m.toolCalls) return m;
+    const toolCalls = m.toolCalls.map((raw) => {
+      const tc = raw as ToolCallLike;
+      if (tc.status !== 'accepted' || typeof tc.arguments?.svg !== 'string') return raw;
+      const out = visit(tc, last);
+      last = tc.arguments.svg as string;
+      return out as typeof raw;
+    });
+    return { ...m, toolCalls };
+  });
+}
+
+const stripRedundantPrevSvg = (messages: DisplayMessage[]) =>
+  walkAcceptedSvgs(messages, (tc, last) => {
+    if (tc.prevSvg !== undefined && tc.prevSvg === last) {
+      const { prevSvg: _omit, ...rest } = tc;
+      return rest;
+    }
+    return tc;
+  });
+
+const rehydratePrevSvg = (messages: DisplayMessage[]) =>
+  walkAcceptedSvgs(messages, (tc, last) =>
+    tc.prevSvg === undefined && last !== undefined ? { ...tc, prevSvg: last } : tc);
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -171,7 +212,8 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
   try {
     const col = collection(firebaseDb, 'files', fileId, 'messages');
     const snap = await getDocs(query(col, orderBy('seq')));
-    return await Promise.all(snap.docs.map((d) => fromStored(d.data() as StoredMessage)));
+    const msgs = await Promise.all(snap.docs.map((d) => fromStored(d.data() as StoredMessage)));
+    return rehydratePrevSvg(msgs);
   } catch (err) {
     console.error('[chat-history] load failed', err);
     return [];
@@ -184,7 +226,7 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
 export async function saveChatMessages(fileId: string, messages: DisplayMessage[], svg?: string): Promise<void> {
   if (!uid()) return;
   await ensureFileDoc(fileId);
-  const stored = await Promise.all(messages.map((m, i) => toStored(m, i)));
+  const stored = await Promise.all(stripRedundantPrevSvg(messages).map((m, i) => toStored(m, i)));
   const col = collection(firebaseDb, 'files', fileId, 'messages');
   const existing = await getDocs(col);
   const batch = writeBatch(firebaseDb);

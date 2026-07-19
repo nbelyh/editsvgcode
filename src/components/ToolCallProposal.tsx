@@ -5,6 +5,9 @@ import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../
 
 export interface StoredToolCall extends ChatToolCall {
   status: 'pending' | 'accepted' | 'rejected';
+  /** Document SVG at the moment this call was accepted — the undo target.
+   * Persisted with the message, so undo survives reload and other devices. */
+  prevSvg?: string;
 }
 
 interface ToolCallProposalProps {

@@ -42,7 +42,7 @@ function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
-export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, canUndo }: AiChatProps) {
+export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -68,6 +68,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isModelDisabled = useCallback((m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro, [isDebug, tier]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
+  // Undo targets live in the messages themselves (accepted calls carry prevSvg)
+  const canUndo = messages.some(m => m.toolCalls?.some(tc => tc.status === 'accepted' && tc.prevSvg));
   const [iconPickIcons, setIconPickIcons] = useState<IconResult[] | null>(null);
   const [selectedIcon, setSelectedIcon] = useState<IconResult | null>(null);
   const [imageConfirmSummary, setImageConfirmSummary] = useState<string | null>(null);
@@ -287,10 +289,15 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     clearChatMessages(fileId);
   }, [onPreviewSvg, fileId]);
 
+  // The earliest accepted call in the removed range holds the document state
+  // to roll back to (its prevSvg predates every removed accept).
+  const restoreTarget = useCallback((removed: DisplayMessage[]): string | undefined =>
+    removed.flatMap(m => m.toolCalls ?? [])
+      .find(tc => tc.status === 'accepted' && tc.arguments.svg)?.prevSvg,
+  []);
+
   const handleRestore = useCallback((msgIdx: number) => {
-    const removed = messages.slice(msgIdx);
-    const popCount = removed.reduce((n, m) =>
-      n + (m.toolCalls?.filter(tc => tc.status === 'accepted' && tc.arguments.svg).length ?? 0), 0);
+    const target = restoreTarget(messages.slice(msgIdx));
 
     const userMsg = messages[msgIdx];
     if (userMsg?.role === 'user' && userMsg.content) {
@@ -302,8 +309,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     scheduleSaveChatMessages(fileId, kept);
 
     onPreviewSvg(null);
-    if (popCount > 0) onRestore(popCount);
-  }, [messages, onPreviewSvg, onRestore, fileId]);
+    if (target) onRestore(target);
+  }, [messages, onPreviewSvg, onRestore, fileId, restoreTarget]);
 
   // --- Edit previous message ---
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -327,15 +334,13 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     if (!text || isRunning) return;
 
     // Restore to checkpoint (drop this message and everything after)
-    const removed = messages.slice(msgIdx);
-    const popCount = removed.reduce((n, m) =>
-      n + (m.toolCalls?.filter(tc => tc.status === 'accepted' && tc.arguments.svg).length ?? 0), 0);
+    const target = restoreTarget(messages.slice(msgIdx));
 
     const kept = messages.slice(0, msgIdx);
     setMessages(kept);
     scheduleSaveChatMessages(fileId, kept);
     onPreviewSvg(null);
-    if (popCount > 0) onRestore(popCount);
+    if (target) onRestore(target);
 
     // Clear editing state and set input to the edited text, then trigger send
     setEditingIndex(null);
@@ -343,7 +348,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setInput(text);
     // We need to trigger send after state updates, so use a ref flag
     pendingEditSendRef.current = true;
-  }, [isRunning, messages, fileId, onPreviewSvg, onRestore]);
+  }, [isRunning, messages, fileId, onPreviewSvg, onRestore, restoreTarget]);
 
   // Ref to trigger send after an edit-submit restores + sets input
   const pendingEditSendRef = useRef(false);
@@ -360,6 +365,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
 
     const tc = msg.toolCalls[tcIndex];
     const svg = tc.arguments.svg as string;
+    // Snapshot the pre-accept document as the undo target BEFORE applying.
+    const prevSvg = svgRef.current;
     if (svg) onAcceptSvg(svg);
     trackAiAccept();
     onPreviewSvg(null);
@@ -368,7 +375,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       i !== msgIndex ? m : {
         ...m,
         toolCalls: m.toolCalls?.map((t, j) =>
-          j === tcIndex ? { ...t, status: 'accepted' as const } : t
+          j === tcIndex ? { ...t, status: 'accepted' as const, prevSvg } : t
         ),
       }
     ));
@@ -393,8 +400,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     const tc = msg.toolCalls[tcIndex];
     const svg = tc.arguments.svg as string;
 
-    // Pop the checkpoint to restore SVG to pre-accept state
-    onRestore(1);
+    // Roll the document back to this call's pre-accept snapshot
+    if (tc.prevSvg) onRestore(tc.prevSvg);
 
     // Set tool call back to pending so vectorizer controls appear
     setMessages(prev => prev.map((m, i) =>
