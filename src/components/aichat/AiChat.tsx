@@ -88,15 +88,19 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   // Load messages from the server on mount and when fileId changes. Wait for
   // Firebase to RESTORE auth first: loading before the user is known returns
   // empty, and the subsequent debounced save would then wipe the stored chat.
+  // Anonymous users don't latch the load: when a stale session forces the app
+  // to boot as anonymous and the user then signs back in, the chat must still
+  // load for the real account (safe — anonymous users can't compose messages,
+  // so there is no in-memory chat to overwrite).
   useEffect(() => {
     loadedRef.current = false;
     setMessages([]);
     onPreviewSvg(null);
     let cancelled = false;
-    let loaded = false;
+    let loadedUid: string | null = null;
     const unsub = onAuthStateChanged(getAuth(), (user) => {
-      if (cancelled || !user || loaded) return; // wait until auth is resolved; load once
-      loaded = true;
+      if (cancelled || !user || user.isAnonymous || user.uid === loadedUid) return;
+      loadedUid = user.uid;
       loadChatMessages(fileId).then((stored) => {
         if (cancelled) return;
         setMessages(stored);
