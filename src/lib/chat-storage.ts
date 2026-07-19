@@ -1,7 +1,9 @@
 /**
- * IndexedDB-backed storage for AI chat messages.
- * IndexedDB has no practical size limit (~hundreds of MB),
- * so full SVG payloads in tool calls are safe to store.
+ * IndexedDB-backed local store for the editor's working SVG + undo checkpoints.
+ * (Chat messages now persist to Firestore via chat-history.ts.)
+ *
+ * NOTE: slated for removal — svgCode/checkpoints are being moved off IndexedDB
+ * so the app keeps nothing client-side.
  */
 
 const DB_NAME = 'editsvgcode';
@@ -23,43 +25,6 @@ function openDb(): Promise<IDBDatabase> {
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
-}
-
-export async function loadChatMessages<T>(fileId: string): Promise<T[]> {
-  try {
-    const db = await openDb();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.get(keyFor('messages', fileId));
-      req.onsuccess = () => resolve(req.result ?? []);
-      req.onerror = () => resolve([]);
-    });
-  } catch {
-    return [];
-  }
-}
-
-export async function saveChatMessages<T>(messages: T[], fileId: string): Promise<void> {
-  try {
-    const db = await openDb();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(messages, keyFor('messages', fileId));
-  } catch {
-    // Silently ignore write failures
-  }
-}
-
-export async function clearChatMessages(fileId: string): Promise<void> {
-  try {
-    const db = await openDb();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(keyFor('messages', fileId));
-    tx.objectStore(STORE_NAME).delete(keyFor('svgCode', fileId));
-    tx.objectStore(STORE_NAME).delete(keyFor('svgCheckpoints', fileId));
-  } catch {
-    // Silently ignore
-  }
 }
 
 export async function saveSvgCode(svg: string, fileId: string): Promise<void> {
