@@ -11,6 +11,7 @@ import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
 import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/aichat';
+import { PublishDialog } from '../components/PublishDialog';
 import { useDocument } from '../lib/useDocument';
 import { findElementRange } from '../lib/svg-utils';
 import { getAuth } from 'firebase/auth';
@@ -21,6 +22,8 @@ export function EditorPage() {
   const {
     svgCode, setSvgCode,
     readOnly, saving, visibility, isAnonymous, isOwner, fileId, proposedSvg,
+    downloadName, galleryMeta, publishDialogOpen, openPublishDialog, closePublishDialog,
+    handlePublish, handleEditGalleryMeta,
     handleDiffMount, handleSave, handleSetVisibility,
     handleFileChange, handleDownload, handleNew,
     handlePreviewSvg, handleAcceptSvg, handleUndo,
@@ -155,6 +158,19 @@ export function EditorPage() {
     />
   );
 
+  const publishDialog = (
+    <PublishDialog
+      opened={publishDialogOpen}
+      onClose={closePublishDialog}
+      fileId={routeFileId || fileId}
+      svg={svgCode}
+      fileName={downloadName ?? undefined}
+      initialMeta={galleryMeta}
+      mode={visibility === 'public' ? 'edit' : 'publish'}
+      onSubmit={visibility === 'public' ? handleEditGalleryMeta : handlePublish}
+    />
+  );
+
   const sharedToolbar = (
     <EditorToolbar
       onNew={handleNew}
@@ -167,6 +183,7 @@ export function EditorPage() {
       isAnonymous={isAnonymous}
       isOwner={isOwner}
       onSetVisibility={handleSetVisibility}
+      onEditMeta={openPublishDialog}
       showPreview={showPreview}
       onTogglePreview={togglePreview}
       showPreviewToggle={false}
@@ -203,6 +220,7 @@ export function EditorPage() {
       return (
         <>
           {sharedInput}
+          {publishDialog}
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {sharedToolbar}
             <div style={{ flex: '0 0 30%', minHeight: 0, overflow: 'hidden' }}>
@@ -220,6 +238,7 @@ export function EditorPage() {
     return (
       <>
         {sharedInput}
+        {publishDialog}
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           {sharedToolbar}
           <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -267,6 +286,7 @@ export function EditorPage() {
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
+      {publishDialog}
       <div style={{ display: 'flex', height: '100%' }}>
       <Allotment>
         <Allotment.Pane preferredSize="45%">
@@ -282,6 +302,7 @@ export function EditorPage() {
               isAnonymous={isAnonymous}
               isOwner={isOwner}
               onSetVisibility={handleSetVisibility}
+              onEditMeta={openPublishDialog}
               showPreview={showPreview}
               onTogglePreview={togglePreview}
             />

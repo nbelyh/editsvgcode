@@ -416,7 +416,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       <Group
         justify="space-between"
         px="xs" py={4}
-        style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}
+        // minHeight (not height): wrapped rows on a narrow pane must grow the
+        // bar instead of invisibly overlapping the preview area below it.
+        style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, minHeight: 36 }}
       >
         <Group gap="xs">
           <Tooltip label="Zoom in (Ctrl+Scroll)">

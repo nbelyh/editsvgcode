@@ -32,6 +32,7 @@ import {
 } from 'firebase/auth';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
+import { visibilityOf, type Visibility } from './visibility';
 import { config } from './config';
 import { getConsent } from './cookie-consent';
 import { trackException } from './appinsights';
@@ -123,20 +124,26 @@ onAuthStateChanged(firebaseAuth, (user) => {
   }
 });
 
-/**
- * File visibility: 'private' = owner only, 'unlisted' = anyone with the link
- * (the historic "public" semantic), 'public' = additionally listed in the
- * gallery. Legacy docs carry only the `private` boolean and map to
- * private/unlisted — never to 'public', so nothing gets listed without an
- * explicit opt-in.
- */
-export type Visibility = 'private' | 'unlisted' | 'public';
+export { visibilityOf };
+export type { Visibility };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function visibilityOf(data: any): Visibility {
-  const v = data?.visibility;
-  if (v === 'private' || v === 'unlisted' || v === 'public') return v;
-  return data?.private === true ? 'private' : 'unlisted';
+/** Gallery card text, entered/confirmed by the owner in the publish dialog. */
+export interface GalleryMeta {
+  title: string;
+  description: string;
+}
+
+/**
+ * Denormalized author identity for gallery cards — a snapshot taken whenever
+ * the file is written as public. Cards can't resolve it at view time because
+ * users/{uid} is owner-read-only and Auth profiles aren't client-queryable.
+ */
+function authorStamp(): { authorName: string | null; authorPhoto: string | null } {
+  const user = getAuth().currentUser;
+  return {
+    authorName: user?.displayName ?? null,
+    authorPhoto: user?.photoURL ?? null,
+  };
 }
 
 export class EditSvgCodeDb {
@@ -146,12 +153,18 @@ export class EditSvgCodeDb {
     this.db = firebaseDb;
   }
 
-  async loadDocument(uniqueId: string, opts?: { quiet?: boolean }): Promise<{ text: string; visibility: Visibility; uid: string | null } | null> {
+  async loadDocument(uniqueId: string, opts?: { quiet?: boolean }): Promise<{ text: string; visibility: Visibility; uid: string | null; title: string; description: string } | null> {
     const ref = doc(this.db, 'files', uniqueId);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
-      return { text: data.text ?? '', visibility: visibilityOf(data), uid: data.uid ?? null };
+      return {
+        text: data.text ?? '',
+        visibility: visibilityOf(data),
+        uid: data.uid ?? null,
+        title: data.title ?? '',
+        description: data.description ?? '',
+      };
     }
     // quiet: probing for an optional draft copy — absence is the normal case.
     if (!opts?.quiet) logError('loadDocument', 'file id does not exist: ' + uniqueId);
@@ -168,13 +181,27 @@ export class EditSvgCodeDb {
     await setDoc(ref, {
       text, modified: new Date(), uid, saved: true,
       visibility, private: visibility === 'private',
+      // Re-saving a public file refreshes the author snapshot too.
+      ...(visibility === 'public' ? authorStamp() : {}),
     }, { merge: true });
   }
 
-  async setVisibility(uniqueId: string, visibility: Visibility): Promise<void> {
+  async setVisibility(uniqueId: string, visibility: Visibility, meta?: GalleryMeta): Promise<void> {
     const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
-    await updateDoc(ref, { visibility, private: visibility === 'private' });
+    await updateDoc(ref, {
+      visibility,
+      private: visibility === 'private',
+      // Publishing bumps `modified` — the gallery sorts by it, so an old file
+      // must surface as newly listed rather than buried at its last-edit date.
+      ...(visibility === 'public' ? { ...authorStamp(), ...meta, modified: new Date() } : {}),
+    });
+  }
+
+  async setDocumentMeta(uniqueId: string, meta: GalleryMeta): Promise<void> {
+    const { updateDoc } = await import('firebase/firestore');
+    const ref = doc(this.db, 'files', uniqueId);
+    await updateDoc(ref, { ...meta });
   }
 
   async incrementViews(uniqueId: string): Promise<void> {
@@ -198,7 +225,7 @@ export class EditSvgCodeDb {
     await deleteDoc(ref);
   }
 
-  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; visibility: Visibility; views: number; downloads: number; saved: boolean }>> {
+  async listUserDocuments(): Promise<Array<{ id: string; modified: Date; text: string; visibility: Visibility; views: number; downloads: number; saved: boolean; title: string; description: string }>> {
     const auth = getAuth();
     const uid = auth.currentUser?.uid;
     if (!uid) return [];
@@ -218,11 +245,13 @@ export class EditSvgCodeDb {
       downloads: d.data().downloads ?? 0,
       // Legacy docs predate the `saved` field — treat missing as saved.
       saved: d.data().saved !== false,
+      title: d.data().title ?? '',
+      description: d.data().description ?? '',
     }));
   }
 
   /** Gallery: files whose owners explicitly listed them (visibility 'public'). */
-  async listPublicDocuments(max = 60): Promise<Array<{ id: string; modified: Date; text: string; views: number }>> {
+  async listPublicDocuments(max = 60): Promise<Array<{ id: string; modified: Date; text: string; views: number; title: string; description: string; authorName: string; authorPhoto: string }>> {
     const { limit } = await import('firebase/firestore');
     const q = query(
       collection(this.db, 'files'),
@@ -238,6 +267,10 @@ export class EditSvgCodeDb {
         modified: d.data().modified?.toDate?.() ?? new Date(),
         text: d.data().text ?? '',
         views: d.data().views ?? 0,
+        title: d.data().title ?? '',
+        description: d.data().description ?? '',
+        authorName: d.data().authorName ?? '',
+        authorPhoto: d.data().authorPhoto ?? '',
       }));
   }
 }

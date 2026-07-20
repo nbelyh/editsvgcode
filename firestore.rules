@@ -9,6 +9,26 @@ service cloud.firestore {
       return data.get('visibility', data.get('private', false) == true ? 'private' : 'unlisted');
     }
 
+    // Gallery-facing fields are denormalized and client-written. Bound their
+    // size and shape so a public card can't carry a multi-KB payload (every
+    // gallery visitor downloads it) or a non-https `authorPhoto` beacon. null
+    // is allowed (the author stamp writes null when the profile lacks a value).
+    // NOTE: author *identity* is still self-asserted — an owner can put any
+    // name on their own card. True anti-impersonation needs server-side
+    // stamping (a Cloud Function), tracked separately; this only limits blast radius.
+    function strWithin(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+    function photoValid(v) {
+      return v == null || v == '' || (v is string && v.size() <= 512 && v.matches('https://.*'));
+    }
+    function galleryFieldsValid(d) {
+      return strWithin(d.get('title', null), 200)
+             && strWithin(d.get('description', null), 500)
+             && strWithin(d.get('authorName', null), 120)
+             && photoValid(d.get('authorPhoto', null));
+    }
+
     // SVG files — readable by anyone unless private, only owner can write
     match /files/{fileId} {
       // resource is null when the doc doesn't exist yet (e.g. ensureFileDoc's
@@ -18,10 +38,12 @@ service cloud.firestore {
                   || vis(resource.data) != 'private'
                   || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+                    && request.resource.data.uid == request.auth.uid
+                    && galleryFieldsValid(request.resource.data);
       allow update: if request.auth != null
                     && (resource.data.uid == null
-                        || resource.data.uid == request.auth.uid);
+                        || resource.data.uid == request.auth.uid)
+                    && galleryFieldsValid(request.resource.data);
       // Allow any authenticated user to increment view/download counters by 1
       allow update: if request.auth != null
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'downloads'])

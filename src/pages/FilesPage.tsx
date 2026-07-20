@@ -4,11 +4,14 @@ import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { IconTrash, IconInfoCircle } from '@tabler/icons-react';
 import { VisibilityMenu } from '../components/VisibilityMenu';
+import { PublishDialog } from '../components/PublishDialog';
+import { SvgThumb } from '../components/SvgThumb';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { config } from '../lib/config';
 import { Link } from 'react-router-dom';
-import { EditSvgCodeDb, friendlyError, type Visibility } from '../lib/firebase';
-import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from '../lib/useDocument';
+import { EditSvgCodeDb, friendlyError, type Visibility, type GalleryMeta } from '../lib/firebase';
+import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from '../lib/visibility';
+import { submitGalleryMeta } from '../lib/publish';
 
 interface FileEntry {
   id: string;
@@ -18,20 +21,14 @@ interface FileEntry {
   views: number;
   downloads: number;
   saved: boolean;
+  title: string;
+  description: string;
 }
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function SvgThumb({ text }: { text: string }) {
-  if (!text) {
-    return <div style={{ width: 40, height: 40, background: 'var(--mantine-color-gray-1)', borderRadius: 4 }} />;
-  }
-  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-  return <img src={url} alt="preview" width={40} height={40} style={{ objectFit: 'contain', background: 'var(--mantine-color-gray-1)', borderRadius: 4 }} />;
 }
 
 export function FilesPage() {
@@ -77,10 +74,18 @@ export function FilesPage() {
     });
   }, []);
 
+  // File being published or having its gallery info edited via the dialog.
+  const [publishTarget, setPublishTarget] = useState<FileEntry | null>(null);
+
   const handleSetVisibility = useCallback(async (id: string, newValue: Visibility) => {
     const db = new EditSvgCodeDb();
     const file = files.find((f) => f.id === id);
     if (!file || file.visibility === newValue) return;
+    // Going public is confirmed through the publish dialog.
+    if (newValue === 'public') {
+      setPublishTarget(file);
+      return;
+    }
     try {
       await db.setVisibility(id, newValue);
       setFiles((prev) => prev.map((f) => f.id === id ? { ...f, visibility: newValue } : f));
@@ -90,6 +95,16 @@ export function FilesPage() {
     }
   }, [files]);
 
+  const handlePublishSubmit = useCallback(async (meta: GalleryMeta) => {
+    if (!publishTarget) return;
+    const { id, visibility } = publishTarget;
+    const mode = visibility === 'public' ? 'edit' : 'publish';
+    await submitGalleryMeta(id, mode, meta);
+    setFiles((prev) => prev.map((f) => f.id === id
+      ? { ...f, ...meta, ...(mode === 'publish' ? { visibility: 'public' as Visibility } : {}) }
+      : f));
+  }, [publishTarget]);
+
   const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
 
   const savedFiles = files.filter((f) => f.saved);
@@ -97,6 +112,15 @@ export function FilesPage() {
 
   return (
     <Container py="xl" className="page-scroll">
+      <PublishDialog
+        opened={publishTarget !== null}
+        onClose={() => setPublishTarget(null)}
+        fileId={publishTarget?.id ?? ''}
+        svg={publishTarget?.text ?? ''}
+        initialMeta={publishTarget}
+        mode={publishTarget?.visibility === 'public' ? 'edit' : 'publish'}
+        onSubmit={handlePublishSubmit}
+      />
       <Title order={2} mb="md">Files</Title>
       {isBeta && (
         <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" mb="md">
@@ -113,7 +137,7 @@ export function FilesPage() {
           <Table.Thead>
             <Table.Tr>
               <Table.Th w={50} />
-              <Table.Th>File ID</Table.Th>
+              <Table.Th>File</Table.Th>
               <Table.Th>Size</Table.Th>
               <Table.Th>Views</Table.Th>
               <Table.Th>Downloads</Table.Th>
@@ -126,12 +150,13 @@ export function FilesPage() {
             {savedFiles.map((f) => (
               <Table.Tr key={f.id}>
                 <Table.Td>
-                  <SvgThumb text={f.text} />
+                  <SvgThumb text={f.text} height={40} width={40} radius={4} alt={f.title || 'preview'} />
                 </Table.Td>
                 <Table.Td>
                   <Anchor component={Link} to={`/${f.id}`} size="sm">
-                    {f.id}
+                    {f.title || f.id}
                   </Anchor>
+                  {f.title && <Text size="xs" c="dimmed">{f.id}</Text>}
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">{formatSize(new Blob([f.text]).size)}</Text>
@@ -149,6 +174,7 @@ export function FilesPage() {
                   <VisibilityMenu
                     visibility={f.visibility}
                     onChange={(v) => handleSetVisibility(f.id, v)}
+                    onEditMeta={() => setPublishTarget(f)}
                     shareUrl={`${window.location.origin}/${f.id}`}
                     disabledReason={isAnonymous ? 'Unlisted — sign in to manage visibility' : undefined}
                   />
@@ -185,7 +211,7 @@ export function FilesPage() {
               {drafts.map((f) => (
                 <Table.Tr key={f.id}>
                   <Table.Td>
-                    <SvgThumb text={f.text} />
+                    <SvgThumb text={f.text} height={40} width={40} radius={4} />
                   </Table.Td>
                   <Table.Td>
                     <Anchor component={Link} to={`/${f.id}`} size="sm">

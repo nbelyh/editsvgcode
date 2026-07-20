@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Container, Title, Text, Loader, Card, SimpleGrid, Group, Button, Anchor } from '@mantine/core';
+import { Container, Title, Text, Loader, Card, SimpleGrid, Group, Button, Anchor, Avatar, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconEye, IconGitFork } from '@tabler/icons-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,24 +7,17 @@ import { getAuth } from 'firebase/auth';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { cloneDocument } from '../lib/chat-history';
 import { openSignInModal } from '../components/SignInModal';
+import { SvgThumb } from '../components/SvgThumb';
 
 interface GalleryEntry {
   id: string;
   modified: Date;
   text: string;
   views: number;
-}
-
-function SvgThumb({ text }: { text: string }) {
-  if (!text) return <div style={{ height: 140, background: 'var(--mantine-color-gray-1)' }} />;
-  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-  return (
-    <img
-      src={url}
-      alt="preview"
-      style={{ height: 140, width: '100%', objectFit: 'contain', background: 'var(--mantine-color-gray-1)' }}
-    />
-  );
+  title: string;
+  description: string;
+  authorName: string;
+  authorPhoto: string;
 }
 
 export function GalleryPage() {
@@ -65,10 +58,14 @@ export function GalleryPage() {
     }
   }, [navigate]);
 
+  // Header mirrors FeaturesPage — the other public card-grid page — so the
+  // nav siblings (Features / Gallery / Support / About) share one hero style.
   return (
-    <Container py="xl" className="page-scroll">
-      <Title order={2} mb="xs">Gallery</Title>
-      <Text c="dimmed" size="sm" mb="md">
+    <div className="page-scroll">
+    <Container size="lg" py="xl">
+      <Stack gap="md">
+      <Title order={1}>Gallery</Title>
+      <Text size="lg" c="dimmed">
         Public SVGs shared by the community. Open one to view it, or start from a copy of your own.
       </Text>
 
@@ -79,24 +76,42 @@ export function GalleryPage() {
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
           {entries.map((e) => (
-            <Card key={e.id} withBorder padding="sm">
+            // flex column + mt="auto" on the meta row pins it to the card
+            // bottom, so rows align across cards with/without a description
+            <Card key={e.id} shadow="sm" padding="sm" radius="md" withBorder style={{ display: 'flex', flexDirection: 'column' }}>
               <Card.Section component={Link} to={`/${e.id}`}>
-                <SvgThumb text={e.text} />
+                <SvgThumb text={e.text} alt={e.title || 'preview'} />
               </Card.Section>
-              <Group justify="space-between" mt="sm">
-                <Anchor component={Link} to={`/${e.id}`} size="sm" fw={500}>
-                  {e.id}
+              <Group justify="space-between" mt="xs" gap="xs" wrap="nowrap">
+                {/* minWidth 0 lets the flex item shrink so lineClamp can
+                    ellipsize an unbroken long title instead of overflowing */}
+                <Anchor component={Link} to={`/${e.id}`} fw={600} lineClamp={1} style={{ flex: 1, minWidth: 0 }}>
+                  {e.title || 'Untitled'}
                 </Anchor>
-                <Group gap={4}>
+                <Group gap={4} wrap="nowrap" c="dimmed">
                   <IconEye size={14} />
                   <Text size="xs" c="dimmed">{e.views}</Text>
+                  <Text size="xs" c="dimmed">·</Text>
+                  <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{e.modified.toLocaleDateString()}</Text>
                 </Group>
               </Group>
-              <Group justify="space-between" mt="xs">
-                <Text size="xs" c="dimmed">{e.modified.toLocaleDateString()}</Text>
+              {/* Fixed two-line slot (height = 2 × line-height) whether or not a
+                  description exists — keeps every card's fields at the same spot */}
+              <Text size="sm" c="dimmed" lineClamp={2} mt={2} lh={1.45} style={{ height: '2.9em' }}>
+                {e.description}
+              </Text>
+              <Group mt="auto" pt="xs" gap="xs" wrap="nowrap">
+                {e.authorName && (
+                  <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+                    <Avatar src={e.authorPhoto || undefined} name={e.authorName} color="initials" size={18} radius="xl" />
+                    <Text size="xs" c="dimmed" lineClamp={1}>{e.authorName}</Text>
+                  </Group>
+                )}
                 <Button
                   size="compact-xs"
                   variant="light"
+                  ml="auto"
+                  style={{ flexShrink: 0 }}
                   leftSection={<IconGitFork size={14} />}
                   loading={cloningId === e.id}
                   onClick={() => handleClone(e.id)}
@@ -108,6 +123,8 @@ export function GalleryPage() {
           ))}
         </SimpleGrid>
       )}
+      </Stack>
     </Container>
+    </div>
   );
 }

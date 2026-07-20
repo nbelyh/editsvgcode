@@ -1,13 +1,20 @@
 import { Menu, ActionIcon, Button, Tooltip, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconLock, IconLink, IconWorld, IconCheck, IconCopy } from '@tabler/icons-react';
+import { IconLock, IconLink, IconWorld, IconCheck, IconCopy, IconPencil } from '@tabler/icons-react';
 import type { Visibility } from '../lib/firebase';
+import { PUBLIC_STATE_DESCRIPTION, PUBLISH_ACTION_DESCRIPTION } from '../lib/visibility';
 
-const OPTIONS: Array<{ value: Visibility; label: string; description: string; icon: React.ReactNode }> = [
-  { value: 'private', label: 'Private', description: 'Only you can view', icon: <IconLock size={14} /> },
-  { value: 'unlisted', label: 'Unlisted', description: 'Anyone with the link can view', icon: <IconLink size={14} /> },
-  { value: 'public', label: 'Public', description: 'Listed in the gallery for anyone to find and clone', icon: <IconWorld size={14} /> },
-];
+// Going public is an explicit action ("Publish to gallery…" opens the publish
+// dialog); once published, the entry reads as the current state instead.
+function options(current: Visibility): Array<{ value: Visibility; label: string; description: string; icon: React.ReactNode }> {
+  return [
+    { value: 'private', label: 'Private', description: 'Only you can view', icon: <IconLock size={14} /> },
+    { value: 'unlisted', label: 'Unlisted', description: 'Anyone with the link can view', icon: <IconLink size={14} /> },
+    current === 'public'
+      ? { value: 'public', label: 'Public', description: PUBLIC_STATE_DESCRIPTION, icon: <IconWorld size={14} /> }
+      : { value: 'public', label: 'Publish to gallery…', description: PUBLISH_ACTION_DESCRIPTION, icon: <IconWorld size={14} /> },
+  ];
+}
 
 export const VISIBILITY_ICON: Record<Visibility, React.ReactNode> = {
   private: <IconLock size={14} />,
@@ -25,10 +32,12 @@ interface VisibilityMenuProps {
   shareUrl?: string;
   /** Render the target as a labeled "Share" toolbar button instead of an icon. */
   asButton?: boolean;
+  /** Opens the gallery title/description editor — shown for published files. */
+  onEditMeta?: () => void;
 }
 
 /** Share menu: explicit visibility choices plus copy-link. */
-export function VisibilityMenu({ visibility, onChange, disabledReason, shareUrl, asButton }: VisibilityMenuProps) {
+export function VisibilityMenu({ visibility, onChange, disabledReason, shareUrl, asButton, onEditMeta }: VisibilityMenuProps) {
   const copyLink = async () => {
     if (!shareUrl) return;
     await navigator.clipboard.writeText(shareUrl);
@@ -42,7 +51,7 @@ export function VisibilityMenu({ visibility, onChange, disabledReason, shareUrl,
       Share
     </Button>
   ) : (
-    <Tooltip label={disabledReason ?? `Visibility: ${OPTIONS.find(o => o.value === visibility)?.label}`}>
+    <Tooltip label={disabledReason ?? `Visibility: ${options(visibility).find(o => o.value === visibility)?.label}`}>
       <ActionIcon variant="subtle" color={visibility === 'private' ? 'gray' : 'blue'} size="sm">
         {VISIBILITY_ICON[visibility]}
       </ActionIcon>
@@ -58,7 +67,7 @@ export function VisibilityMenu({ visibility, onChange, disabledReason, shareUrl,
         ) : (
           <>
             <Menu.Label>Who can see this file</Menu.Label>
-            {OPTIONS.map((o) => (
+            {options(visibility).map((o) => (
               <Menu.Item
                 key={o.value}
                 leftSection={o.icon}
@@ -69,6 +78,12 @@ export function VisibilityMenu({ visibility, onChange, disabledReason, shareUrl,
                 <Text size="xs" c="dimmed">{o.description}</Text>
               </Menu.Item>
             ))}
+            {visibility === 'public' && onEditMeta && (
+              <Menu.Item leftSection={<IconPencil size={14} />} onClick={onEditMeta}>
+                <Text size="sm">Edit gallery info…</Text>
+                <Text size="xs" c="dimmed">Title and description shown on the card</Text>
+              </Menu.Item>
+            )}
           </>
         )}
         {shareUrl && (

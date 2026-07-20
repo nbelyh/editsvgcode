@@ -14,14 +14,18 @@ interface EditorToolbarProps {
   isAnonymous: boolean;
   isOwner: boolean;
   onSetVisibility: (v: Visibility) => void;
+  onEditMeta?: () => void;
   showPreview: boolean;
   onTogglePreview: () => void;
   showPreviewToggle?: boolean;
 }
 
-export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, visibility, isAnonymous, isOwner, onSetVisibility, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
+export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, visibility, isAnonymous, isOwner, onSetVisibility, onEditMeta, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
   return (
-    <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, height: 36 }}>
+    // minHeight (not height): on narrow panes the buttons wrap, and a fixed
+    // height would leave the wrapped row invisibly overlapping the editor
+    // below (Monaco's margin then swallows their clicks).
+    <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, minHeight: 36 }}>
       <Group gap="xs">
         <Tooltip label="Create a blank SVG document">
           <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={onNew}>
@@ -48,6 +52,7 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
             asButton
             visibility={visibility}
             onChange={onSetVisibility}
+            onEditMeta={onEditMeta}
             shareUrl={`${window.location.origin}/${routeFileId}`}
             disabledReason={isAnonymous ? 'Unlisted — sign in to manage visibility' : !isOwner ? 'You are not the owner of this file' : undefined}
           />

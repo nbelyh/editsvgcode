@@ -3,7 +3,9 @@ import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import type { DiffOnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { EditSvgCodeDb, friendlyError, logError, type Visibility } from './firebase';
+import { EditSvgCodeDb, friendlyError, logError, type Visibility, type GalleryMeta } from './firebase';
+import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
+import { submitGalleryMeta } from './publish';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, migrateChatData } from './chat-storage';
@@ -20,17 +22,8 @@ function isCleanId(id: string): boolean {
   return /^[a-z0-9]+$/.test(id);
 }
 
-export const VISIBILITY_LABEL: Record<Visibility, string> = {
-  private: 'Private',
-  unlisted: 'Unlisted',
-  public: 'Public',
-};
-
-export const VISIBILITY_MESSAGE: Record<Visibility, string> = {
-  private: 'Only you can view this file.',
-  unlisted: 'Anyone with the link can view this file.',
-  public: 'Listed in the public gallery — anyone can find and clone it.',
-};
+// Re-exported for existing consumers; the strings live in visibility.ts.
+export { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
 
 export function useDocument(routeFileId: string | undefined) {
   const navigate = useNavigate();
@@ -48,6 +41,9 @@ export function useDocument(routeFileId: string | undefined) {
     return id;
   })());
   const [isOwner, setIsOwner] = useState(false);
+  // Gallery card text of the loaded doc; edited via the publish dialog.
+  const [galleryMeta, setGalleryMeta] = useState<GalleryMeta>({ title: '', description: '' });
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [proposedSvg, setProposedSvg] = useState<string | null>(null);
   // Preserve an uploaded file's original name for download (the id is a guid).
   const [downloadName, setDownloadName] = useState<string | null>(null);
@@ -75,8 +71,12 @@ export function useDocument(routeFileId: string | undefined) {
   }, [svgCode, readOnly, fileId]);
 
   // An uploaded file's download name only applies to that upload — clear it
-  // whenever we navigate to a different document.
-  useEffect(() => { setDownloadName(null); }, [routeFileId]);
+  // whenever we navigate to a different document. Also close the publish dialog
+  // so a dialog left open on doc A can't submit against the newly-loaded doc B.
+  useEffect(() => {
+    setDownloadName(null);
+    setPublishDialogOpen(false);
+  }, [routeFileId]);
 
   // DB init / load
   useEffect(() => {
@@ -88,11 +88,20 @@ export function useDocument(routeFileId: string | undefined) {
       if (uniqueId) setFileId(uniqueId);
       const currentFileId = uniqueId || localStorage.getItem('esvg-local-id') || fileId;
 
+      // Reset per-document state up front: only the success branch below sets
+      // real values, so without this the not-found/denied/draft paths would
+      // keep the PREVIOUS doc's visibility/meta/ownership — which would let a
+      // later Save silently publish, and prefill the publish dialog wrongly.
+      setVisibility('private');
+      setGalleryMeta({ title: '', description: '' });
+      setIsOwner(false);
+
       if (uniqueId) {
         try {
           const result = await db.loadDocument(uniqueId);
           if (result) {
             setVisibility(result.visibility);
+            setGalleryMeta({ title: result.title, description: result.description });
             const currentUid = getAuth().currentUser?.uid ?? null;
             setIsOwner(currentUid !== null && result.uid === currentUid);
             db.incrementViews(uniqueId).catch((err) => logError('incrementViews', err));
@@ -186,6 +195,12 @@ export function useDocument(routeFileId: string | undefined) {
     // Anonymous users and non-owners cannot change visibility
     if (getAuth().currentUser?.isAnonymous) return;
     if (!isOwner) return;
+    // Going public is confirmed through the publish dialog (title/description);
+    // nothing is written until the user confirms there.
+    if (newValue === 'public') {
+      setPublishDialogOpen(true);
+      return;
+    }
     setVisibility(newValue);
     try {
       await db.setVisibility(routeFileId, newValue);
@@ -199,6 +214,25 @@ export function useDocument(routeFileId: string | undefined) {
       notifications.show({ title: 'Failed to update visibility', message: friendlyError(err), color: 'red' });
     }
   }, [routeFileId, visibility, isOwner]);
+
+  /** Publish-dialog confirm: goes public with the entered title/description.
+   * Rejections propagate — the dialog stays open and shows the error. */
+  const handlePublish = useCallback(async (meta: GalleryMeta) => {
+    if (!routeFileId) return;
+    await submitGalleryMeta(routeFileId, 'publish', meta);
+    setVisibility('public');
+    setGalleryMeta(meta);
+  }, [routeFileId]);
+
+  /** Edit-gallery-info confirm for an already-published file. */
+  const handleEditGalleryMeta = useCallback(async (meta: GalleryMeta) => {
+    if (!routeFileId) return;
+    await submitGalleryMeta(routeFileId, 'edit', meta);
+    setGalleryMeta(meta);
+  }, [routeFileId]);
+
+  const openPublishDialog = useCallback(() => setPublishDialogOpen(true), []);
+  const closePublishDialog = useCallback(() => setPublishDialogOpen(false), []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -268,6 +302,13 @@ export function useDocument(routeFileId: string | undefined) {
     isAnonymous,
     isOwner,
     fileId,
+    downloadName,
+    galleryMeta,
+    publishDialogOpen,
+    openPublishDialog,
+    closePublishDialog,
+    handlePublish,
+    handleEditGalleryMeta,
     proposedSvg,
     handleDiffMount,
     handleSave,

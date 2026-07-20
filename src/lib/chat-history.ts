@@ -221,6 +221,27 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
   }
 }
 
+/**
+ * The first user prompt's text, or null. Reads `content` straight off the
+ * message docs (stored top-level) without fromStored, so it never downloads
+ * the chat's PNG blobs — used for cheap gallery title/description suggestions.
+ */
+export async function loadFirstUserPrompt(fileId: string): Promise<string | null> {
+  if (!uid()) return null;
+  try {
+    const col = collection(firebaseDb, 'files', fileId, 'messages');
+    const snap = await getDocs(query(col, orderBy('seq')));
+    for (const d of snap.docs) {
+      const data = d.data() as StoredMessage;
+      if (data.role === 'user' && data.content?.trim()) return data.content;
+    }
+    return null;
+  } catch (err) {
+    console.error('[chat-history] first-prompt read failed', err);
+    return null;
+  }
+}
+
 /** Externalize PNGs + reconcile the messages subcollection (handles truncation).
  * When `svg` is given it is stored inline on the file doc (`text`) so the draft
  * document travels with its chat. */
