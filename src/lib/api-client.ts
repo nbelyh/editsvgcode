@@ -3,6 +3,7 @@ import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } fro
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
+import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
 
 export interface ChatMessage {
@@ -165,7 +166,7 @@ export async function sendChatRequest(
 
   // Build input: previous history + svgContext (refreshed each turn) + new user message
   const input: unknown[] = [
-    ...conversationHistory,
+    ...sanitizeHistory(conversationHistory),
     // When there is prior history, warn the model that line numbers may have shifted
     ...(conversationHistory.length > 0
       ? [{ role: 'developer', content: 'The SVG document has been updated since the earlier messages. Line numbers from previous tool calls and search results are now stale — do NOT reuse them. Always rely on the current SVG context below and re-run search_svg or read_svg_lines if you need line numbers.' }]
@@ -185,14 +186,64 @@ export async function sendChatRequest(
   // Collect all raw output items across agentic rounds for the caller to store
   const allRawOutput: unknown[] = [];
 
-  // Agentic loop — execute read-only tools locally, send results back
+  // Agentic loop — execute read-only tools locally, send results back. Image
+  // confirmation lives in the same loop: a declined generate/modify_image sends
+  // a rejection and the continuation often calls read tools again (e.g.
+  // search_svg to find lines to edit), so control must flow back through here.
+  // The final response always passes the confirmation gate — the loop exits
+  // through the no-read-calls branch or by exhausting the continuation budget
+  // (MAX_TOOL_ROUNDS), and the post-processing sweep below answers any calls
+  // left over from a budget exit so no unanswered call is ever persisted.
   let iconsRejected = false; // track if user already clicked "None — generate instead"
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+  let imageApproved = false; // user confirmed the image call in the final response
+  for (let round = 0; ; round++) {
     const readCalls = response.output.filter(
       item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'search_icons' || item.name === 'get_element_bounds')
     );
 
-    if (readCalls.length === 0) break;
+    if (readCalls.length === 0) {
+      // No read tools — check for a generate_image or modify_image call that needs confirmation
+      const genImageCall = response.output.find(
+        item => item.type === 'function_call' && (item.name === 'generate_image' || item.name === 'modify_image')
+      );
+      if (genImageCall && onImageConfirm) {
+        const genArgs = JSON.parse(genImageCall.arguments!);
+        imageApproved = await onImageConfirm(genArgs.summary || genArgs.prompt, genImageCall.name === 'modify_image');
+        if (!imageApproved) {
+          // User declined — send rejection back and ask model to use SVG tools
+          allRawOutput.push(...response.output);
+          const rejectionMsg = genImageCall.name === 'modify_image'
+            ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (find_replace, replace_lines, or replace_svg) instead.'
+            : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
+          allRawOutput.push({
+            type: 'function_call_output',
+            call_id: genImageCall.call_id,
+            output: rejectionMsg,
+          });
+          // Provide OK outputs for any other tool calls in this response
+          for (const item of response.output) {
+            if (item.type === 'function_call' && item.call_id !== genImageCall.call_id) {
+              allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'OK' });
+            }
+          }
+          if (round >= MAX_TOOL_ROUNDS) {
+            // Out of continuation budget — end the turn with the rejection
+            // recorded; the declined call must not reach final processing.
+            response = { output: [], credits: response.credits };
+            break;
+          }
+          onProgress?.('thinking');
+          const continuationInput = [...input, ...allRawOutput];
+          response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
+          continue;
+        }
+      }
+      break;
+    }
+
+    // Out of continuation budget — stop querying; the sweep below answers the
+    // read calls left in this response.
+    if (round >= MAX_TOOL_ROUNDS) break;
 
     // Report which tools are being called this round
     for (const call of readCalls) {
@@ -243,50 +294,22 @@ export async function sendChatRequest(
       toolResults.push(output);
       onToolCall?.({ name: call.name!, args, result: result ?? '' });
     }
+    // Answer any non-read calls mixed into the same response — an unanswered
+    // call makes the API reject the continuation. Edits and image calls are
+    // only executed from a final, read-free response, so tell the model to
+    // re-issue them (image calls then pass the confirmation gate normally).
+    const readIds = new Set(readCalls.map(c => c.call_id));
+    for (const item of response.output) {
+      if (item.type === 'function_call' && !readIds.has(item.call_id)) {
+        toolResults.push({ type: 'function_call_output', call_id: item.call_id, output: 'Not executed: tool results for your read-only calls are provided first. Re-issue this call in your next response if still needed.' });
+      }
+    }
     allRawOutput.push(...toolResults);
 
     // Send continuation: full input so far + intermediate outputs + tool results
     onProgress?.('thinking');
     const continuationInput = [...input, ...allRawOutput];
     response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
-  }
-
-  // Final output — may loop if user declines generate_image
-  let processingResponse = true;
-  while (processingResponse) {
-    processingResponse = false;
-
-    // Check if response contains a generate_image or modify_image call that needs confirmation
-    const genImageCall = response.output.find(
-      item => item.type === 'function_call' && (item.name === 'generate_image' || item.name === 'modify_image')
-    );
-    if (genImageCall && onImageConfirm) {
-      const genArgs = JSON.parse(genImageCall.arguments!);
-      const confirmed = await onImageConfirm(genArgs.summary || genArgs.prompt, genImageCall.name === 'modify_image');
-      if (!confirmed) {
-        // User declined — send rejection back and ask model to use SVG tools
-        allRawOutput.push(...response.output);
-        const rejectionMsg = genImageCall.name === 'modify_image'
-          ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (find_replace, replace_lines, or replace_svg) instead.'
-          : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
-        allRawOutput.push({
-          type: 'function_call_output',
-          call_id: genImageCall.call_id,
-          output: rejectionMsg,
-        });
-        // Provide OK outputs for any other tool calls in this response
-        for (const item of response.output) {
-          if (item.type === 'function_call' && item.call_id !== genImageCall.call_id) {
-            allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'OK' });
-          }
-        }
-        onProgress?.('thinking');
-        const continuationInput = [...input, ...allRawOutput];
-        response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
-        processingResponse = true;
-        continue;
-      }
-    }
   }
 
   // Final output
@@ -310,6 +333,13 @@ export async function sendChatRequest(
         }
       }
     } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image' || item.name === 'modify_image')) {
+      if ((item.name === 'generate_image' || item.name === 'modify_image') && onImageConfirm && !imageApproved) {
+        // Image call that never passed the confirmation gate (budget exit with
+        // a mixed response) — answer it without executing so no credits are
+        // spent unconfirmed.
+        allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'Not executed: image generation requires user confirmation and the tool-call limit for this turn was reached.' });
+        continue;
+      }
       const args = JSON.parse(item.arguments!);
       let toolOutput = 'OK';
       if (item.name === 'find_replace') {
@@ -362,6 +392,18 @@ export async function sendChatRequest(
       // Add function_call_output so the API sees completed tool calls on replay
       allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: toolOutput });
     }
+  }
+
+  // Safety net: every function_call in rawOutput must have a matching
+  // function_call_output — an unanswered call corrupts the stored history and
+  // is rejected by the API on replay. Reachable when the continuation budget
+  // runs out mid-conversation or the model calls a tool this client doesn't
+  // know about.
+  const items = allRawOutput as Array<{ type?: string; call_id?: string }>;
+  const answeredIds = new Set(items.filter(i => i.type === 'function_call_output').map(i => i.call_id));
+  const unanswered = items.filter(i => i.type === 'function_call' && !answeredIds.has(i.call_id));
+  for (const call of unanswered) {
+    allRawOutput.push({ type: 'function_call_output', call_id: call.call_id, output: 'Not executed: tool-call limit reached for this turn.' });
   }
 
   return {

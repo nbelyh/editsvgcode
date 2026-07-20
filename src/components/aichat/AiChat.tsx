@@ -328,6 +328,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
+    // Settle pending in-chat prompts — sendChatRequest awaits their promises,
+    // which the abort signal can't interrupt; the resolved continuation then
+    // hits the aborted fetch and unwinds with AbortError.
+    iconPickResolveRef.current?.('none');
+    imageConfirmResolveRef.current?.(false);
     setIsRunning(false);
     setIconPickIcons(null);
     setSelectedIcon(null);
