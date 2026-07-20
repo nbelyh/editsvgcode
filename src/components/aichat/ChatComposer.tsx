@@ -1,10 +1,9 @@
 import { useRef, useCallback, useMemo, useState } from 'react';
-import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack, Button } from '@mantine/core';
-import { IconArrowUp, IconPlayerStop, IconAlertTriangle, IconSparkles } from '@tabler/icons-react';
+import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
+import { IconArrowUp, IconPlayerStop, IconAlertTriangle } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../../lib/models';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
-import { openSignInModal } from '../SignInModal';
 import type { Credits, ReasoningEffort } from './types';
 
 interface ChatComposerProps {
@@ -23,7 +22,6 @@ interface ChatComposerProps {
   supportedEfforts: ReasoningEffort[] | undefined;
   onEffortChange: (value: ReasoningEffort) => void;
   credits: Credits | null;
-  isAnonymous: boolean;
   isModelDisabled: (m: { pro: boolean }) => boolean;
   /** Past user messages for Up/Down history navigation. */
   history: string[];
@@ -34,7 +32,7 @@ export function ChatComposer({
   isRunning, hasPending, selectedElement,
   model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange,
-  credits, isAnonymous, isModelDisabled, history,
+  credits, isModelDisabled, history,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editModels = useMemo(() => EDIT_MODELS, []);
@@ -100,20 +98,6 @@ export function ChatComposer({
 
   const LOW_CREDITS_THRESHOLD = 5;
   const showLowCredits = credits && credits.remaining > 0 && credits.remaining <= LOW_CREDITS_THRESHOLD;
-
-  // AI is for signed-in users only — guests get a sign-in invitation instead of the composer.
-  if (isAnonymous) {
-    return (
-      <div className="aui-composer-area">
-        <Stack align="center" gap="xs" py="md" px="sm">
-          <IconSparkles size={20} color="var(--mantine-primary-color-filled)" />
-          <Text size="sm" ta="center">Sign in to use the AI assistant</Text>
-          <Text size="xs" c="dimmed" ta="center">Free — includes 50 AI credits every month</Text>
-          <Button size="xs" onClick={openSignInModal}>Sign in</Button>
-        </Stack>
-      </div>
-    );
-  }
 
   return (
     <div className="aui-composer-area">

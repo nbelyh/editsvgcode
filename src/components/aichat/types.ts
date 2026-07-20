@@ -19,6 +19,8 @@ export interface DisplayMessage {
 export interface AiChatProps {
   svgCode: string;
   fileId: string;
+  /** False while useDocument is still loading — svgCode holds a placeholder until then. */
+  documentReady: boolean;
   selectedElement?: string;
   selectedLineRange?: { start: number; end: number };
   onPreviewSvg: (svg: string | null) => void;

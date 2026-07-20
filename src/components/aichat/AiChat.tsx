@@ -5,6 +5,7 @@ import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages } from '../../lib/chat-history';
+import { DEFAULT_PRICING } from '../../lib/pricing';
 import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
@@ -15,6 +16,11 @@ import '../AiChat.css';
 
 const HISTORY_KEY = 'esvg-input-history';
 const MAX_HISTORY = 100;
+
+// Draft stashed when a guest hits send: sign-in is a full-page redirect (popup
+// auth breaks under some browser extensions/VPNs), so React state does not
+// survive it. sessionStorage does — Firebase's own redirect flow depends on it.
+const PENDING_SEND_KEY = 'esvg-pending-send';
 
 /**
  * Heuristic: detect prompts that primarily request raster image generation.
@@ -42,7 +48,7 @@ function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
-export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore }: AiChatProps) {
+export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -64,7 +70,16 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     });
   }, [model]);
   const tier = credits?.tier ?? 'free';
-  const isAnonymous = getAuth().currentUser?.isAnonymous ?? true;
+  // null = auth not yet known (Firebase still restoring the session after page
+  // load). Distinct from anonymous: a signed-in user must not be treated as a
+  // guest during the restore window, so auth-gated paths wait for a real value.
+  const [isAnonymous, setIsAnonymous] = useState<boolean | null>(() => {
+    const user = getAuth().currentUser;
+    return user ? user.isAnonymous : null;
+  });
+  useEffect(() => {
+    return onAuthStateChanged(getAuth(), (user) => setIsAnonymous(user ? user.isAnonymous : null));
+  }, []);
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isModelDisabled = useCallback((m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro, [isDebug, tier]);
   const hasPending = messages.some(m => m.toolCalls?.some(tc => tc.status === 'pending'));
@@ -81,6 +96,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
+  // Arms the deferred-send effect below (see its comment): set alongside
+  // setInput by edit-resubmit and the post-sign-in draft restore.
+  const pendingSendRef = useRef(false);
 
   // Subscribe to real-time credit balance from Firestore
   useEffect(() => {
@@ -92,8 +110,9 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   // empty, and the subsequent debounced save would then wipe the stored chat.
   // Anonymous users don't latch the load: when a stale session forces the app
   // to boot as anonymous and the user then signs back in, the chat must still
-  // load for the real account (safe — anonymous users can't compose messages,
-  // so there is no in-memory chat to overwrite).
+  // load for the real account (safe — anonymous users can type but not send,
+  // so there is no in-memory chat to overwrite; a guest's draft lives in the
+  // composer input, which the load doesn't touch).
   useEffect(() => {
     loadedRef.current = false;
     setMessages([]);
@@ -107,6 +126,24 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
         if (cancelled) return;
         setMessages(stored);
         loadedRef.current = true;
+        // A guest's send was interrupted by the sign-in redirect — restore the
+        // draft and re-send it. Only after the load: sending earlier would let
+        // the load clobber the in-flight message. The stash is consumed only by
+        // its own file (a different file's load must leave it intact) and only
+        // into an empty composer (never clobber text typed while loading).
+        try {
+          const raw = sessionStorage.getItem(PENDING_SEND_KEY);
+          if (raw) {
+            const pending = JSON.parse(raw) as { fileId?: string; text?: string };
+            if (pending.fileId === fileId) {
+              sessionStorage.removeItem(PENDING_SEND_KEY);
+              if (pending.text && !inputRef.current.trim()) {
+                setInput(pending.text);
+                pendingSendRef.current = true;
+              }
+            }
+          }
+        } catch { sessionStorage.removeItem(PENDING_SEND_KEY); /* corrupted stash */ }
       });
     });
     return () => { cancelled = true; unsub(); };
@@ -119,6 +156,10 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   // a full message rewrite) so the created draft doc carries its document.
   const svgRef = useRef(svgCode);
   svgRef.current = svgCode;
+  // Mirror of `input` for the load callback above (its closure is per-fileId
+  // and would otherwise see the mount-time value).
+  const inputRef = useRef(input);
+  inputRef.current = input;
   useEffect(() => {
     if (loadedRef.current && messages.length > 0) {
       scheduleSaveChatMessages(fileId, messages, svgRef.current);
@@ -131,14 +172,29 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
   }, [messages, isRunning]);
 
   const handleSend = useCallback(async () => {
-    // AI requires a real account — guests get the sign-in modal instead.
-    // The server enforces this too; this is just the friendly path.
-    if (isAnonymous) {
-      openSignInModal();
+    const text = input.trim();
+    // hasPending guards programmatic callers (deferred sends) — interactive
+    // paths are already blocked by the composer's disabled state.
+    if (!text || isRunning || hasPending) return;
+
+    // AI requires a real account — guests get the sign-in modal instead of an
+    // AI call (the server enforces this too; this is just the friendly path).
+    // Stash the draft first: sign-in redirects away, and the restore path in
+    // the load effect re-sends it once the user is back and signed in. The
+    // stash is cleared if the user dismisses the modal — an abandoned send
+    // must never fire off a later, unrelated sign-in.
+    // isAnonymous === null means auth is still restoring: drop the send rather
+    // than mistake a signed-in user for a guest.
+    if (isAnonymous !== false) {
+      if (isAnonymous) {
+        try { sessionStorage.setItem(PENDING_SEND_KEY, JSON.stringify({ fileId, text })); } catch { /* storage unavailable — modal still opens */ }
+        openSignInModal(
+          `AI needs a free account. Your message is kept and will be sent automatically after you sign in — ${DEFAULT_PRICING.freeMonthlyCredits} AI credits included every month.`,
+          { onClose: () => sessionStorage.removeItem(PENDING_SEND_KEY) },
+        );
+      }
       return;
     }
-    const text = input.trim();
-    if (!text || isRunning) return;
 
     const userMsg: DisplayMessage = { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
@@ -268,7 +324,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
       setImageConfirmSummary(null);
       imageConfirmResolveRef.current = null;
     }
-  }, [input, isRunning, isAnonymous, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
+  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -347,17 +403,21 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
     setEditingText('');
     setInput(text);
     // We need to trigger send after state updates, so use a ref flag
-    pendingEditSendRef.current = true;
+    pendingSendRef.current = true;
   }, [isRunning, messages, fileId, onPreviewSvg, onRestore, restoreTarget]);
 
-  // Ref to trigger send after an edit-submit restores + sets input
-  const pendingEditSendRef = useRef(false);
+  // Deferred send: fires handleSend once after setInput lands. Used by
+  // edit-resubmit and by the post-sign-in draft restore. Holds until the
+  // document has loaded — a send must never carry useDocument's initial
+  // placeholder instead of the user's SVG. handleSend's own guards (isRunning,
+  // hasPending, auth) still apply; if one rejects, the draft stays in the
+  // composer for a manual send.
   useEffect(() => {
-    if (pendingEditSendRef.current && input.trim() && !isRunning) {
-      pendingEditSendRef.current = false;
+    if (pendingSendRef.current && documentReady && input.trim() && !isRunning) {
+      pendingSendRef.current = false;
       handleSend();
     }
-  }, [input, isRunning, handleSend]);
+  }, [input, isRunning, documentReady, handleSend]);
 
   const handleAccept = useCallback((msgIndex: number, tcIndex: number) => {
     const msg = messages[msgIndex];
@@ -492,6 +552,7 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           isRunning={isRunning}
           progressStatus={progressStatus}
           canUndo={canUndo}
+          isAnonymous={isAnonymous === true}
           viewportRef={viewportRef}
           endRef={endRef}
           onAccept={handleAccept}
@@ -533,9 +594,8 @@ export function AiChat({ svgCode, fileId, selectedElement, selectedLineRange, on
           supportedEfforts={supportedEfforts}
           onEffortChange={setEffort}
           credits={credits}
-          isAnonymous={isAnonymous}
           isModelDisabled={isModelDisabled}
-          history={inputHistory}
+          history={isAnonymous === false ? inputHistory : []}
         />
       </div>
     </div>

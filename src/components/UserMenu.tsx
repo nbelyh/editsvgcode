@@ -82,7 +82,7 @@ export function UserMenu() {
             <Menu.Item leftSection={<IconCreditCard size={14} />} onClick={() => navigate('/pricing')}>
               Upgrade to Pro
             </Menu.Item>
-            <Menu.Item leftSection={<IconLogin size={14} />} onClick={openSignInModal}>
+            <Menu.Item leftSection={<IconLogin size={14} />} onClick={() => openSignInModal()}>
               Sign in
             </Menu.Item>
             <Menu.Divider />

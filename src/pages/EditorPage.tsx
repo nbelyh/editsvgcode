@@ -177,6 +177,7 @@ export function EditorPage() {
     <AiChat
       svgCode={svgCode}
       fileId={fileId}
+      documentReady={!readOnly}
       selectedElement={selectedElement}
       selectedLineRange={selectedLineRange}
       onPreviewSvg={handlePreviewSvg}
@@ -317,6 +318,7 @@ export function EditorPage() {
                 <AiChat
                   svgCode={svgCode}
                   fileId={fileId}
+                  documentReady={!readOnly}
                   selectedElement={selectedElement}
                   selectedLineRange={selectedLineRange}
                   onPreviewSvg={handlePreviewSvg}

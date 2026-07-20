@@ -129,7 +129,7 @@ export function PricingPage() {
             'Files are not indexed',
           ]}
           ctas={isAnonymous
-            ? [{ label: 'Sign in', onClick: openSignInModal }]
+            ? [{ label: 'Sign in', onClick: () => openSignInModal() }]
             : [{ label: 'Current plan' }]
           }
         />

@@ -7,6 +7,7 @@ import { sanitizeSvg } from '../../lib/sanitize';
 import { ToolCallProposal } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { buildCheckoutUrl, type PpgProductKey } from '../../lib/ppg-checkout';
+import { DEFAULT_PRICING } from '../../lib/pricing';
 import { trackBeginCheckout } from '../../lib/analytics';
 
 import { IconPicker } from './IconPicker';
@@ -43,6 +44,7 @@ interface ChatThreadProps {
   onImageConfirm: () => void;
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
+  isAnonymous: boolean;
 }
 
 /** Open PayPro checkout for the given product. Only reachable by signed-in users (AI requires sign-in). */
@@ -153,7 +155,7 @@ export function ChatThread({
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
-  onSamplePrompt,
+  onSamplePrompt, isAnonymous,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -200,6 +202,9 @@ export function ChatThread({
               </button>
             ))}
           </div>
+          {isAnonymous && (
+            <p className="aui-empty-signin">Sign-in required to send — free, includes {DEFAULT_PRICING.freeMonthlyCredits} AI credits/month</p>
+          )}
         </div>
       )}
 
