@@ -140,7 +140,7 @@ export function PricingPage() {
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
           features={[
             'Everything in Free',
-            'All models (gpt-5.4, gpt-5.2-codex, etc.)',
+            'All models (gpt-5.6-sol, gpt-5.4, etc.)',
             'AI SVG size up to 1MB',
             'Full AI image-gen models',
             'Priority support',
@@ -190,17 +190,17 @@ export function PricingPage() {
             <Table.Tbody>
               <Table.Tr>
                 <Table.Td>Mini models</Table.Td>
-                <Table.Td>gpt-4.1-mini, gpt-5-mini</Table.Td>
+                <Table.Td>gpt-5.4-nano, gpt-5.4-mini</Table.Td>
                 <Table.Td>1 – 3</Table.Td>
                 <Table.Td>~15–50 edits</Table.Td>
                 <Table.Td>~300–1,000 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Full-size models</Table.Td>
-                <Table.Td>gpt-4.1, gpt-5, gpt-5.2-codex</Table.Td>
-                <Table.Td>5 – 20</Table.Td>
-                <Table.Td>~2–10 edits</Table.Td>
-                <Table.Td>~50–200 edits</Table.Td>
+                <Table.Td>gpt-5.6-luna, gpt-5.4, gpt-5.6-sol</Table.Td>
+                <Table.Td>8 – 40</Table.Td>
+                <Table.Td>~1–6 edits</Table.Td>
+                <Table.Td>~25–125 edits</Table.Td>
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Image generation</Table.Td>

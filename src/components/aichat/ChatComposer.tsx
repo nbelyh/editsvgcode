@@ -1,8 +1,8 @@
 import { useRef, useCallback, useMemo, useState } from 'react';
-import { Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
+import { Anchor, Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
 import { IconArrowUp, IconPlayerStop, IconAlertTriangle } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import { EDIT_MODELS, IMAGE_MODELS, shortModelName } from '../../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, shortModelName, visibleEditModels } from '../../lib/models';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
 import type { Credits, ReasoningEffort } from './types';
 
@@ -35,7 +35,11 @@ export function ChatComposer({
   credits, isModelDisabled, history,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editModels = useMemo(() => EDIT_MODELS, []);
+  const [showAllModels, setShowAllModels] = useState(false);
+  const editModels = useMemo(
+    () => (showAllModels ? EDIT_MODELS : visibleEditModels(model)),
+    [showAllModels, model],
+  );
   const imageModels = useMemo(() => IMAGE_MODELS, []);
   // History navigation: -1 = current input, 0 = most recent, 1 = one before, etc.
   const [historyIdx, setHistoryIdx] = useState(-1);
@@ -155,6 +159,9 @@ export function ChatComposer({
                     ))}
                   </Stack>
                 </Radio.Group>
+                <Anchor component="button" type="button" size="xs" mt={6} onClick={() => setShowAllModels(v => !v)}>
+                  {showAllModels ? 'Show fewer' : `Show all ${EDIT_MODELS.length} models…`}
+                </Anchor>
               </div>
               {supportedEfforts && (
                 <div>

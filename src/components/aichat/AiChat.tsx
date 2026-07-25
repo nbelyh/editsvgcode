@@ -6,7 +6,7 @@ import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, typ
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages } from '../../lib/chat-history';
 import { DEFAULT_PRICING } from '../../lib/pricing';
-import { EDIT_MODELS, type ReasoningEffort } from '../../lib/models';
+import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import { openSignInModal } from '../SignInModal';
@@ -54,8 +54,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
   const [credits, setCredits] = useState<Credits | null>(null);
-  const [model, setModel] = useState(() => localStorage.getItem('esvg-model') || 'gpt-5.4-mini');
-  const [imageModel, setImageModel] = useState(() => localStorage.getItem('esvg-image-model') || 'gpt-image-1-mini');
+  const [model, setModel] = useState(() => resolveEditModel(localStorage.getItem('esvg-model')));
+  const [imageModel, setImageModel] = useState(() => resolveImageModel(localStorage.getItem('esvg-image-model')));
   const [effortByModel, setEffortByModel] = useState<Record<string, ReasoningEffort>>(() => {
     try { return JSON.parse(localStorage.getItem('esvg-effort-by-model') || '{}'); } catch { return {}; }
   });
