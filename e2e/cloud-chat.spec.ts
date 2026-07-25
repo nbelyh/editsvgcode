@@ -110,9 +110,8 @@ test.describe('Cloud chat persistence', () => {
     await expect(page.getByRole('link', { name: fileId })).not.toBeVisible();
 
     const remains = await page.evaluate(async (id) => {
-      const fb = await import('/src/lib/firebase.ts');
-      const ch = await import('/src/lib/chat-history.ts');
-      const doc = await new fb.EditSvgCodeDb().loadDocument(id, { quiet: true });
+      const { EditSvgCodeDb, chatHistory: ch } = window.__test;
+      const doc = await new EditSvgCodeDb().loadDocument(id, { quiet: true });
       const messages = await ch.loadChatMessages(id);
       return { doc, messageCount: messages.length };
     }, fileId);
@@ -134,8 +133,7 @@ test.describe('Cloud chat persistence', () => {
     expect(fields.saved?.booleanValue).toBe(true);
     expect(fields.createdAt).toBeDefined(); // merge preserved the draft's fields
     const messageCount = await page.evaluate(async (id) => {
-      const ch = await import('/src/lib/chat-history.ts');
-      return (await ch.loadChatMessages(id)).length;
+      return (await window.__test.chatHistory.loadChatMessages(id)).length;
     }, fileId);
     expect(messageCount).toBe(2);
   });
@@ -148,9 +146,8 @@ test.describe('Cloud chat persistence', () => {
     await seedDraft(page, srcId);
     // Publish as UNLISTED first — link-shareable must not mean gallery-listed
     await page.evaluate(async (id) => {
-      const fb = await import('/src/lib/firebase.ts');
       const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>';
-      await new fb.EditSvgCodeDb().saveDocument(id, SVG, 'unlisted');
+      await new window.__test.EditSvgCodeDb().saveDocument(id, SVG, 'unlisted');
     }, srcId);
 
     await page.goto('/gallery');
@@ -159,8 +156,7 @@ test.describe('Cloud chat persistence', () => {
 
     // Owner lists it explicitly (cards are titled, so locate by link target)
     await page.evaluate(async (id) => {
-      const fb = await import('/src/lib/firebase.ts');
-      await new fb.EditSvgCodeDb().setVisibility(id, 'public');
+      await new window.__test.EditSvgCodeDb().setVisibility(id, 'public');
     }, srcId);
     await page.reload();
     await expect(page.locator(`a[href="/${srcId}"]`).first()).toBeVisible({ timeout: 15000 });
@@ -184,8 +180,7 @@ test.describe('Cloud chat persistence', () => {
     expect(fields.saved?.booleanValue).toBe(false);
     expect(fields.forkedFrom?.stringValue).toBe(srcId);
     const clonedCount = await page.evaluate(async (id) => {
-      const ch = await import('/src/lib/chat-history.ts');
-      return (await ch.loadChatMessages(id)).length;
+      return (await window.__test.chatHistory.loadChatMessages(id)).length;
     }, newId);
     expect(clonedCount).toBe(2);
   });
@@ -197,15 +192,14 @@ test.describe('Cloud chat persistence', () => {
     await signInTestUser(page); // author
     await seedDraft(page, srcId);
     await page.evaluate(async (id) => {
-      const fb = await import('/src/lib/firebase.ts');
       const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>';
-      await new fb.EditSvgCodeDb().saveDocument(id, SVG, 'public');
+      await new window.__test.EditSvgCodeDb().saveDocument(id, SVG, 'public');
     }, srcId);
 
     // Drop the author's session (and the AI-tab preference the author had) so
     // the visit is a true guest arrival via the link.
     await page.evaluate(async () => {
-      const m = await import('/node_modules/.vite/deps/firebase_auth.js');
+      const m = window.__test.firebaseAuth;
       await m.signOut(m.getAuth());
       localStorage.clear();
       sessionStorage.clear();
@@ -226,7 +220,7 @@ test.describe('Cloud chat persistence', () => {
 
     // And the visitor cannot write to the author's chat.
     const denied = await page.evaluate(async (id) => {
-      const ch = await import('/src/lib/chat-history.ts');
+      const ch = window.__test.chatHistory;
       await ch.saveChatMessages(id, [{ role: 'user', content: 'hijack' }] as never, '<svg/>');
       return (await ch.loadChatMessages(id)).some((m: { content: string }) => m.content === 'hijack');
     }, srcId);

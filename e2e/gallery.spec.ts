@@ -132,10 +132,10 @@ test.describe('Gallery publish dialog and cards', () => {
     // Owner creates a saved doc; grab their real ID token so REST writes are
     // rules-enforced (unlike the `Bearer owner` admin token used elsewhere).
     const idToken = await page.evaluate(async ({ id, svg }) => {
-      const fb = await import('/src/lib/firebase.ts');
-      await new fb.EditSvgCodeDb().saveDocument(id, svg, 'unlisted');
-      const auth = await import('/node_modules/.vite/deps/firebase_auth.js');
-      return auth.getAuth().currentUser.getIdToken();
+      await new window.__test.EditSvgCodeDb().saveDocument(id, svg, 'unlisted');
+      const user = window.__test.firebaseAuth.getAuth().currentUser;
+      if (!user) throw new Error('expected a signed-in user after signInTestUser');
+      return user.getIdToken();
     }, { id: fileId, svg: SVG_RED });
 
     // PATCH as the owner via REST, bypassing the UI cap. Rules must deny an

@@ -9,6 +9,7 @@ import '@mantine/notifications/styles.css';
 import 'allotment/dist/style.css';
 import './lib/firebase'; // Initialize Firebase before anything else
 import { initAppInsights } from './lib/appinsights';
+import { installTestHooks } from './lib/test-hooks';
 import App from './App';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -26,6 +27,7 @@ import { RefundPolicyPage } from './pages/RefundPolicyPage';
 import { theme } from './theme';
 
 initAppInsights();
+installTestHooks(); // no-op outside dev
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

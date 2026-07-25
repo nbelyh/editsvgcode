@@ -32,12 +32,12 @@ export function trackFileId(id: string): void {
  * Sign in a fresh (non-anonymous) user via the auth emulator, which accepts
  * unsigned Google credentials, so a random `sub` mints an isolated account.
  * Pass `displayName` to set the profile name (updateProfile covers emulators
- * that don't map the `name` claim). Imports Vite's pre-bundled firebase_auth
- * so it shares the app's auth instance.
+ * that don't map the `name` claim). Goes through `window.__test` so it drives
+ * the app's own auth instance — the live session, not a second client.
  */
 export async function signInTestUser(page: Page, displayName?: string): Promise<string> {
   const { uid, anonUid } = await page.evaluate(async (name) => {
-    const m = await import('/node_modules/.vite/deps/firebase_auth.js');
+    const m = window.__test.firebaseAuth;
     const auth = m.getAuth();
     // The app boots with an auto-created anonymous session — record it so the
     // afterEach purge removes it along with the test user.
@@ -58,8 +58,7 @@ export async function signInTestUser(page: Page, displayName?: string): Promise<
 /** Seed a chat (file doc + messages) through the app's real persistence module. */
 export async function seedChat(page: Page, fileId: string, messages: unknown[], svg: string): Promise<void> {
   await page.evaluate(async ({ fileId, messages, svg }) => {
-    const ch = await import('/src/lib/chat-history.ts');
-    await ch.saveChatMessages(fileId, messages as never, svg);
+    await window.__test.chatHistory.saveChatMessages(fileId, messages as never, svg);
   }, { fileId, messages, svg });
 }
 
