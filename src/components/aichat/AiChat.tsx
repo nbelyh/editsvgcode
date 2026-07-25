@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { ActionIcon, Tooltip } from '@mantine/core';
-import { IconEraser } from '@tabler/icons-react';
+import { ActionIcon, Tooltip, Text, Button } from '@mantine/core';
+import { IconEraser, IconGitFork } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
-import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages } from '../../lib/chat-history';
+import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess } from '../../lib/chat-history';
 import { DEFAULT_PRICING } from '../../lib/pricing';
 import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import { openSignInModal } from '../SignInModal';
+import { useCloneDocument } from '../../lib/useCloneDocument';
 import type { DisplayMessage, AiChatProps } from './types';
 import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
 import '../AiChat.css';
@@ -48,7 +49,7 @@ function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
-export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore }: AiChatProps) {
+export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -92,6 +93,14 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const iconPickResolveRef = useRef<((result: IconResult | 'more' | 'none') => void) | null>(null);
   const imageConfirmResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
 
+  // Write access to this document's chat, resolved on load. `isViewer` means
+  // somebody else's document: the chat shows read-only with a fork offer, and
+  // is distinct from a guest on their own draft (who may type and is funnelled
+  // into sign-in on send).
+  const [canWrite, setCanWrite] = useState(false);
+  const [isViewer, setIsViewer] = useState(false);
+  const { clone, cloningId } = useCloneDocument();
+
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -108,24 +117,35 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // Load messages from the server on mount and when fileId changes. Wait for
   // Firebase to RESTORE auth first: loading before the user is known returns
   // empty, and the subsequent debounced save would then wipe the stored chat.
-  // Anonymous users don't latch the load: when a stale session forces the app
-  // to boot as anonymous and the user then signs back in, the chat must still
-  // load for the real account (safe — anonymous users can type but not send,
-  // so there is no in-memory chat to overwrite; a guest's draft lives in the
-  // composer input, which the load doesn't touch).
+  // Guests load too — a public/unlisted document's chat is readable by anyone
+  // with the link, and that shared conversation is the point of the gallery.
+  // The load doesn't latch per session kind: when a stale session forces the
+  // app to boot as anonymous and the user then signs back in, it re-runs for
+  // the real account (safe — the guest view is read-only, so there is no
+  // in-memory chat to overwrite; a guest's draft lives in the composer input,
+  // which the load doesn't touch).
   useEffect(() => {
     loadedRef.current = false;
     setMessages([]);
+    setCanWrite(false);
+    setIsViewer(false);
     onPreviewSvg(null);
     let cancelled = false;
-    let loadedUid: string | null = null;
+    let loadedFor: string | null = null;
     const unsub = onAuthStateChanged(getAuth(), (user) => {
-      if (cancelled || !user || user.isAnonymous || user.uid === loadedUid) return;
-      loadedUid = user.uid;
-      loadChatMessages(fileId).then((stored) => {
+      if (cancelled || !user) return;
+      const sessionKey = user.isAnonymous ? 'anonymous' : user.uid;
+      if (sessionKey === loadedFor) return;
+      loadedFor = sessionKey;
+      const isGuest = user.isAnonymous;
+      Promise.all([loadChatMessages(fileId), getChatAccess(fileId)]).then(([stored, access]) => {
         if (cancelled) return;
         setMessages(stored);
+        setCanWrite(access.canWrite);
+        setIsViewer(access.isViewer);
+        onChatLoaded?.(stored.length > 0);
         loadedRef.current = true;
+        if (isGuest) return; // no pending send to restore — guests can't send
         // A guest's send was interrupted by the sign-in redirect — restore the
         // draft and re-send it. Only after the load: sending earlier would let
         // the load clobber the in-flight message. The stash is consumed only by
@@ -147,7 +167,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       });
     });
     return () => { cancelled = true; unsub(); };
-  }, [fileId]);
+  }, [fileId, onChatLoaded]);
 
   // Persist messages on change — debounced write to the server. Skip empty:
   // merely opening a document must not create a server doc (only a real first
@@ -161,10 +181,10 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const inputRef = useRef(input);
   inputRef.current = input;
   useEffect(() => {
-    if (loadedRef.current && messages.length > 0) {
+    if (loadedRef.current && canWrite && messages.length > 0) {
       scheduleSaveChatMessages(fileId, messages, svgRef.current);
     }
-  }, [messages, fileId]);
+  }, [messages, fileId, canWrite]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -545,8 +565,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   return (
     <div className="aui-root">
       <div className="aui-header">
+        {isViewer && <Text size="xs" c="dimmed" mr="auto">Read-only — shared by the author</Text>}
         <Tooltip label="Clear Chat">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0}>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0 || isViewer}>
             <IconEraser size={16} />
           </ActionIcon>
         </Tooltip>
@@ -558,6 +579,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           progressStatus={progressStatus}
           canUndo={canUndo}
           isAnonymous={isAnonymous === true}
+          isViewer={isViewer}
           viewportRef={viewportRef}
           endRef={endRef}
           onAccept={handleAccept}
@@ -583,25 +605,45 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onImageDecline={handleImageConfirmNo}
           onSamplePrompt={setInput}
         />
-        <ChatComposer
-          input={input}
-          onInputChange={setInput}
-          onSend={handleSend}
-          onStop={handleStop}
-          isRunning={isRunning}
-          hasPending={hasPending}
-          selectedElement={selectedElement}
-          model={model}
-          onModelChange={handleModelChange}
-          imageModel={imageModel}
-          onImageModelChange={handleImageModelChange}
-          effort={effort}
-          supportedEfforts={supportedEfforts}
-          onEffortChange={setEffort}
-          credits={credits}
-          isModelDisabled={isModelDisabled}
-          history={isAnonymous === false ? inputHistory : []}
-        />
+        {isViewer ? (
+          // Somebody else's document: the conversation is readable but not
+          // continuable. Forking gives the visitor a draft of their own —
+          // chat, document and all — which they can carry on from.
+          <div className="aui-viewer-bar">
+            <Text size="xs" c="dimmed">
+              This is someone else's document. Make a copy to continue the chat.
+            </Text>
+            <Button
+              size="compact-sm"
+              variant="light"
+              leftSection={<IconGitFork size={14} />}
+              loading={cloningId === fileId}
+              onClick={() => clone(fileId)}
+            >
+              Start from this
+            </Button>
+          </div>
+        ) : (
+          <ChatComposer
+            input={input}
+            onInputChange={setInput}
+            onSend={handleSend}
+            onStop={handleStop}
+            isRunning={isRunning}
+            hasPending={hasPending}
+            selectedElement={selectedElement}
+            model={model}
+            onModelChange={handleModelChange}
+            imageModel={imageModel}
+            onImageModelChange={handleImageModelChange}
+            effort={effort}
+            supportedEfforts={supportedEfforts}
+            onEffortChange={setEffort}
+            credits={credits}
+            isModelDisabled={isModelDisabled}
+            history={isAnonymous === false ? inputHistory : []}
+          />
+        )}
       </div>
     </div>
   );

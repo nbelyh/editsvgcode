@@ -184,32 +184,95 @@ const rehydratePrevSvg = (messages: DisplayMessage[]) =>
 // Public API
 // ---------------------------------------------------------------------------
 
-/** File docs known to exist and be owned by the current user (avoids re-probing). */
-const knownFileDocs = new Set<string>();
+// Ownership cache for files/{id} docs, keyed by the (anonymous or real) auth
+// uid so switching accounts re-probes instead of inheriting the previous
+// session's verdict. Only definitive verdicts are cached — a document that
+// doesn't exist yet may be created by the very next save.
+const ownedFileDocs = new Set<string>();
+const foreignFileDocs = new Set<string>();
+const cacheKey = (owner: string, fileId: string) => `${owner}:${fileId}`;
 
-/** Create the files/{id} doc as a draft (saved:false) if it doesn't exist yet. */
-async function ensureFileDoc(fileId: string): Promise<void> {
-  const owner = uid();
-  if (!owner) return;
-  if (knownFileDocs.has(fileId)) return;
-  const ref = doc(firebaseDb, 'files', fileId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      uid: owner,
-      visibility: 'private',
-      private: true,
-      saved: false,
-      createdAt: serverTimestamp(),
-      modified: serverTimestamp(),
-    });
+/**
+ * Who the current session is to this document:
+ *  - 'own'      the document exists and belongs to us (or is a legacy doc with
+ *               no uid, which the rules treat as adoptable)
+ *  - 'missing'  no server document yet — a fresh local draft
+ *  - 'foreign'  somebody else's document: read-only, offer a fork instead
+ *  - 'unknown'  auth not restored yet
+ *
+ * Ownership uses the raw auth uid, NOT `uid()`: anonymous users can save
+ * documents of their own, and reopening one must not look "foreign" to them.
+ */
+type ChatAccess = 'own' | 'missing' | 'foreign' | 'unknown';
+
+async function resolveAccess(fileId: string): Promise<ChatAccess> {
+  const owner = getAuth().currentUser?.uid ?? null;
+  if (!owner) return 'unknown';
+  const key = cacheKey(owner, fileId);
+  if (ownedFileDocs.has(key)) return 'own';
+  if (foreignFileDocs.has(key)) return 'foreign';
+  let snap;
+  try {
+    snap = await getDoc(doc(firebaseDb, 'files', fileId));
+  } catch {
+    // Read denied → somebody else's private document.
+    foreignFileDocs.add(key);
+    return 'foreign';
   }
-  knownFileDocs.add(fileId);
+  if (!snap.exists()) return 'missing';
+  // Legacy docs may carry no uid; the security rules treat those as writable.
+  const docUid = snap.data().uid;
+  if (docUid != null && docUid !== owner) {
+    foreignFileDocs.add(key);
+    return 'foreign';
+  }
+  ownedFileDocs.add(key);
+  return 'own';
 }
 
-/** Load a document's chat, rehydrating PNG blobs. Never throws (returns []). */
+export interface ChatAccessInfo {
+  /** May we append to this chat? Needs a real account AND our own document. */
+  canWrite: boolean;
+  /** Somebody else's document — show the chat read-only and offer a fork. */
+  isViewer: boolean;
+}
+
+/** Resolve the current session's relationship to a document's chat. */
+export async function getChatAccess(fileId: string): Promise<ChatAccessInfo> {
+  const access = await resolveAccess(fileId);
+  return {
+    canWrite: uid() !== null && (access === 'own' || access === 'missing'),
+    isViewer: access === 'foreign',
+  };
+}
+
+/** Create the files/{id} doc as a draft (saved:false) if it doesn't exist yet.
+ * Returns false when the chat isn't ours to write. */
+async function ensureFileDoc(fileId: string): Promise<boolean> {
+  const owner = uid();
+  if (!owner) return false;
+  const access = await resolveAccess(fileId);
+  if (access === 'own') return true;
+  if (access !== 'missing') return false;
+  await setDoc(doc(firebaseDb, 'files', fileId), {
+    uid: owner,
+    visibility: 'private',
+    private: true,
+    saved: false,
+    createdAt: serverTimestamp(),
+    modified: serverTimestamp(),
+  });
+  ownedFileDocs.add(cacheKey(owner, fileId));
+  return true;
+}
+
+/**
+ * Load a document's chat, rehydrating PNG blobs. Never throws (returns []).
+ * Deliberately NOT owner-gated: the rules mirror the document's visibility, so
+ * a public/unlisted doc's chat is readable by anyone with the link — including
+ * signed-out visitors browsing the gallery.
+ */
 export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]> {
-  if (!uid()) return [];
   try {
     const col = collection(firebaseDb, 'files', fileId, 'messages');
     const snap = await getDocs(query(col, orderBy('seq')));
@@ -246,8 +309,7 @@ export async function loadFirstUserPrompt(fileId: string): Promise<string | null
  * When `svg` is given it is stored inline on the file doc (`text`) so the draft
  * document travels with its chat. */
 export async function saveChatMessages(fileId: string, messages: DisplayMessage[], svg?: string): Promise<void> {
-  if (!uid()) return;
-  await ensureFileDoc(fileId);
+  if (!await ensureFileDoc(fileId)) return;
   const stored = await Promise.all(stripRedundantPrevSvg(messages).map((m, i) => toStored(m, i)));
   const col = collection(firebaseDb, 'files', fileId, 'messages');
   const existing = await getDocs(col);
@@ -283,6 +345,7 @@ export async function cloneDocument(sourceId: string): Promise<string | null> {
 /** Delete a document's chat (leaves the file doc). */
 export async function clearChatMessages(fileId: string): Promise<void> {
   if (!uid()) return;
+  if (await resolveAccess(fileId) === 'foreign') return;
   try {
     const col = collection(firebaseDb, 'files', fileId, 'messages');
     const snap = await getDocs(col);
@@ -320,13 +383,9 @@ export function primeDraftSvg(fileId: string, svg: string): void {
 }
 
 async function saveDraftSvg(fileId: string, svg: string): Promise<void> {
-  const owner = uid();
-  if (!owner) return;
-  if (!knownFileDocs.has(fileId)) {
-    const snap = await getDoc(doc(firebaseDb, 'files', fileId));
-    if (!snap.exists() || snap.data().uid !== owner) return;
-    knownFileDocs.add(fileId);
-  }
+  if (!uid()) return;
+  // 'own' only — 'missing' would mean creating the doc, which editing must not do.
+  if (await resolveAccess(fileId) !== 'own') return;
   await setDoc(doc(firebaseDb, 'files', fileId), { text: svg, modified: serverTimestamp() }, { merge: true });
   lastSyncedSvg.set(fileId, svg);
 }

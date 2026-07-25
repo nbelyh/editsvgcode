@@ -121,7 +121,20 @@ export function EditorPage() {
     });
   }, []);
 
+  // Opening a shared link should land on the conversation that produced the
+  // drawing, not the info tab — but only until the visitor picks a tab
+  // themselves, and without overwriting their stored preference.
+  const tabChosenRef = useRef(false);
+  useEffect(() => { tabChosenRef.current = false; }, [routeFileId]);
+
+  const handleChatLoaded = useCallback((hasMessages: boolean) => {
+    if (!routeFileId || !hasMessages || tabChosenRef.current) return;
+    setSidebarTab('ai');
+    setShowSidebar(true);
+  }, [routeFileId]);
+
   const switchToInfo = useCallback(() => {
+    tabChosenRef.current = true;
     if (sidebarTab === 'info' && showSidebar) {
       setShowSidebar(false);
       localStorage.setItem('esvg-show-sidebar', 'false');
@@ -134,6 +147,7 @@ export function EditorPage() {
   }, [persistTab, sidebarTab, showSidebar]);
 
   const switchToAi = useCallback(() => {
+    tabChosenRef.current = true;
     if (sidebarTab === 'ai' && showSidebar) {
       setShowSidebar(false);
       localStorage.setItem('esvg-show-sidebar', 'false');
@@ -200,6 +214,7 @@ export function EditorPage() {
       onPreviewSvg={handlePreviewSvg}
       onAcceptSvg={handleAcceptSvg}
       onRestore={handleUndo}
+      onChatLoaded={handleChatLoaded}
     />
   );
 
@@ -336,16 +351,7 @@ export function EditorPage() {
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
           <div style={{ height: '100%', overflow: 'hidden', position: 'relative', backgroundColor: 'var(--mantine-color-body)' }}>
               <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
-                <AiChat
-                  svgCode={svgCode}
-                  fileId={fileId}
-                  documentReady={!readOnly}
-                  selectedElement={selectedElement}
-                  selectedLineRange={selectedLineRange}
-                  onPreviewSvg={handlePreviewSvg}
-                  onAcceptSvg={handleAcceptSvg}
-                  onRestore={handleUndo}
-                />
+                {aiChatPanel}
               </div>
               <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
                 <Sidebar onOpenCommandPalette={handleOpenCommandPalette} onOpenAiChat={switchToAi} />

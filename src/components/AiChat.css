@@ -33,6 +33,19 @@
   padding: 8px;
 }
 
+/* Read-only footer shown in place of the composer on someone else's document */
+.aui-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background-color: var(--esvg-chrome-bg);
+  border-top: 1px solid var(--esvg-chrome-border);
+  flex-shrink: 0;
+}
+
 /* Empty state */
 .aui-empty {
   display: flex;

@@ -189,4 +189,47 @@ test.describe('Cloud chat persistence', () => {
     }, newId);
     expect(clonedCount).toBe(2);
   });
+
+  test('a guest opening a public link sees the chat read-only, on the AI tab', async ({ page }) => {
+    const srcId = uniqueId('e2eshared');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page); // author
+    await seedDraft(page, srcId);
+    await page.evaluate(async (id) => {
+      const fb = await import('/src/lib/firebase.ts');
+      const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>';
+      await new fb.EditSvgCodeDb().saveDocument(id, SVG, 'public');
+    }, srcId);
+
+    // Drop the author's session (and the AI-tab preference the author had) so
+    // the visit is a true guest arrival via the link.
+    await page.evaluate(async () => {
+      const m = await import('/node_modules/.vite/deps/firebase_auth.js');
+      await m.signOut(m.getAuth());
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.goto(`/${srcId}`);
+    await waitForEditor(page);
+
+    // The conversation is there — and the link lands on it, not the info tab.
+    await expect(page.getByText('make it red')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Done - red.')).toBeVisible();
+    await expect(page.getByText('Read-only — shared by the author')).toBeVisible();
+
+    // Read-only: no composer, no restore/edit affordances — just a fork offer.
+    await expect(page.getByRole('button', { name: 'Start from this' })).toBeVisible();
+    await expect(page.getByPlaceholder(/ask ai/i)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Restore' })).toHaveCount(0);
+    await expect(page.locator('.aui-msg-editable')).toHaveCount(0);
+
+    // And the visitor cannot write to the author's chat.
+    const denied = await page.evaluate(async (id) => {
+      const ch = await import('/src/lib/chat-history.ts');
+      await ch.saveChatMessages(id, [{ role: 'user', content: 'hijack' }] as never, '<svg/>');
+      return (await ch.loadChatMessages(id)).some((m: { content: string }) => m.content === 'hijack');
+    }, srcId);
+    expect(denied).toBe(false);
+  });
 });

@@ -27,6 +27,9 @@ export interface AiChatProps {
   onAcceptSvg: (svg: string) => void;
   /** Roll the document back to this SVG (an accepted call's prevSvg). */
   onRestore: (svg: string) => void;
+  /** Fired once the stored chat is in: true when the document has one, so the
+   * page can reveal the chat panel for a shared link instead of the info tab. */
+  onChatLoaded?: (hasMessages: boolean) => void;
 }
 
 export type { StoredToolCall, ProgressStatus, Credits, ReasoningEffort };

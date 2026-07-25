@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Title, Text, Loader, Card, SimpleGrid, Group, Button, Anchor, Avatar, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconEye, IconGitFork } from '@tabler/icons-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
+import { Link } from 'react-router-dom';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
-import { cloneDocument } from '../lib/chat-history';
-import { openSignInModal } from '../components/SignInModal';
+import { useCloneDocument } from '../lib/useCloneDocument';
 import { SvgThumb } from '../components/SvgThumb';
 
 interface GalleryEntry {
@@ -21,10 +19,9 @@ interface GalleryEntry {
 }
 
 export function GalleryPage() {
-  const navigate = useNavigate();
   const [entries, setEntries] = useState<GalleryEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cloningId, setCloningId] = useState<string | null>(null);
+  const { clone, cloningId } = useCloneDocument();
 
   useEffect(() => {
     new EditSvgCodeDb().listPublicDocuments()
@@ -35,28 +32,6 @@ export function GalleryPage() {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  const handleClone = useCallback(async (id: string) => {
-    // Cloning copies the chat too, which needs a real account (message writes
-    // are denied for anonymous users) — same gate as the AI chat itself.
-    const user = getAuth().currentUser;
-    if (!user || user.isAnonymous) {
-      openSignInModal();
-      return;
-    }
-    setCloningId(id);
-    try {
-      const newId = await cloneDocument(id);
-      if (newId) {
-        notifications.show({ title: 'Copied', message: 'You now have your own draft of this file.', color: 'green' });
-        navigate(`/${newId}`);
-      }
-    } catch (err) {
-      notifications.show({ title: 'Copy failed', message: friendlyError(err), color: 'red' });
-    } finally {
-      setCloningId(null);
-    }
-  }, [navigate]);
 
   // Header mirrors FeaturesPage — the other public card-grid page — so the
   // nav siblings (Features / Gallery / Support / About) share one hero style.
@@ -114,7 +89,7 @@ export function GalleryPage() {
                   style={{ flexShrink: 0 }}
                   leftSection={<IconGitFork size={14} />}
                   loading={cloningId === e.id}
-                  onClick={() => handleClone(e.id)}
+                  onClick={() => clone(e.id)}
                 >
                   Start from this
                 </Button>

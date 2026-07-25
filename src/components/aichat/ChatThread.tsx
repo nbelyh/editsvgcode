@@ -45,6 +45,8 @@ interface ChatThreadProps {
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
   isAnonymous: boolean;
+  /** Somebody else's document — no composer, so nothing to prompt into. */
+  isViewer: boolean;
 }
 
 /** Open PayPro checkout for the given product. Only reachable by signed-in users (AI requires sign-in). */
@@ -155,7 +157,7 @@ export function ChatThread({
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
-  onSamplePrompt, isAnonymous,
+  onSamplePrompt, isAnonymous, isViewer,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -192,35 +194,46 @@ export function ChatThread({
   return (
     <div className="aui-viewport" ref={viewportRef}>
       {messages.length === 0 && (
-        <div className="aui-empty">
-          <IconSparkles size={32} className="aui-empty-icon" />
-          <p>Ask AI to edit your SVG</p>
-          <div className="aui-sample-prompts">
-            {SAMPLE_PROMPTS.map(prompt => (
-              <button key={prompt} className="aui-sample-prompt" onClick={() => onSamplePrompt(prompt)}>
-                {prompt}
-              </button>
-            ))}
+        isViewer ? (
+          <div className="aui-empty">
+            <IconSparkles size={32} className="aui-empty-icon" />
+            <p>This document has no AI conversation</p>
+            <p className="aui-empty-hint">Make a copy to start your own.</p>
           </div>
-          {isAnonymous && (
-            <p className="aui-empty-signin">Sign-in required to send — free, includes {DEFAULT_PRICING.freeMonthlyCredits} AI credits/month</p>
-          )}
-        </div>
+        ) : (
+          <div className="aui-empty">
+            <IconSparkles size={32} className="aui-empty-icon" />
+            <p>Ask AI to edit your SVG</p>
+            <div className="aui-sample-prompts">
+              {SAMPLE_PROMPTS.map(prompt => (
+                <button key={prompt} className="aui-sample-prompt" onClick={() => onSamplePrompt(prompt)}>
+                  {prompt}
+                </button>
+              ))}
+            </div>
+            {isAnonymous && (
+              <p className="aui-empty-signin">Sign-in required to send — free, includes {DEFAULT_PRICING.freeMonthlyCredits} AI credits/month</p>
+            )}
+          </div>
+        )
       )}
 
       {messages.map((msg, msgIdx) => {
         if (msg.role === 'user') {
           const isEditing = editingIndex === msgIdx;
+          // A viewer is reading somebody else's conversation: no rewriting it
+          // (edit-and-resubmit) and no rolling their document back to it.
+          const editable = !isEditing && !isRunning && !isViewer;
           return (<Fragment key={msgIdx}>
-            {canUndo && (
+            {canUndo && !isViewer && (
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => onRestore(msgIdx)}>Restore</button>
                 <div className="aui-checkpoint-line" />
               </div>
             )}
-            <div className={`aui-msg aui-msg-user${!isEditing && !isRunning ? ' aui-msg-editable' : ''}`}
-              onClick={!isEditing && !isRunning ? () => onEditStart(msgIdx) : undefined}
+            <div className={`aui-msg aui-msg-user${editable ? ' aui-msg-editable' : ''}`}
+              onClick={editable ? () => onEditStart(msgIdx) : undefined}
             >
               <div className="aui-msg-header">
                 <IconUser size={14} />
@@ -241,7 +254,8 @@ export function ChatThread({
         }
 
         // Assistant message
-        const hasAcceptedGenImage = msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
+        const hasAcceptedGenImage = !isViewer
+          && msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
 
         if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon) {
           const rated = ratedMsgs[msgIdx];
@@ -265,7 +279,7 @@ export function ChatThread({
                 onUpdateSvg={(svg) => onUpdateToolCallSvg(msgIdx, tcIdx, svg)}
               />
             ))}
-            {!isRunning && (
+            {!isRunning && !isViewer && (
               <div className="aui-thumbs">
                 {sharePromptIdx === msgIdx ? (
                   <div className="aui-share-prompt">
@@ -348,7 +362,7 @@ export function ChatThread({
                 onUpdateSvg={(svg) => onUpdateToolCallSvg(msgIdx, tcIdx, svg)}
               />
             ))}
-            {!isRunning && (msg.content || msg.toolCalls?.length) && (
+            {!isRunning && !isViewer && (msg.content || msg.toolCalls?.length) && (
               <div className="aui-thumbs">
                 {sharePromptIdx === msgIdx ? (
                   <div className="aui-share-prompt">
