@@ -4,6 +4,7 @@ import {
   IMAGE_MODELS,
   DEFAULT_EDIT_MODEL,
   DEFAULT_IMAGE_MODEL,
+  groupModels,
   resolveEditModel,
   resolveImageModel,
   visibleEditModels,
@@ -62,6 +63,7 @@ describe('visibleEditModels', () => {
     expect(shown).toEqual([
       'gpt-5.4-nano',
       'gpt-5.4-mini',
+      'Kimi-K2.6',
       'gpt-5.6-luna',
       'gpt-5.6-terra',
       'gpt-5.6-sol',
@@ -78,9 +80,24 @@ describe('visibleEditModels', () => {
     expect(visibleEditModels(DEFAULT_EDIT_MODEL).map(m => m.value)).not.toContain('gpt-5.4');
   });
 
-  it('is ordered by ascending credit cost', () => {
-    const cost = (label: string) => Number(label.match(/\((\d+)x\)/)![1]);
-    const costs = EDIT_MODELS.map(m => cost(m.label));
-    expect(costs).toEqual([...costs].sort((a, b) => a - b));
+  it('is ordered by ascending credit cost within each tier group', () => {
+    for (const group of groupModels(EDIT_MODELS)) {
+      const costs = group.models.map(m => m.credits);
+      expect(costs, group.title).toEqual([...costs].sort((a, b) => a - b));
+    }
+  });
+
+  it('groups free before pro, with every model in exactly one group', () => {
+    const groups = groupModels(EDIT_MODELS);
+    expect(groups.map(g => g.title)).toEqual(['Free', 'Pro']);
+    expect(groups.flatMap(g => g.models)).toHaveLength(EDIT_MODELS.length);
+    expect(groups[0].models.every(m => !m.pro)).toBe(true);
+    expect(groups[1].models.every(m => m.pro)).toBe(true);
+  });
+
+  it('every model declares a positive credit cost', () => {
+    for (const m of [...EDIT_MODELS, ...IMAGE_MODELS]) {
+      expect(m.credits, m.value).toBeGreaterThan(0);
+    }
   });
 });

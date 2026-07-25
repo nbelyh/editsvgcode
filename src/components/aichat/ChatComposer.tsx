@@ -1,10 +1,19 @@
-import { useRef, useCallback, useMemo, useState } from 'react';
+import { Fragment, useRef, useCallback, useMemo, useState } from 'react';
 import { Anchor, Badge, ActionIcon, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
 import { IconArrowUp, IconPlayerStop, IconAlertTriangle } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import { EDIT_MODELS, IMAGE_MODELS, shortModelName, visibleEditModels } from '../../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, groupModels, shortModelName, visibleEditModels, type ModelOption } from '../../lib/models';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
 import type { Credits, ReasoningEffort } from './types';
+
+/** "gpt-5.4-mini · 3" — credits dimmed so the model name stays the thing you scan. */
+function modelLabel(m: ModelOption) {
+  return (
+    <>
+      {m.label} <Text span size="xs" c="dimmed">· {m.credits}</Text>
+    </>
+  );
+}
 
 interface ChatComposerProps {
   input: string;
@@ -152,10 +161,15 @@ export function ChatComposer({
                 <Text size="xs" fw={600} mb={4}>Edit model</Text>
                 <Radio.Group value={model} onChange={v => onModelChange(v)}>
                   <Stack gap={4}>
-                    {editModels.map(m => (
-                      <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
-                        <div><Radio value={m.value} label={m.label} size="xs" disabled={isModelDisabled(m)} /></div>
-                      </Tooltip>
+                    {groupModels(editModels).map((group, gi) => (
+                      <Fragment key={group.title}>
+                        <Text size="xs" c="dimmed" fw={600} mt={gi === 0 ? 0 : 6}>{group.title}</Text>
+                        {group.models.map(m => (
+                          <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
+                            <div><Radio value={m.value} label={modelLabel(m)} size="xs" disabled={isModelDisabled(m)} /></div>
+                          </Tooltip>
+                        ))}
+                      </Fragment>
                     ))}
                   </Stack>
                 </Radio.Group>
@@ -181,7 +195,7 @@ export function ChatComposer({
                   <Stack gap={4}>
                     {imageModels.map(m => (
                       <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
-                        <div><Radio value={m.value} label={m.label} size="xs" disabled={isModelDisabled(m)} /></div>
+                        <div><Radio value={m.value} label={modelLabel(m)} size="xs" disabled={isModelDisabled(m)} /></div>
                       </Tooltip>
                     ))}
                   </Stack>
