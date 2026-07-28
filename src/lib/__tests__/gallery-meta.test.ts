@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { suggestGalleryMeta } from '../gallery-meta';
+import { suggestGalleryMeta, displayAuthorName } from '../gallery-meta';
 
 describe('suggestGalleryMeta', () => {
   it('builds title and description from the first chat prompt', () => {
@@ -49,5 +49,24 @@ describe('suggestGalleryMeta', () => {
   it('returns empty strings when nothing usable is available', () => {
     expect(suggestGalleryMeta({})).toEqual({ title: '', description: '' });
     expect(suggestGalleryMeta({ svg: '<svg/>', firstPrompt: '   ' })).toEqual({ title: '', description: '' });
+  });
+});
+
+describe('displayAuthorName', () => {
+  it('keeps the given name and initialises the surname', () => {
+    expect(displayAuthorName('Nikolay Belykh')).toBe('Nikolay B.');
+  });
+
+  it('drops middle parts rather than initialising them', () => {
+    expect(displayAuthorName('Ada King Lovelace')).toBe('Ada L.');
+  });
+
+  it('leaves a single-word name alone', () => {
+    expect(displayAuthorName('Prince')).toBe('Prince');
+  });
+
+  it('tolerates padding and empty input', () => {
+    expect(displayAuthorName('  Grace   Hopper  ')).toBe('Grace H.');
+    expect(displayAuthorName('')).toBe('');
   });
 });

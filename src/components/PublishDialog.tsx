@@ -94,7 +94,9 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
       centered
     >
       <Stack gap="sm">
-        <SvgThumb text={svg} alt={title || 'preview'} radius={4} />
+        {/* Same ratio as the gallery card, so this preview shows what the card
+            will actually look like rather than a differently-shaped crop. */}
+        <SvgThumb text={svg} ratio="1.618 / 1" alt={title || 'preview'} radius={4} />
         <TextInput
           label="Title"
           placeholder="Untitled"

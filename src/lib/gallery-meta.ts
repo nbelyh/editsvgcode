@@ -47,6 +47,23 @@ function titleFromSvg(svg: string): string {
   }
 }
 
+/**
+ * Shorten an author name for public display: "Nikolay Belykh" -> "Nikolay B.".
+ * Publishing should not put someone's full legal-looking name on a card that
+ * anyone can find; the given name plus an initial still identifies the author
+ * to people who know them, without broadcasting the surname.
+ *
+ * Single-word names are left alone (nothing to abbreviate), and any middle
+ * parts are dropped rather than initialised, so "Ada King Lovelace" reads
+ * "Ada L." — the last part is the one people treat as the surname.
+ */
+export function displayAuthorName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] ?? '';
+  const last = parts[parts.length - 1];
+  return `${parts[0]} ${last[0].toUpperCase()}.`;
+}
+
 export function suggestGalleryMeta(opts: { svg?: string; firstPrompt?: string; fileName?: string }): GalleryMeta {
   const prompt = collapse(opts.firstPrompt ?? '');
   if (prompt) {

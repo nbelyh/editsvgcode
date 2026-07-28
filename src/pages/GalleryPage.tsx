@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Container, Title, Text, Loader, Card, SimpleGrid, Group, Button, Anchor, Avatar, Stack } from '@mantine/core';
+import { useState, useEffect, useMemo } from 'react';
+import { Container, Title, Text, Loader, Card, SimpleGrid, Group, Button, Anchor, Avatar, Stack, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconEye, IconGitFork } from '@tabler/icons-react';
+import { IconEye, IconGitFork, IconSearch } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { useCloneDocument } from '../lib/useCloneDocument';
+import { displayAuthorName } from '../lib/gallery-meta';
 import { SvgThumb } from '../components/SvgThumb';
 
 interface GalleryEntry {
@@ -21,7 +22,19 @@ interface GalleryEntry {
 export function GalleryPage() {
   const [entries, setEntries] = useState<GalleryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
   const { clone, cloningId } = useCloneDocument();
+
+  // Filtering is client-side over the already-loaded page: Firestore has no
+  // substring search, and the gallery is capped at 60 entries anyway.
+  const visible = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter((e) =>
+      e.title.toLowerCase().includes(q)
+      || e.description.toLowerCase().includes(q)
+      || e.authorName.toLowerCase().includes(q));
+  }, [entries, filter]);
 
   useEffect(() => {
     new EditSvgCodeDb().listPublicDocuments()
@@ -44,18 +57,32 @@ export function GalleryPage() {
         Public SVGs shared by the community. Open one to view it, or start from a copy of your own.
       </Text>
 
+      {entries.length > 0 && (
+        <TextInput
+          value={filter}
+          onChange={(ev) => setFilter(ev.currentTarget.value)}
+          placeholder="Filter by title, description or author"
+          leftSection={<IconSearch size={16} />}
+          maw={420}
+        />
+      )}
+
       {loading ? (
         <Loader size="sm" />
       ) : entries.length === 0 ? (
         <Text c="dimmed" size="sm">Nothing public yet. Save a file as public and it will show up here.</Text>
+      ) : visible.length === 0 ? (
+        // Distinct from the empty gallery above: nothing is wrong, the filter
+        // just excluded everything.
+        <Text c="dimmed" size="sm">No files match “{filter.trim()}”.</Text>
       ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
-          {entries.map((e) => (
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="sm">
+          {visible.map((e) => (
             // flex column + mt="auto" on the meta row pins it to the card
             // bottom, so rows align across cards with/without a description
             <Card key={e.id} shadow="sm" padding="sm" radius="md" withBorder style={{ display: 'flex', flexDirection: 'column' }}>
               <Card.Section component={Link} to={`/${e.id}`}>
-                <SvgThumb text={e.text} alt={e.title || 'preview'} />
+                <SvgThumb text={e.text} ratio="1.618 / 1" alt={e.title || 'preview'} />
               </Card.Section>
               <Group justify="space-between" mt="xs" gap="xs" wrap="nowrap">
                 {/* minWidth 0 lets the flex item shrink so lineClamp can
@@ -79,7 +106,7 @@ export function GalleryPage() {
                 {e.authorName && (
                   <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
                     <Avatar src={e.authorPhoto || undefined} name={e.authorName} color="initials" size={18} radius="xl" />
-                    <Text size="xs" c="dimmed" lineClamp={1}>{e.authorName}</Text>
+                    <Text size="xs" c="dimmed" lineClamp={1}>{displayAuthorName(e.authorName)}</Text>
                   </Group>
                 )}
                 <Button

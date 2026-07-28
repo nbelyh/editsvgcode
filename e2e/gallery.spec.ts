@@ -71,7 +71,10 @@ test.describe('Gallery publish dialog and cards', () => {
     await expect(card).toBeVisible({ timeout: 15000 });
     const cardRoot = page.locator('.mantine-Card-root').filter({ has: card });
     await expect(cardRoot.getByText('draw a red square for me')).toBeVisible();
-    await expect(cardRoot.getByText(AUTHOR_NAME)).toBeVisible();
+    // The card abbreviates the surname — the full name must not be on display,
+    // even though the document still stores it (asserted below).
+    await expect(cardRoot.getByText('E2E A.')).toBeVisible();
+    await expect(cardRoot.getByText(AUTHOR_NAME)).toHaveCount(0);
 
     // The doc carries the author stamp (raw check bypassing rules)
     const fields = await readRawDoc(fileId);
