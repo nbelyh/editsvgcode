@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { notifications } from '@mantine/notifications';
 import { ActionIcon, Tooltip, Text, Button } from '@mantine/core';
 import { IconEraser, IconGitFork } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
+import { friendlyError } from '../../lib/firebase';
 import { DEFAULT_PRICING } from '../../lib/pricing';
 import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
@@ -138,8 +140,33 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       if (sessionKey === loadedFor) return;
       loadedFor = sessionKey;
       const isGuest = user.isAnonymous;
-      Promise.all([loadChatMessages(fileId), getChatAccess(fileId)]).then(async ([loaded, access]) => {
+      Promise.all([
+        loadChatMessages(fileId).then(
+          (messages) => ({ ok: true as const, messages }),
+          (err: unknown) => ({ ok: false as const, err }),
+        ),
+        getChatAccess(fileId),
+      ]).then(async ([result, access]) => {
         if (cancelled) return;
+        if (!result.ok) {
+          // A failed read must never present as an empty chat. Stay read-only
+          // with loadedRef false: the debounced save reconciles the
+          // subcollection against what it is given, so writing now would delete
+          // the very conversation we could not read.
+          // 'permission-denied' is the ordinary "not our document" case, which
+          // the page already reports — a second red toast there is just noise.
+          if ((result.err as { code?: string })?.code !== 'permission-denied') {
+            notifications.show({
+              title: 'Failed to load chat',
+              message: friendlyError(result.err),
+              color: 'red',
+            });
+          }
+          setCanWrite(false);
+          setIsViewer(access.isViewer);
+          return;
+        }
+        const loaded = result.messages;
         // A pre-server-chat conversation may still sit in this browser's
         // IndexedDB — lift it to the server on first open so upgrading users
         // don't find a familiar document's chat empty. Only when the server has

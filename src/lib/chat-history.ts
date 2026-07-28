@@ -126,9 +126,18 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
     toolCalls = await Promise.all(toolCalls.map(async (tc) => {
       if (typeof tc.pngRef === 'string') {
         uploadedPaths.add(tc.pngRef); // already on the server — don't re-upload on the next save
-        const { pngRef, ...rest } = tc;
-        const args = (rest.arguments ?? {}) as Record<string, unknown>;
-        return { ...rest, arguments: { ...args, pngDataUrl: await fetchPngDataUrl(pngRef as string) } };
+        try {
+          const { pngRef, ...rest } = tc;
+          const args = (rest.arguments ?? {}) as Record<string, unknown>;
+          return { ...rest, arguments: { ...args, pngDataUrl: await fetchPngDataUrl(pngRef as string) } };
+        } catch (err) {
+          // An unreachable blob (bucket CORS, revoked access, deleted object)
+          // must cost the image only — never the conversation around it.
+          // Returning `tc` untouched keeps `pngRef`, so toStored round-trips the
+          // reference instead of orphaning the object on the next save.
+          console.warn('[chat-history] blob fetch failed; keeping message without its image', err);
+          return tc;
+        }
       }
       return tc;
     }));
@@ -269,7 +278,15 @@ async function ensureFileDoc(fileId: string): Promise<boolean> {
 }
 
 /**
- * Load a document's chat, rehydrating PNG blobs. Never throws (returns []).
+ * Load a document's chat, rehydrating PNG blobs.
+ *
+ * THROWS on failure — deliberately. Returning [] would make "this read failed"
+ * indistinguishable from "this document has no chat", and the difference is
+ * destructive: saveChatMessages reconciles the subcollection against what it is
+ * given, so persisting over a failed load deletes the stored conversation.
+ * Callers must treat a rejection as "unknown", never as "empty".
+ * (Individual unreachable blobs are already tolerated inside fromStored.)
+ *
  * Deliberately NOT owner-gated: the rules mirror the document's visibility, so
  * a public/unlisted doc's chat is readable by anyone with the link — including
  * signed-out visitors browsing the gallery.
@@ -282,7 +299,7 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
     return rehydratePrevSvg(msgs);
   } catch (err) {
     console.error('[chat-history] load failed', err);
-    return [];
+    throw err;
   }
 }
 

@@ -88,6 +88,32 @@ async function readLegacyLocalChat(page: Page, fileId: string): Promise<unknown[
   }), fileId);
 }
 
+/**
+ * Point a stored message's tool call at a blob path, via the emulator REST API.
+ * Used to fabricate an unreachable image: the app can only ever write refs to
+ * blobs it just uploaded, so a broken one cannot be produced through the UI.
+ */
+async function setMessagePngRef(fileId: string, seq: number, pngRef: string): Promise<void> {
+  const docId = String(seq).padStart(6, '0');
+  const url = `${FIRESTORE_DB}/documents/files/${fileId}/messages/${docId}`;
+  const cur = await (await fetch(url, { headers: EMULATOR_AUTH })).json();
+  const payload = JSON.parse(cur.fields.payload.stringValue);
+  payload.toolCalls[0].pngRef = pngRef;
+  const res = await fetch(`${url}?updateMask.fieldPaths=payload`, {
+    method: 'PATCH',
+    headers: { ...EMULATOR_AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { payload: { stringValue: JSON.stringify(payload) } } }),
+  });
+  if (!res.ok) throw new Error(`setMessagePngRef failed: ${res.status} ${await res.text()}`);
+}
+
+/** Read a stored message's pngRef straight from Firestore (bypasses the app). */
+async function getMessagePngRef(fileId: string, seq: number): Promise<string | undefined> {
+  const docId = String(seq).padStart(6, '0');
+  const r = await (await fetch(`${FIRESTORE_DB}/documents/files/${fileId}/messages/${docId}`, { headers: EMULATOR_AUTH })).json();
+  return JSON.parse(r.fields.payload.stringValue).toolCalls?.[0]?.pngRef;
+}
+
 /** A legacy conversation, deliberately distinct from seedDraft's red one so the
  *  two are told apart when both exist. */
 const LEGACY_MESSAGES = [
@@ -337,6 +363,29 @@ test.describe('Legacy chat migration', () => {
     expect(await serverMessageCount(page, fileId)).toBe(2);
     // ... and the untouched local copy is left alone rather than destroyed.
     expect(await readLegacyLocalChat(page, fileId)).toHaveLength(2);
+  });
+
+  test('an unreachable image costs the picture, not the conversation', async ({ page }) => {
+    const fileId = uniqueId('e2eblob');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page);
+    await seedDraft(page, fileId);
+    // Repoint the assistant turn at a blob that does not exist — what a CORS
+    // block, a revoked bucket, or a deleted object looks like on load.
+    await setMessagePngRef(fileId, 1, 'blobs/nobody/deadbeef.png');
+
+    await openAsDraft(page, fileId);
+
+    // The conversation still renders: one bad blob must not blank the chat.
+    await expect(page.getByText('make it red')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Done - red.')).toBeVisible();
+
+    // And nothing was destroyed. The load-triggered save must keep both
+    // messages and preserve the reference, so the image can come back once
+    // the blob is reachable again.
+    await expect.poll(() => serverMessageCount(page, fileId), { timeout: 15000 }).toBe(2);
+    expect(await getMessagePngRef(fileId, 1)).toBe('blobs/nobody/deadbeef.png');
   });
 
   test('a legacy "_local_" id migrates only after Save re-mints it', async ({ page }) => {
