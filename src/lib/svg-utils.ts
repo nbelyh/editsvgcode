@@ -14,6 +14,15 @@ export function getNewUniqueId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+/**
+ * A clean, app-minted document id (getNewUniqueId = base36, lowercase [a-z0-9]).
+ * Legacy "_local_…" ids and stale filenames fail this and are re-minted on save.
+ * Lives here rather than in useDocument so non-React modules can ask too.
+ */
+export function isCleanId(id: string): boolean {
+  return /^[a-z0-9]+$/.test(id);
+}
+
 /** Strip BOM from uploaded file text */
 export function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;

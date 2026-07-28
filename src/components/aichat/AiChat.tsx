@@ -4,7 +4,7 @@ import { ActionIcon, Tooltip, Text, Button } from '@mantine/core';
 import { IconEraser, IconGitFork } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
-import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess } from '../../lib/chat-history';
+import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
 import { DEFAULT_PRICING } from '../../lib/pricing';
 import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
@@ -138,7 +138,15 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       if (sessionKey === loadedFor) return;
       loadedFor = sessionKey;
       const isGuest = user.isAnonymous;
-      Promise.all([loadChatMessages(fileId), getChatAccess(fileId)]).then(([stored, access]) => {
+      Promise.all([loadChatMessages(fileId), getChatAccess(fileId)]).then(async ([loaded, access]) => {
+        if (cancelled) return;
+        // A pre-server-chat conversation may still sit in this browser's
+        // IndexedDB — lift it to the server on first open so upgrading users
+        // don't find a familiar document's chat empty. Only when the server has
+        // nothing, so a stale local copy can never clobber a real chat.
+        const stored = loaded.length === 0 && access.canWrite
+          ? (await migrateLegacyChat(fileId)) ?? loaded
+          : loaded;
         if (cancelled) return;
         setMessages(stored);
         setCanWrite(access.canWrite);

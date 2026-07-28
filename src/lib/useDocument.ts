@@ -7,20 +7,11 @@ import { EditSvgCodeDb, friendlyError, logError, type Visibility, type GalleryMe
 import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
 import { submitGalleryMeta } from './publish';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
-import { getNewUniqueId, stripBom, formatXml } from './svg-utils';
+import { getNewUniqueId, isCleanId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, migrateChatData } from './chat-storage';
 import { scheduleDraftSvgSave, primeDraftSvg } from './chat-history';
 import { getAuth } from 'firebase/auth';
 import DEFAULT_SVG from '../assets/default.svg?raw';
-
-/**
- * A clean, app-minted document id (getNewUniqueId = base36, lowercase [a-z0-9]).
- * Anything else — a legacy "_local_…" id or a filename used as an id by older
- * code — must not become a public id/URL (collisions across users).
- */
-function isCleanId(id: string): boolean {
-  return /^[a-z0-9]+$/.test(id);
-}
 
 // Re-exported for existing consumers; the strings live in visibility.ts.
 export { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';

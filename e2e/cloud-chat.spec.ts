@@ -14,6 +14,7 @@ import {
 const SVG_BASE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>';
 const SVG_RED = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>';
 const SVG_GREEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="green"/></svg>';
+const SVG_BLUE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="blue"/></svg>';
 
 /** Seed a draft (file doc + chat) with one or two accepted update_svg calls. */
 async function seedDraft(page: Page, fileId: string, opts: { twoAccepts?: boolean } = {}) {
@@ -37,6 +38,65 @@ async function seedDraft(page: Page, fileId: string, opts: { twoAccepts?: boolea
 async function editorValue(page: Page): Promise<string> {
   return await page.evaluate(() => (window as any).__test_monaco_editor?.getValue() ?? '');
 }
+
+/** How many messages the server actually holds (a real Firestore read, not
+ *  whatever the component happens to have in state). */
+async function serverMessageCount(page: Page, fileId: string): Promise<number> {
+  return await page.evaluate(async (id) => {
+    return (await window.__test.chatHistory.loadChatMessages(id)).length;
+  }, fileId);
+}
+
+/**
+ * Write a conversation straight into IndexedDB the way the pre-server-chat
+ * build persisted it (`messages:<fileId>` in the `editsvgcode`/`chat` store).
+ * This is the fixture the migration has to find — it cannot be produced through
+ * the app any more, since nothing writes that key.
+ */
+async function seedLegacyLocalChat(page: Page, fileId: string, messages: unknown[]): Promise<void> {
+  await page.evaluate(({ fileId, messages }) => new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open('editsvgcode', 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('chat')) db.createObjectStore('chat');
+    };
+    req.onsuccess = () => {
+      const tx = req.result.transaction('chat', 'readwrite');
+      tx.objectStore('chat').put(messages, `messages:${fileId}`);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+    req.onerror = () => reject(req.error);
+  }), { fileId, messages });
+}
+
+/** Read the legacy key back — null once the migration has cleared it. */
+async function readLegacyLocalChat(page: Page, fileId: string): Promise<unknown[] | null> {
+  return await page.evaluate((id) => new Promise<unknown[] | null>((resolve) => {
+    const req = indexedDB.open('editsvgcode', 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('chat')) db.createObjectStore('chat');
+    };
+    req.onsuccess = () => {
+      const tx = req.result.transaction('chat', 'readonly');
+      const get = tx.objectStore('chat').get(`messages:${id}`);
+      get.onsuccess = () => resolve((get.result as unknown[]) ?? null);
+      get.onerror = () => resolve(null);
+    };
+    req.onerror = () => resolve(null);
+  }), fileId);
+}
+
+/** A legacy conversation, deliberately distinct from seedDraft's red one so the
+ *  two are told apart when both exist. */
+const LEGACY_MESSAGES = [
+  { role: 'user', content: 'make it blue' },
+  {
+    role: 'assistant', content: 'Done - blue.',
+    toolCalls: [{ id: 'l1', name: 'update_svg', status: 'accepted', arguments: { svg: SVG_BLUE }, prevSvg: SVG_BASE }],
+  },
+];
 
 /** Boot the app signed in, with the AI sidebar open and `fileId` as the working draft. */
 async function bootWithDraft(page: Page, fileId: string, opts: { twoAccepts?: boolean } = {}) {
@@ -225,5 +285,82 @@ test.describe('Cloud chat persistence', () => {
       return (await ch.loadChatMessages(id)).some((m: { content: string }) => m.content === 'hijack');
     }, srcId);
     expect(denied).toBe(false);
+  });
+});
+
+/**
+ * One-time lift of pre-server-chat conversations out of IndexedDB. Upgrading
+ * users must not open a familiar document to an empty chat.
+ */
+test.describe('Legacy chat migration', () => {
+  /** Point the app at `fileId` as its working draft, on the AI tab. */
+  async function openAsDraft(page: Page, fileId: string) {
+    await page.evaluate((id) => {
+      localStorage.setItem('esvg-local-id', id);
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+    }, fileId);
+    await page.reload();
+    await waitForEditor(page);
+  }
+
+  test('a chat left in IndexedDB is lifted to the server on first open', async ({ page }) => {
+    const fileId = uniqueId('e2emigrate');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page);
+
+    // Exactly what the old build left behind: messages local, server empty.
+    await seedLegacyLocalChat(page, fileId, LEGACY_MESSAGES);
+    await openAsDraft(page, fileId);
+
+    // Surfaced in the UI ...
+    await expect(page.getByText('make it blue')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Done - blue.')).toBeVisible();
+
+    // ... because it now lives on the server, and no longer in IndexedDB.
+    await expect.poll(() => serverMessageCount(page, fileId), { timeout: 15000 }).toBe(2);
+    expect(await readLegacyLocalChat(page, fileId)).toBeNull();
+  });
+
+  test('a stale local chat never clobbers a real server chat', async ({ page }) => {
+    const fileId = uniqueId('e2enoclobber');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page);
+    await seedDraft(page, fileId);                            // server: red
+    await seedLegacyLocalChat(page, fileId, LEGACY_MESSAGES); // local:  blue
+    await openAsDraft(page, fileId);
+
+    // The server copy wins outright ...
+    await expect(page.getByText('Done - red.')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Done - blue.')).toHaveCount(0);
+    expect(await serverMessageCount(page, fileId)).toBe(2);
+    // ... and the untouched local copy is left alone rather than destroyed.
+    expect(await readLegacyLocalChat(page, fileId)).toHaveLength(2);
+  });
+
+  test('a legacy "_local_" id migrates only after Save re-mints it', async ({ page }) => {
+    const legacyId = '_local_' + uniqueId('e2eremint');
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page);
+    await seedLegacyLocalChat(page, legacyId, LEGACY_MESSAGES);
+    await openAsDraft(page, legacyId);
+
+    // Not uploaded under the malformed id — Save would re-mint and strand it.
+    await expect(page.getByText('make it blue')).toHaveCount(0);
+    expect(await serverMessageCount(page, legacyId)).toBe(0);
+
+    // Save mints a clean guid and carries the local chat across to it.
+    await page.getByRole('button', { name: 'Save' }).click();
+    await page.waitForURL((url) => /^\/[a-z0-9]+$/.test(url.pathname), { timeout: 20000 });
+    const cleanId = page.url().split('/').pop()!;
+    expect(cleanId).not.toBe(legacyId);
+    trackFileId(cleanId);
+
+    // Now under a clean id, the chat migrates and the stale key is gone.
+    await expect(page.getByText('Done - blue.')).toBeVisible({ timeout: 15000 });
+    await expect.poll(() => serverMessageCount(page, cleanId), { timeout: 15000 }).toBe(2);
+    expect(await readLegacyLocalChat(page, legacyId)).toBeNull();
   });
 });

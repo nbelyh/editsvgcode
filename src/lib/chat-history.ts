@@ -14,6 +14,8 @@ import {
 import { ref as storageRef, uploadBytes, getBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { firebaseDb, firebaseStorage } from './firebase';
+import { loadLegacyChatMessages, clearLegacyChatMessages } from './chat-storage';
+import { isCleanId } from './svg-utils';
 import type { DisplayMessage } from '../components/aichat/types';
 
 /** uid of the signed-in, non-anonymous user, else null. */
@@ -282,6 +284,39 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
     console.error('[chat-history] load failed', err);
     return [];
   }
+}
+
+/**
+ * One-time lift of a pre-server-chat conversation out of IndexedDB.
+ *
+ * Chats used to be per-browser local state; after the move to Firestore an
+ * upgrading user would otherwise open a familiar document to an empty chat.
+ * `DisplayMessage` is unchanged across that move, so the records go up as-is.
+ *
+ * The caller must only invoke this when the server returned nothing — a real
+ * chat must never be overwritten by a stale local copy. The local records are
+ * dropped only after the server write lands, so a failure (offline, rules)
+ * simply leaves them in place to retry on the next load.
+ *
+ * Skipped for malformed ids (legacy "_local_…", filenames): those are re-minted
+ * to a clean guid on save, and uploading first would strand the chat under the
+ * old id — the save writes a different document. migrateChatData carries the
+ * local chat across the re-mint instead, and this runs on the next load.
+ *
+ * Returns the migrated messages, or null when there was nothing to migrate.
+ */
+export async function migrateLegacyChat(fileId: string): Promise<DisplayMessage[] | null> {
+  if (!uid() || !isCleanId(fileId)) return null;
+  const legacy = await loadLegacyChatMessages<DisplayMessage>(fileId);
+  if (legacy.length === 0) return null;
+  try {
+    await saveChatMessages(fileId, legacy);
+  } catch (err) {
+    console.error('[chat-history] legacy chat migration failed', err);
+    return null;
+  }
+  await clearLegacyChatMessages(fileId);
+  return legacy;
 }
 
 /**
