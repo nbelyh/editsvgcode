@@ -6,7 +6,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Capped rather than left to the default (half the cores — 8 here). Each
+  // worker drives a browser, a Monaco instance and the Firestore emulator, and
+  // under that much contention webkit intermittently failed specs that pass
+  // every time in isolation: the splitter drag, the preview renders, the
+  // bounding-box measurements. Slower, but the results mean something.
+  workers: process.env.CI ? 1 : 4,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',
