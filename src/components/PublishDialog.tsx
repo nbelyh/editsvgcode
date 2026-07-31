@@ -70,7 +70,13 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened, fileId]);
 
+  // A gallery card is title + description over the thumbnail; with either blank
+  // it lists as "Untitled" with nothing to read, and the filter (title and
+  // description only) can never find it.
+  const canSubmit = title.trim().length > 0 && description.trim().length > 0;
+
   const handleSubmit = async () => {
+    if (!canSubmit) return;
     setSubmitting(true);
     try {
       await onSubmit({ title: title.trim(), description: description.trim() });
@@ -100,6 +106,7 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
         <TextInput
           label="Title"
           placeholder="Untitled"
+          withAsterisk
           value={title}
           onChange={(e) => { touchedRef.current = true; setTitle(e.currentTarget.value); }}
           maxLength={100}
@@ -111,6 +118,7 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
         <Textarea
           label="Description"
           placeholder="What does this image show?"
+          withAsterisk
           value={description}
           onChange={(e) => { touchedRef.current = true; setDescription(e.currentTarget.value); }}
           rows={3}
@@ -131,7 +139,7 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
           <Button variant="default" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} loading={submitting}>
+          <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
             {mode === 'publish' ? 'Publish' : 'Save'}
           </Button>
         </Group>
