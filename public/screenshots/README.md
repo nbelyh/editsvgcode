@@ -33,3 +33,15 @@
 
 - `14-files-page.png` — Grid of saved files with thumbnails
 - `15-share-toggle.png` — Public/private lock icon in toolbar
+- `22-files-drafts.png` — Files page with the Drafts list (unsaved documents with a chat)
+
+## 7. Gallery
+
+- `17-gallery.png` — Gallery grid, CC0 note and title/description filter
+- `18-clone-with-chat.png` — A cloned gallery drawing with the original AI conversation in the sidebar
+- `19-share-menu.png` — Share menu showing the three visibility states (Private / Unlisted / Publish to gallery)
+- `20-publish-dialog.png` — Publish dialog: title, description, CC0 terms, "Suggest with AI"
+
+## 8. Models
+
+- `21-model-picker.png` — Model picker grouped into Free / Pro with per-request credit costs
