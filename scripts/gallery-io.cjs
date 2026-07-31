@@ -174,19 +174,41 @@ async function uploadBlob(env, objectPath, buffer) {
   );
 }
 
-/** Parse `--key value` / `--flag` argv into an object. */
+/**
+ * Parse `--key value` / `--flag` argv into an object. A key given more than
+ * once collects into an array — `--id a --id b` is the documented way to select
+ * several documents, and last-wins would have exported only the last of them
+ * while reporting success.
+ */
 function parseArgs(argv) {
   const out = {};
+  const add = (key, value) => {
+    if (key in out) out[key] = [].concat(out[key], value);
+    else out[key] = value;
+  };
   for (let i = 0; i < argv.length; i += 1) {
     if (!argv[i].startsWith('--')) continue;
     const key = argv[i].slice(2);
     const next = argv[i + 1];
-    if (next && !next.startsWith('--')) { out[key] = next; i += 1; } else { out[key] = true; }
+    if (next && !next.startsWith('--')) { add(key, next); i += 1; } else { add(key, true); }
   }
   return out;
 }
 
+/**
+ * Read a flag that only makes sense once. Since parseArgs turns a repeat into
+ * an array, a scalar reader would otherwise either pass the array straight
+ * through (`--uid a --uid b` writing `uid: ['a','b']` into Firestore) or fail a
+ * `typeof … === 'string'` test and silently act as though the flag were absent.
+ * Both are worse than refusing.
+ */
+function singleArg(args, key) {
+  const v = args[key];
+  if (Array.isArray(v)) throw new Error(`--${key} was given ${v.length} times; it takes a single value`);
+  return typeof v === 'string' ? v : undefined;
+}
+
 module.exports = {
-  resolveEnv, listDocs, writeDoc, downloadBlob, uploadBlob, parseArgs,
+  resolveEnv, listDocs, writeDoc, downloadBlob, uploadBlob, parseArgs, singleArg,
   decodeFields, encodeFields,
 };

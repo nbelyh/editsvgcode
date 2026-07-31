@@ -13,16 +13,23 @@
  * Writing goes through the REST API as an administrator, which bypasses
  * security rules — so this validates the gallery field bounds itself. A doc
  * that violates them would be un-editable by its own owner afterwards, since
- * galleryFieldsValid() gates every update in firestore.rules.
+ * galleryFieldsValid() gates every update in firestore.rules. Every entry also
+ * needs a title and a description, as the publish dialog demands of everyone
+ * else; edit them into the bundle JSON if the export came out without them.
  */
 const fs = require('fs');
-const { resolveEnv, writeDoc, uploadBlob, parseArgs } = require('./gallery-io.cjs');
+const { resolveEnv, writeDoc, uploadBlob, parseArgs, singleArg } = require('./gallery-io.cjs');
 
 // Mirrors galleryFieldsValid() in firestore.rules — keep the two in step.
 const LIMITS = { title: 200, description: 500, authorName: 120, authorPhoto: 512 };
 
 function validate(entry, authorName, authorPhoto) {
   const problems = [];
+  // Same bar as the publish dialog: a card is a title and a description over the
+  // thumbnail, and the gallery filter matches nothing else. Documents taken by
+  // --id/--uid were never published, so this is where empty meta shows up.
+  if (!(entry.title || '').trim()) problems.push('no title');
+  if (!(entry.description || '').trim()) problems.push('no description');
   if ((entry.title || '').length > LIMITS.title) problems.push(`title > ${LIMITS.title} chars`);
   if ((entry.description || '').length > LIMITS.description) problems.push(`description > ${LIMITS.description} chars`);
   if (authorName.length > LIMITS.authorName) problems.push(`authorName > ${LIMITS.authorName} chars`);
@@ -36,11 +43,11 @@ function validate(entry, authorName, authorPhoto) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const targetName = args.target;
-  const inPath = args.in || 'gallery.json';
-  const uid = args.uid;
-  const authorName = args.author || '';
-  const authorPhoto = args.photo || '';
+  const targetName = singleArg(args, 'target');
+  const inPath = singleArg(args, 'in') || 'gallery.json';
+  const uid = singleArg(args, 'uid');
+  const authorName = singleArg(args, 'author') || '';
+  const authorPhoto = singleArg(args, 'photo') || '';
   const dryRun = !!args['dry-run'];
 
   if (!targetName || !uid) {

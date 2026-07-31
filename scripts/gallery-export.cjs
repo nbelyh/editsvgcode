@@ -5,36 +5,77 @@
  * Usage:
  *   node scripts/gallery-export.cjs --source dev  --out gallery.json
  *   node scripts/gallery-export.cjs --source beta --out gallery.json [--id abc --id def]
+ *   node scripts/gallery-export.cjs --source beta --uid <OWNER_UID> --out gallery.json
+ *   node scripts/gallery-export.cjs --source beta --owners
+ *
+ * With no selector only documents already published (visibility "public") are
+ * taken. --id picks documents outright and --uid takes everything one account
+ * saved, both regardless of current visibility: seeding a gallery means
+ * publishing drawings that were never public in the source project. --owners
+ * just prints who owns what, to find the uid to pass.
  *
  * `--source dev` reads the local emulators (start them with `npm run dev`).
  * Blobs are embedded as base64 keyed by content hash, so the file travels on
  * its own — no bucket-to-bucket access needed at either end.
  */
 const fs = require('fs');
-const { resolveEnv, listDocs, downloadBlob, parseArgs } = require('./gallery-io.cjs');
+const { resolveEnv, listDocs, downloadBlob, parseArgs, singleArg } = require('./gallery-io.cjs');
 
 const CARD_FIELDS = ['text', 'title', 'description', 'views', 'downloads'];
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const sourceName = args.source || 'dev';
-  const outPath = args.out || 'gallery.json';
+  const sourceName = singleArg(args, 'source') || 'dev';
+  const outPath = singleArg(args, 'out') || 'gallery.json';
   const onlyIds = args.id ? [].concat(args.id) : null;
+  const onlyUid = singleArg(args, 'uid') || null;
 
   const env = resolveEnv(sourceName);
   console.log(`Exporting from ${env.name} (project ${env.project}, bucket ${env.bucket})`);
 
   const all = await listDocs(env, 'files');
+
+  // Ownership census — the quickest way to find the uid for --uid.
+  if (args.owners) {
+    const byUid = new Map();
+    for (const d of all) {
+      const uid = d.fields.uid || '(none)';
+      const seen = byUid.get(uid) || { total: 0, saved: 0 };
+      seen.total += 1;
+      if (d.fields.saved !== false) seen.saved += 1;
+      byUid.set(uid, seen);
+    }
+    console.log('\nuid                                       docs  saved');
+    for (const [uid, n] of [...byUid].sort((a, b) => b[1].total - a[1].total)) {
+      console.log(`${uid.padEnd(40)} ${String(n.total).padStart(5)} ${String(n.saved).padStart(6)}`);
+    }
+    return;
+  }
+
   const publicDocs = all.filter((d) => {
     if (onlyIds) return onlyIds.includes(d.id);
+    // Drafts are never listable, so they are excluded even when a uid is given.
+    if (onlyUid) return d.fields.uid === onlyUid && d.fields.saved !== false;
     return d.fields.visibility === 'public' && d.fields.saved !== false;
   });
 
   if (publicDocs.length === 0) {
     console.error(onlyIds
       ? 'None of the requested ids exist.'
-      : 'Nothing to export: no documents with visibility "public".');
+      : onlyUid
+        ? `No saved documents owned by ${onlyUid}.`
+        : 'Nothing to export: no documents with visibility "public".');
     process.exit(1);
+  }
+
+  // --id/--uid take documents that were never published, so they may carry no
+  // gallery meta at all. The import refuses those rather than seeding the
+  // gallery with "Untitled" cards the filter can never match, so say it here —
+  // before the blob downloads — and let the user fill them in in the JSON.
+  const noMeta = publicDocs.filter((d) => !String(d.fields.title || '').trim() || !String(d.fields.description || '').trim());
+  if (noMeta.length) {
+    console.warn(`\n  ${noMeta.length} of ${publicDocs.length} document(s) have no title and/or description.`);
+    console.warn('  Fill those in in the exported JSON — gallery-import.cjs rejects a bundle without them.\n');
   }
 
   const blobs = {};   // sha filename -> base64
