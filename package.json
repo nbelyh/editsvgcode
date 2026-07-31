@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n vite,firebase -c cyan,yellow \"vite\" \"firebase emulators:start --project editsvgcode-dev --only firestore,auth,storage --import .emulators/firebase --export-on-exit\"",
+    "dev": "concurrently -n vite,firebase -c cyan,yellow \"vite\" \"firebase emulators:start --project editsvgcode-dev --only firestore,auth,storage --import .emulators/firebase --export-on-exit .emulators/firebase\"",
     "dev:vite": "vite",
     "build": "tsc && vitest run && vite build",
     "preview": "vite preview",
-    "emulators": "firebase emulators:start --project editsvgcode-dev --only firestore,auth,storage --import .emulators/firebase --export-on-exit",
+    "emulators": "firebase emulators:start --project editsvgcode-dev --only firestore,auth,storage --import .emulators/firebase --export-on-exit .emulators/firebase",
     "ship": "npm run build && npm run upload-sourcemaps && npm run deploy",
     "ship:beta": "npm run build && npm run upload-sourcemaps && npm run deploy:beta",
     "deploy": "firebase deploy --only hosting,firestore,storage",
