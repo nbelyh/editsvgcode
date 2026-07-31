@@ -30,6 +30,14 @@ export interface AiChatProps {
   /** Fired once the stored chat is in: true when the document has one, so the
    * page can reveal the chat panel for a shared link instead of the info tab. */
   onChatLoaded?: (hasMessages: boolean) => void;
+  /** Fired when chat access resolves: true on somebody else's document. The
+   * page mirrors the read-only notice onto the Info tab, so a visitor who never
+   * opens the chat still learns the document is not theirs. */
+  onAccessResolved?: (isViewer: boolean) => void;
+  /** Fork this document. Owned by the page because the Info tab offers the same
+   * action — one clone-in-progress state rather than one per panel. */
+  onStartFrom: () => void;
+  cloning?: boolean;
 }
 
 export type { StoredToolCall, ProgressStatus, Credits, ReasoningEffort };

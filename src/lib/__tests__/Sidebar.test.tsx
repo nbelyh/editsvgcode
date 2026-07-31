@@ -55,4 +55,16 @@ describe('Sidebar', () => {
     renderWithMantine(<Sidebar />);
     expect(document.querySelector('#_carbonads_js')).toBeNull();
   });
+
+  // What the notice says is ForeignDocNotice's business; all this panel owes is
+  // a slot above the help text, and nothing at all when there is no notice.
+  it('renders the notice it is given', () => {
+    renderWithMantine(<Sidebar notice={<p>Read-only</p>} />);
+    expect(screen.getByText('Read-only')).toBeInTheDocument();
+  });
+
+  it('renders no notice by default', () => {
+    renderWithMantine(<Sidebar />);
+    expect(screen.queryByText('Read-only')).toBeNull();
+  });
 });

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { notifications } from '@mantine/notifications';
-import { ActionIcon, Tooltip, Text, Button } from '@mantine/core';
-import { IconEraser, IconGitFork } from '@tabler/icons-react';
+import { ActionIcon, Tooltip, Text } from '@mantine/core';
+import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
@@ -12,7 +12,8 @@ import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort 
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import { openSignInModal } from '../SignInModal';
-import { useCloneDocument } from '../../lib/useCloneDocument';
+import { ForeignDocNotice } from '../ForeignDocNotice';
+import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
 import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
 import '../AiChat.css';
@@ -51,7 +52,7 @@ function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
-export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded }: AiChatProps) {
+export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded, onAccessResolved, onStartFrom, cloning }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -101,7 +102,17 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // into sign-in on send).
   const [canWrite, setCanWrite] = useState(false);
   const [isViewer, setIsViewer] = useState(false);
-  const { clone, cloningId } = useCloneDocument();
+  // Access costs a Firestore read, so `isViewer` is not trustworthy until it
+  // lands. Showing the composer meanwhile offers an edit the visitor cannot
+  // make and then snatches it back — opening a gallery drawing flashed a live
+  // composer before the read-only notice replaced it. Withhold both until the
+  // verdict is in; the thread is still loading through the same window anyway.
+  const [accessPending, setAccessPending] = useState(true);
+
+  // Mirror the verdict up to the page rather than notifying at each of the
+  // setIsViewer sites, so the two cannot drift apart. Also fires the initial
+  // false, which resets the page when switching to a document of our own.
+  useEffect(() => { onAccessResolved?.(isViewer); }, [isViewer, onAccessResolved]);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -131,11 +142,18 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setMessages([]);
     setCanWrite(false);
     setIsViewer(false);
+    setAccessPending(true);
     onPreviewSvg(null);
     let cancelled = false;
     let loadedFor: string | null = null;
     const unsub = onAuthStateChanged(getAuth(), (user) => {
-      if (cancelled || !user) return;
+      if (cancelled) return;
+      if (!user) {
+        // Signed out entirely: there is no account for a document to be foreign
+        // to, and getChatAccess would say the same. Nothing to wait for.
+        setAccessPending(false);
+        return;
+      }
       const sessionKey = user.isAnonymous ? 'anonymous' : user.uid;
       if (sessionKey === loadedFor) return;
       loadedFor = sessionKey;
@@ -164,6 +182,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           }
           setCanWrite(false);
           setIsViewer(access.isViewer);
+          setAccessPending(false);
           return;
         }
         const loaded = result.messages;
@@ -178,6 +197,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         setMessages(stored);
         setCanWrite(access.canWrite);
         setIsViewer(access.isViewer);
+        setAccessPending(false);
         onChatLoaded?.(stored.length > 0);
         loadedRef.current = true;
         if (isGuest) return; // no pending send to restore — guests can't send
@@ -643,24 +663,15 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onImageDecline={handleImageConfirmNo}
           onSamplePrompt={setInput}
         />
-        {isViewer ? (
+        {accessPending ? null : isViewer ? (
           // Somebody else's document: the conversation is readable but not
           // continuable. Forking gives the visitor a draft of their own —
           // chat, document and all — which they can carry on from.
-          <div className="aui-viewer-bar">
-            <Text size="xs" c="dimmed">
-              This is someone else's document. Make a copy to continue the chat.
-            </Text>
-            <Button
-              size="compact-sm"
-              variant="light"
-              leftSection={<IconGitFork size={14} />}
-              loading={cloningId === fileId}
-              onClick={() => clone(fileId)}
-            >
-              Start from this
-            </Button>
-          </div>
+          <ForeignDocNotice
+            message={FOREIGN_DOC_CHAT_NOTICE}
+            onStartFrom={onStartFrom}
+            cloning={cloning}
+          />
         ) : (
           <ChatComposer
             input={input}

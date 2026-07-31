@@ -63,6 +63,21 @@ export const PUBLISH_LICENSE_HINT =
 export const GALLERY_LICENSE_NOTE =
   'Everything here is released under CC0 1.0 — free to use, modify and redistribute, including commercially.';
 
+/**
+ * Shown on somebody else's document. Each panel promises only what it governs:
+ * the chat cannot be continued, and edits made in the editor cannot be saved
+ * back to a file that is not ours.
+ *
+ * The opening sentence is repeated in full rather than shared and concatenated.
+ * These are translatable strings: word order and agreement differ by language,
+ * so a translator needs the whole sentence, not a stem plus a tail that happen
+ * to join correctly in English. Do not "de-duplicate" these.
+ */
+export const FOREIGN_DOC_CHAT_NOTICE =
+  "This is someone else's document. Make a copy to continue the chat.";
+export const FOREIGN_DOC_INFO_NOTICE =
+  "This is someone else's document. Make a copy to edit and save your own version.";
+
 export const GALLERY_META_UPDATED = {
   title: 'Gallery info updated',
   message: 'The gallery card now shows the new title.',

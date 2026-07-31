@@ -9,11 +9,14 @@ import { Editor, type EditorHandle } from '../components/Editor';
 import { EditorToolbar } from '../components/EditorToolbar';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
+import { ForeignDocNotice } from '../components/ForeignDocNotice';
+import { FOREIGN_DOC_INFO_NOTICE } from '../lib/visibility';
 import { CarbonAd } from '../components/CarbonAd';
 import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/aichat';
 import { PublishDialog } from '../components/PublishDialog';
 import { useDocument } from '../lib/useDocument';
+import { useCloneDocument } from '../lib/useCloneDocument';
 import { findElementRange } from '../lib/svg-utils';
 import { getAuth } from 'firebase/auth';
 
@@ -32,9 +35,17 @@ export function EditorPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<EditorHandle>(null);
+  // AI chat is the default panel: it is what the editor is for, and the Info
+  // tab is reference material a returning user does not need re-shown. A stored
+  // preference still wins, so anyone who picked Info keeps it.
   const [sidebarTab, setSidebarTab] = useState<string>(() =>
-    localStorage.getItem('esvg-sidebar-tab') || sessionStorage.getItem('esvg-sidebar-tab') || 'info'
+    localStorage.getItem('esvg-sidebar-tab') || sessionStorage.getItem('esvg-sidebar-tab') || 'ai'
   );
+  // Resolved by the AI chat and mirrored onto the Info tab.
+  const [isViewer, setIsViewer] = useState(false);
+  // One clone-in-progress state for both panels, which offer the same action.
+  const { clone, cloningId } = useCloneDocument();
+  const startFromThis = useCallback(() => clone(fileId), [clone, fileId]);
   const [selectedElement, setSelectedElement] = useState<string | undefined>();
   const [selectedLineRange, setSelectedLineRange] = useState<{ start: number; end: number } | undefined>();
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
@@ -237,6 +248,9 @@ export function EditorPage() {
       onAcceptSvg={handleAcceptSvg}
       onRestore={handleUndo}
       onChatLoaded={handleChatLoaded}
+      onAccessResolved={setIsViewer}
+      onStartFrom={startFromThis}
+      cloning={cloningId === fileId}
     />
   );
 
@@ -377,7 +391,21 @@ export function EditorPage() {
                 {aiChatPanel}
               </div>
               <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'info' ? 'block' : 'none' }}>
-                <Sidebar onOpenCommandPalette={handleOpenCommandPalette} onOpenAiChat={switchToAi} />
+                <Sidebar
+                  onOpenCommandPalette={handleOpenCommandPalette}
+                  onOpenAiChat={switchToAi}
+                  notice={isViewer && (
+                    // Mirrors the chat panel's read-only bar. A visitor who
+                    // lands on a shared link and never opens the AI tab would
+                    // otherwise edit away and only discover the document is not
+                    // theirs when saving fails.
+                    <ForeignDocNotice
+                      message={FOREIGN_DOC_INFO_NOTICE}
+                      onStartFrom={startFromThis}
+                      cloning={cloningId === fileId}
+                    />
+                  )}
+                />
               </div>
               {showSidebar && adSlot}
           </div>

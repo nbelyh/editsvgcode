@@ -1,14 +1,21 @@
+import type { ReactNode } from 'react';
 import { Stack, Title, Text, Anchor, Kbd } from '@mantine/core';
 
 interface SidebarProps {
   onOpenCommandPalette?: () => void;
   onOpenAiChat?: () => void;
+  /** Pinned to the foot of the panel when there is something to say about the
+   *  document itself — currently the read-only notice for somebody else's file.
+   *  Passed in rather than derived here: the page already knows, and this panel
+   *  stays a plain presentational one, clear of firebase.ts and its
+   *  module-level side effects. */
+  notice?: ReactNode;
 }
 
 // The Carbon placement used to live at the bottom of this panel, which meant it
 // only ever rendered on the Info tab. It now sits in the sidebar shell so it is
 // visible whichever tab is open — see CarbonAd / EditorPage.
-export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
+export function Sidebar({ onOpenCommandPalette, onOpenAiChat, notice }: SidebarProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Same bar as the AI tab's header, so switching tabs doesn't shift the
@@ -37,6 +44,9 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
         </Text>
       </div>
       </Stack>
+      {/* Outside the scrolling stack, so it sits where the AI tab's identical
+          strip does — replacing the composer at the foot of the panel. */}
+      {notice}
     </div>
   );
 }
