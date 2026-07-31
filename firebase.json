@@ -14,8 +14,10 @@
       "**/node_modules/**"
     ],
     "predeploy": [
-      "node scripts/stamp-config.cjs"
+      "node scripts/stamp-config.cjs",
+      "node scripts/prerender.cjs"
     ],
+    "trailingSlash": false,
     "rewrites": [
       {
         "source": "**",
