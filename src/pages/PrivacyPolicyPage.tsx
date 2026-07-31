@@ -1,8 +1,11 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 export function PrivacyPolicyPage() {
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/privacy')} />
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Privacy Policy</Title>

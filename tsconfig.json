@@ -16,7 +16,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true
+    "allowJs": true,
+    "resolveJsonModule": true
   },
   "include": ["src"]
 }

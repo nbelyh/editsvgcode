@@ -1,5 +1,7 @@
 import { Container, Title, Text, Stack, Anchor, Card, Group, ThemeIcon } from '@mantine/core';
 import { IconMail, IconBrandTelegram, IconBrandGithub } from '@tabler/icons-react';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 const channels = [
   {
@@ -31,6 +33,7 @@ const channels = [
 export function SupportPage() {
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/support')} />
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Support</Title>

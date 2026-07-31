@@ -1,10 +1,13 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
 import { IconBrandGithub, IconBrandTelegram, IconMail, IconBug } from '@tabler/icons-react';
 import { DEFAULT_PRICING } from '../lib/pricing';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 export function AboutPage() {
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/about')} />
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>About</Title>

@@ -8,6 +8,8 @@ import { useCloneDocument } from '../lib/useCloneDocument';
 import { displayAuthorName } from '../lib/gallery-meta';
 import { GALLERY_LICENSE_NOTE, CC0_URL } from '../lib/visibility';
 import { SvgThumb } from '../components/SvgThumb';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 interface GalleryEntry {
   id: string;
@@ -53,6 +55,7 @@ export function GalleryPage() {
   // nav siblings (Features / Gallery / Support / About) share one hero style.
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/gallery')} />
     <Container size="lg" py="xl">
       <Stack gap="md">
       <Title order={1}>Gallery</Title>

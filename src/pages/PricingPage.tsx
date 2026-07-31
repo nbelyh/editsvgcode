@@ -7,6 +7,8 @@ import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl } from '../lib/ppg-checkout';
 import { openSignInModal } from '../components/SignInModal';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 interface PlanCta {
   label: string;
@@ -101,6 +103,7 @@ export function PricingPage() {
 
   return (
     <Stack align="center" gap="xl" pb="xl" pt="md" px="md" className="page-scroll">
+      <PageMeta {...metaFor('/pricing')} />
       {isBeta && (
         <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" style={{ maxWidth: 700, width: '100%', flexShrink: 0 }}>
           <strong>Beta:</strong> payments are disabled — upgrade buttons are for preview only.

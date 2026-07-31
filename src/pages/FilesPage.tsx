@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { EditSvgCodeDb, friendlyError, type Visibility, type GalleryMeta } from '../lib/firebase';
 import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from '../lib/visibility';
 import { submitGalleryMeta } from '../lib/publish';
+import { PageMeta } from '../components/PageMeta';
 
 interface FileEntry {
   id: string;
@@ -112,6 +113,10 @@ export function FilesPage() {
 
   return (
     <Container py="xl" className="page-scroll">
+      <PageMeta
+        title="My Files"
+        noindex
+      />
       <PublishDialog
         opened={publishTarget !== null}
         onClose={() => setPublishTarget(null)}

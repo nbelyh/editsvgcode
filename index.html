@@ -3,14 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage. AI chat and image generation available as pro features." />
     <link rel="icon" type="image/svg+xml" href="/editsvgcode-logo.svg" />
-    <!-- Open Graph -->
+    <!--
+      These tags are what a crawler that does not run JavaScript sees — AI
+      crawlers (GPTBot, ClaudeBot, PerplexityBot) and Bing/Yandex largely do not,
+      and social scrapers never do. <PageMeta> overwrites them in place once the
+      app mounts, so there is only ever one of each.
+
+      scripts/prerender.cjs replaces these per route at deploy time, so
+      /features and friends serve their own title and description rather than
+      the editor's. This file supplies the fallback and the home page's values.
+    -->
+    <title>Online SVG Code Editor</title>
+    <meta name="description" content="Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage. AI chat and image generation available as pro features." />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="EditSVGCode — Online SVG Code Editor" />
     <meta property="og:description" content="Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage." />
-    <meta property="og:image" content="/screenshots/01-editor-full.png" />
-    <title>Online SVG Code Editor</title>
+    <!-- Absolute: scrapers do not resolve relative og:image URLs, so the card
+         had no picture. Hard-coded to production on purpose — beta and
+         localhost are never scraped, and a card pointing at prod beats none. -->
+    <meta property="og:image" content="https://editsvgcode.com/screenshots/01-editor-full.png" />
     <base href="/" />
   </head>
   <body>

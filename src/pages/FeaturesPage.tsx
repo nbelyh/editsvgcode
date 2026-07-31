@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Container, Title, Text, Stack, Image, SimpleGrid, Card, Badge, Group, Modal, UnstyledButton } from '@mantine/core';
 import { DEFAULT_PRICING } from '../lib/pricing';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 interface Feature {
   title: string;
@@ -148,6 +150,7 @@ export function FeaturesPage() {
 
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/features')} />
       <Container size="lg" py="xl">
         <Stack gap="md">
           <Title order={1}>Features</Title>

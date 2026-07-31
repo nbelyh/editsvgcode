@@ -11,6 +11,7 @@ import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
 import { ForeignDocNotice } from '../components/ForeignDocNotice';
 import { FOREIGN_DOC_INFO_NOTICE } from '../lib/visibility';
+import { usePageMeta } from '../components/PageMeta';
 import { CarbonAd } from '../components/CarbonAd';
 import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/aichat';
@@ -41,6 +42,26 @@ export function EditorPage() {
   const [sidebarTab, setSidebarTab] = useState<string>(() =>
     localStorage.getItem('esvg-sidebar-tab') || sessionStorage.getItem('esvg-sidebar-tab') || 'ai'
   );
+  // Only gallery-published drawings get their own tags and a place in the
+  // index. An unlisted document is reachable by link but deliberately not
+  // listed, and the :fileId route answers 200 for ids that do not exist — both
+  // would otherwise be indexed as another copy of the editor. `readOnly` is
+  // still true while the document loads, so wait rather than publish a title
+  // built from empty meta.
+  const documentLoaded = !readOnly;
+  const isPublished = documentLoaded && !!routeFileId && visibility === 'public';
+  // noindex is NOT gated on the document having loaded: if the load never
+  // finishes (offline, anonymous auth blocked) readOnly stays true, and gating
+  // on it would leave a private or nonexistent document indexable. Fail closed
+  // — anything under /:fileId is noindex until it is known to be published.
+  // A hook, not a rendered <PageMeta>: this component returns from three
+  // branches and the tag would only apply to whichever one rendered it.
+  usePageMeta({
+    title: isPublished ? galleryMeta.title || 'Untitled drawing' : undefined,
+    description: isPublished ? galleryMeta.description || undefined : undefined,
+    noindex: !!routeFileId && !isPublished,
+  });
+
   // Resolved by the AI chat and mirrored onto the Info tab.
   const [isViewer, setIsViewer] = useState(false);
   // One clone-in-progress state for both panels, which offer the same action.

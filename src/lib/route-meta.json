@@ -1,0 +1,43 @@
+{
+  "siteName": "EditSvgCode",
+  "defaultTitle": "Online SVG Code Editor",
+  "defaultDescription": "Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage. AI chat and image generation available as pro features.",
+  "routes": {
+    "/gallery": {
+      "title": "SVG Gallery",
+      "description": "Browse public SVG drawings shared by the community. Every drawing is CC0 1.0 — open one to view its code and AI chat, or start your own copy."
+    },
+    "/features": {
+      "title": "Features",
+      "description": "Live preview, schema-aware autocomplete from the W3C SVG spec, hover documentation, click-to-select, AI chat editing, image generation with vectorization, and icon search."
+    },
+    "/pricing": {
+      "title": "Pricing",
+      "description": "Credit-based pricing for the AI assistant. Free monthly credits, pay-as-you-go top-ups, and a pro tier for the larger models."
+    },
+    "/about": {
+      "title": "About",
+      "description": "About EditSvgCode — an online SVG code editor with AI-assisted editing, built and maintained by Unmanaged Visio."
+    },
+    "/support": {
+      "title": "Support",
+      "description": "Get help with EditSvgCode: email, Telegram, and GitHub issue tracker."
+    },
+    "/terms": {
+      "title": "Terms of Service",
+      "description": "Terms of Service for EditSvgCode, including the CC0 licence that applies to drawings published in the public gallery."
+    },
+    "/privacy": {
+      "title": "Privacy Policy",
+      "description": "How EditSvgCode handles your data: what is stored, why, and how to remove it."
+    },
+    "/imprint": {
+      "title": "Imprint",
+      "description": "Legal information pursuant to § 5 of the Austrian E-Commerce Act (ECG)."
+    },
+    "/refund-policy": {
+      "title": "Refund & Cancellation Policy",
+      "description": "Refund and cancellation terms for EditSvgCode credit purchases and subscriptions."
+    }
+  }
+}

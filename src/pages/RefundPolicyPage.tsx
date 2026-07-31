@@ -1,8 +1,11 @@
 import { Container, Title, Text, Stack, Anchor } from '@mantine/core';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 export function RefundPolicyPage() {
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/refund-policy')} />
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Refund & Cancellation Policy</Title>

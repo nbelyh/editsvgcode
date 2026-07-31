@@ -9,6 +9,7 @@ import { firebaseDb } from '../lib/firebase';
 import { subscribeCredits } from '../lib/credits-listener';
 import { RedeemLicenseDialog } from '../components/RedeemLicenseDialog';
 import type { Credits } from '../lib/api-client';
+import { PageMeta } from '../components/PageMeta';
 
 interface UserDoc {
   tier?: 'free' | 'pro';
@@ -86,6 +87,10 @@ export function ProfilePage() {
 
   return (
     <Container py="xl" className="page-scroll">
+      <PageMeta
+        title="Profile"
+        noindex
+      />
       <Title order={2} mb="md">Profile</Title>
       {isBeta && (
         <Alert icon={<IconInfoCircle size={16} />} color="yellow" variant="light" mb="md">

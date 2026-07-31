@@ -1,9 +1,12 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
 import { CC0_URL } from '../lib/visibility';
+import { PageMeta } from '../components/PageMeta';
+import { metaFor } from '../lib/route-meta';
 
 export function TermsPage() {
   return (
     <div className="page-scroll">
+      <PageMeta {...metaFor('/terms')} />
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Terms of Service</Title>
