@@ -324,7 +324,19 @@ export async function loadChatMessages(fileId: string): Promise<DisplayMessage[]
  */
 export async function migrateLegacyChat(fileId: string): Promise<DisplayMessage[] | null> {
   if (!uid() || !isCleanId(fileId)) return null;
-  const legacy = await loadLegacyChatMessages<DisplayMessage>(fileId);
+  // Every failure returns null: this reports "messages, or nothing to migrate",
+  // and a rejection would break that contract. Both IndexedDB calls below can
+  // reject on their own — private browsing, quota, a corrupted database — and
+  // the caller awaits this inside its load chain, where an unhandled rejection
+  // leaves the chat with neither a composer nor a read-only notice. Migration
+  // is best-effort by nature; nothing here is worth taking the panel down for.
+  let legacy: DisplayMessage[];
+  try {
+    legacy = await loadLegacyChatMessages<DisplayMessage>(fileId);
+  } catch (err) {
+    console.error('[chat-history] could not read the legacy chat', err);
+    return null;
+  }
   if (legacy.length === 0) return null;
   try {
     await saveChatMessages(fileId, legacy);
@@ -332,7 +344,13 @@ export async function migrateLegacyChat(fileId: string): Promise<DisplayMessage[
     console.error('[chat-history] legacy chat migration failed', err);
     return null;
   }
-  await clearLegacyChatMessages(fileId);
+  try {
+    await clearLegacyChatMessages(fileId);
+  } catch (err) {
+    // The copy on the server is already good, so this is only housekeeping —
+    // the next open finds the server copy non-empty and skips migration.
+    console.error('[chat-history] could not clear the migrated legacy chat', err);
+  }
   return legacy;
 }
 
