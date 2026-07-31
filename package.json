@@ -26,7 +26,6 @@
     "@mantine/hooks": "^9.0.2",
     "@mantine/modals": "^9.0.2",
     "@mantine/notifications": "^9.0.2",
-    "@microsoft/applicationinsights-web": "^3.4.1",
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.28.1",
     "allotment": "^1.20.2",
