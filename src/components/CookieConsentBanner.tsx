@@ -29,7 +29,10 @@ export function CookieConsentBanner() {
         bottom: 30,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 1000,
+        // Below Mantine's modal layer (200). At 1000 this sat on top of every
+        // dialog and, being fixed to the bottom, silently swallowed clicks on
+        // the footer buttons of any dialog tall enough to reach it.
+        zIndex: 190,
         maxWidth: 520,
         width: 'calc(100% - 32px)',
       }}
