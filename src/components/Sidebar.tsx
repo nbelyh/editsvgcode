@@ -1,44 +1,14 @@
 import { Stack, Title, Text, Anchor, Kbd } from '@mantine/core';
-import { useEffect, useRef, useState } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { subscribeCredits } from '../lib/credits-listener';
 
 interface SidebarProps {
   onOpenCommandPalette?: () => void;
   onOpenAiChat?: () => void;
 }
 
+// The Carbon placement used to live at the bottom of this panel, which meant it
+// only ever rendered on the Info tab. It now sits in the sidebar shell so it is
+// visible whichever tab is open — see CarbonAd / EditorPage.
 export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
-  const adsRef = useRef<HTMLDivElement>(null);
-  const [showAds, setShowAds] = useState(false);
-
-  useEffect(() => {
-    // Guests never trigger subscribeCredits (it only subscribes for real accounts),
-    // so drive ads off auth state for them: guests and free users see ads, Pro users don't.
-    const unsubAuth = onAuthStateChanged(getAuth(), (user) => {
-      if (!user || user.isAnonymous) setShowAds(true);
-    });
-    const unsubCredits = subscribeCredits((credits) => {
-      setShowAds(credits.tier !== 'pro');
-    });
-    return () => {
-      unsubAuth();
-      unsubCredits();
-    };
-  }, []);
-
-  useEffect(() => {
-    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (!isLocal && showAds && adsRef.current && !adsRef.current.querySelector('#_carbonads_js')) {
-      const script = document.createElement('script');
-      script.id = '_carbonads_js';
-      script.async = true;
-      script.type = 'text/javascript';
-      script.src = '//cdn.carbonads.com/carbon.js?serve=CWYICK37&placement=editsvgcodecom';
-      adsRef.current.appendChild(script);
-    }
-  }, [showAds]);
-
   return (
     <Stack
       p="md"
@@ -61,8 +31,6 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
           {' '}to edit your SVG with natural language. Describe what you want to change and the AI will propose edits you can accept or reject.
         </Text>
       </div>
-      <div style={{ flex: 1 }} />
-      <div ref={adsRef} />
     </Stack>
   );
 }

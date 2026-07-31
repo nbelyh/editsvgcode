@@ -9,6 +9,7 @@ import { Editor, type EditorHandle } from '../components/Editor';
 import { EditorToolbar } from '../components/EditorToolbar';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
+import { CarbonAd } from '../components/CarbonAd';
 import { TeachingBubble } from '../components/TeachingBubble';
 import { AiChat } from '../components/aichat';
 import { PublishDialog } from '../components/PublishDialog';
@@ -41,6 +42,15 @@ export function EditorPage() {
   const [showSidebar, setShowSidebar] = useState(() => localStorage.getItem('esvg-show-sidebar') !== 'false');
   const isDesktop = useMediaQuery('(min-width: 64em)');
   const isPhone = useMediaQuery('(max-width: 35.99em)');
+  // useMediaQuery resolves in an effect and reports false — never undefined —
+  // until it does, so the first render always picks the phone/tablet branch
+  // before the real layout takes over. Withholding the ad for that one pass
+  // stops the flip from mounting two hosts and loading carbon.js twice.
+  // Callers must also withhold it while their pane is collapsed: Carbon's
+  // placement policy forbids serving an ad that is concealed rather than shown.
+  const [layoutReady, setLayoutReady] = useState(false);
+  useEffect(() => { setLayoutReady(true); }, []);
+  const adSlot = layoutReady ? <CarbonAd /> : null;
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
@@ -283,8 +293,9 @@ export function EditorPage() {
                 )}
               </div>
             </div>
-            <div style={{ flex: '0 0 320px', minWidth: 0, overflow: 'hidden', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
-              {aiChatPanel}
+            <div style={{ flex: '0 0 320px', minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
+              <div style={{ flex: 1, minHeight: 0 }}>{aiChatPanel}</div>
+              {adSlot}
             </div>
           </div>
         </div>
@@ -349,13 +360,14 @@ export function EditorPage() {
           <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
-          <div style={{ height: '100%', overflow: 'hidden', position: 'relative', backgroundColor: 'var(--mantine-color-body)' }}>
-              <div style={{ height: '100%', display: sidebarTab === 'ai' ? 'block' : 'none' }}>
+          <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>
+              <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'ai' ? 'block' : 'none' }}>
                 {aiChatPanel}
               </div>
-              <div style={{ height: '100%', display: sidebarTab === 'info' ? 'block' : 'none' }}>
+              <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'info' ? 'block' : 'none' }}>
                 <Sidebar onOpenCommandPalette={handleOpenCommandPalette} onOpenAiChat={switchToAi} />
               </div>
+              {showSidebar && adSlot}
           </div>
         </Allotment.Pane>
       </Allotment>

@@ -91,17 +91,23 @@
   border-left: 1px solid var(--esvg-chrome-border);
 }
 
-/* App chrome (header, footer, toolbars) — adapts to light/dark */
+/* App chrome (header, footer, toolbars) — adapts to light/dark.
+   --mantine-color-dimmed is lifted a step from the stock gray-6 / dark-2: the
+   chat UI puts secondary labels (model picker, hints, timestamps) at 12px, and
+   the default tone lands around 3.5:1 on the panel background — under the 4.5:1
+   floor for small text, which read as washed out rather than secondary. */
 :root[data-mantine-color-scheme='light'] {
   --esvg-chrome-bg: var(--mantine-color-gray-1);
   --esvg-chrome-border: var(--mantine-color-gray-3);
   --app-shell-border-color: var(--esvg-chrome-border);
+  --mantine-color-dimmed: var(--mantine-color-gray-7);
 }
 
 :root[data-mantine-color-scheme='dark'] {
   --esvg-chrome-bg: var(--mantine-color-dark-7);
   --esvg-chrome-border: var(--mantine-color-dark-4);
   --app-shell-border-color: var(--esvg-chrome-border);
+  --mantine-color-dimmed: var(--mantine-color-dark-1);
 }
 
 .app-chrome {
@@ -128,6 +134,23 @@
 }
 
 /* Carbon Ads */
+
+/* Host for the injected unit. The ad keeps its own width, so the host provides
+   the surrounding band — deliberately a different tone from the card sitting on
+   it, so the ad reads as clearly separate from the panel above. */
+.carbon-host {
+  flex: 0 0 auto;
+}
+
+/* Only dress the host once a unit is actually in it: an ad-blocked, unfilled or
+   dev-suppressed load would otherwise leave a bare ruled band. Keyed on the
+   injected id rather than :has(*) because the script tag is a child from the
+   start, while #carbonads appears only when the ad renders. */
+.carbon-host:has([id^="carbonads"]) {
+  padding: 10px;
+  border-top: 1px solid var(--esvg-chrome-border);
+  background-color: var(--esvg-chrome-bg);
+}
 
 #carbonads * {
   margin: initial;
