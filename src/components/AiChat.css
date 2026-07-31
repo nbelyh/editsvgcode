@@ -638,10 +638,14 @@
   position: relative;
 }
 
+/* Presence comes from the border's contrast, not its weight or hue: the stock
+   --mantine-color-default-border hairline vanished against the white panel, and
+   a thicker rule read as heavy. Accent colouring stays reserved for focus, so
+   the field never looks focused when it isn't. */
 .aui-composer-input {
   width: 100%;
   background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
-  border: 1px solid var(--mantine-color-default-border);
+  border: 1px solid light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
   border-radius: var(--mantine-radius-md);
   color: var(--mantine-color-text);
   font-size: 13px;
@@ -653,12 +657,23 @@
   max-height: 200px;
   overflow-y: hidden;
   box-sizing: border-box;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
+.aui-composer-input:hover {
+  border-color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+}
+
+/* A crisp 2px edge, no glow. Drawn as an inset outline rather than a thicker
+   border so focusing does not shift the text by a pixel. */
 .aui-composer-input:focus {
   border-color: var(--mantine-primary-color-filled);
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
 }
 
+/* Stays the lighter placeholder tone: --mantine-color-dimmed is deliberately
+   dark app-wide, which made the hint look like text already typed. */
 .aui-composer-input::placeholder {
   color: var(--mantine-color-placeholder);
 }

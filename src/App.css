@@ -133,6 +133,21 @@
   max-width: 500px !important;
 }
 
+/* Sidebar panel header. Mirrors .aui-header in AiChat.css so the Info and AI
+   tabs start at the same y — without it the Info content sat 36px higher than
+   the chat and the two tabs looked misaligned when switching. Keep the metrics
+   in step with that rule. */
+.esvg-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  height: 36px;
+  background-color: var(--esvg-chrome-bg);
+  border-bottom: 1px solid var(--esvg-chrome-border);
+  flex-shrink: 0;
+}
+
 /* Carbon Ads */
 
 /* Host for the injected unit. The ad keeps its own width, so the host provides

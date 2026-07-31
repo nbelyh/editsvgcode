@@ -10,11 +10,16 @@ interface SidebarProps {
 // visible whichever tab is open — see CarbonAd / EditorPage.
 export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
   return (
-    <Stack
-      p="md"
-      h="100%"
-      style={{ backgroundColor: 'var(--esvg-chrome-bg)', overflow: 'auto' }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Same bar as the AI tab's header, so switching tabs doesn't shift the
+          content up or down. Nothing to put in it yet beyond the label. */}
+      <div className="esvg-panel-header">
+        <Text size="xs" fw={600} c="dimmed">About</Text>
+      </div>
+      <Stack
+        p="md"
+        style={{ flex: 1, minHeight: 0, backgroundColor: 'var(--esvg-chrome-bg)', overflow: 'auto' }}
+      >
       <div>
         <Title order={4}>SVG Code Sandbox</Title>
         <Text size="sm" mt="xs">Upload or paste SVG code for editing.</Text>
@@ -31,6 +36,7 @@ export function Sidebar({ onOpenCommandPalette, onOpenAiChat }: SidebarProps) {
           {' '}to edit your SVG with natural language. Describe what you want to change and the AI will propose edits you can accept or reject.
         </Text>
       </div>
-    </Stack>
+      </Stack>
+    </div>
   );
 }

@@ -156,6 +156,17 @@ export function EditorPage() {
     }
   }, [persistTab, sidebarTab, showSidebar]);
 
+  // Whenever the AI panel is on screen the caret belongs in the composer —
+  // opening the tab, or arriving with it already open, both mean the same thing.
+  // In an effect rather than in switchToAi because the panel is display:none
+  // until the state change commits, and a hidden element cannot take focus.
+  // Desktop only: the phone and tablet layouts show the chat unconditionally,
+  // and focusing on load there would raise the on-screen keyboard.
+  useEffect(() => {
+    if (!isDesktop || sidebarTab !== 'ai' || !showSidebar) return;
+    document.querySelector<HTMLTextAreaElement>('.aui-composer-input')?.focus();
+  }, [isDesktop, sidebarTab, showSidebar]);
+
   const switchToAi = useCallback(() => {
     tabChosenRef.current = true;
     if (sidebarTab === 'ai' && showSidebar) {
@@ -166,6 +177,7 @@ export function EditorPage() {
       persistTab('ai');
       setShowSidebar(true);
       localStorage.setItem('esvg-show-sidebar', 'true');
+      // The effect above lands the caret in the composer once this commits.
     }
   }, [persistTab, sidebarTab, showSidebar]);
 

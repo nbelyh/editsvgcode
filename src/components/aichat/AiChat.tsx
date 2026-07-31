@@ -600,7 +600,10 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   return (
     <div className="aui-root">
       <div className="aui-header">
-        {isViewer && <Text size="xs" c="dimmed" mr="auto">Read-only — shared by the author</Text>}
+        {/* Titled to match the Info tab's header, so switching tabs keeps the
+            same bar rather than swapping a labelled one for a bare one. */}
+        <Text size="xs" fw={600} c="dimmed" mr="auto">AI Chat</Text>
+        {isViewer && <Text size="xs" c="dimmed">Read-only — shared by the author</Text>}
         <Tooltip label="Clear Chat">
           <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0 || isViewer}>
             <IconEraser size={16} />
