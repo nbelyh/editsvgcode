@@ -46,6 +46,23 @@ export const PUBLISH_DIALOG_HINT =
   'Anyone can find this file in the public gallery, view it and its AI chat, and clone it. ' +
   'Your name and avatar are shown as the author.';
 
+/** CC0 1.0 Universal — the licence every gallery entry is published under. */
+export const CC0_URL = 'https://creativecommons.org/publicdomain/zero/1.0/';
+
+/**
+ * Licence terms shown before publishing. Stated at the point of the act, not
+ * only in the Terms, because it is irrevocable for copies already taken:
+ * unpublishing removes the listing, it cannot recall what others cloned.
+ */
+export const PUBLISH_LICENSE_HINT =
+  'Publishing places this drawing in the public domain under CC0 1.0 — anyone may use, modify ' +
+  'and redistribute it, including commercially, without asking or crediting you. You can ' +
+  'unpublish it later, but copies already made stay free to use.';
+
+/** Gallery header note, so visitors know what they may do with what they clone. */
+export const GALLERY_LICENSE_NOTE =
+  'Everything here is released under CC0 1.0 — free to use, modify and redistribute, including commercially.';
+
 export const GALLERY_META_UPDATED = {
   title: 'Gallery info updated',
   message: 'The gallery card now shows the new title.',

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, TextInput, Textarea, Button, Group, Stack, Text, Loader } from '@mantine/core';
+import { Modal, TextInput, Textarea, Button, Group, Stack, Text, Loader, Anchor } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { friendlyError, type GalleryMeta } from '../lib/firebase';
-import { PUBLISH_DIALOG_HINT } from '../lib/visibility';
+import { PUBLISH_DIALOG_HINT, PUBLISH_LICENSE_HINT, CC0_URL } from '../lib/visibility';
 import { suggestGalleryMetaForFile } from '../lib/gallery-meta';
 import { SvgThumb } from './SvgThumb';
 
@@ -117,7 +117,15 @@ export function PublishDialog({ opened, onClose, fileId, svg, fileName, initialM
           maxLength={300}
         />
         {mode === 'publish' && (
-          <Text size="xs" c="dimmed">{PUBLISH_DIALOG_HINT}</Text>
+          <Stack gap={4}>
+            <Text size="xs" c="dimmed">{PUBLISH_DIALOG_HINT}</Text>
+            <Text size="xs" c="dimmed">
+              {PUBLISH_LICENSE_HINT}{' '}
+              <Anchor href={CC0_URL} target="_blank" rel="noopener noreferrer" size="xs">
+                Read the licence
+              </Anchor>
+            </Text>
+          </Stack>
         )}
         <Group justify="flex-end" gap="xs">
           <Button variant="default" onClick={onClose} disabled={submitting}>

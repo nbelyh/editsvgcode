@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { EditSvgCodeDb, friendlyError } from '../lib/firebase';
 import { useCloneDocument } from '../lib/useCloneDocument';
 import { displayAuthorName } from '../lib/gallery-meta';
+import { GALLERY_LICENSE_NOTE, CC0_URL } from '../lib/visibility';
 import { SvgThumb } from '../components/SvgThumb';
 
 interface GalleryEntry {
@@ -27,13 +28,15 @@ export function GalleryPage() {
 
   // Filtering is client-side over the already-loaded page: Firestore has no
   // substring search, and the gallery is capped at 60 entries anyway.
+  // Title and description only — cards show the author abbreviated
+  // (displayAuthorName), so matching the stored authorName would both miss the
+  // name as displayed and make the withheld surname searchable.
   const visible = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return entries;
     return entries.filter((e) =>
       e.title.toLowerCase().includes(q)
-      || e.description.toLowerCase().includes(q)
-      || e.authorName.toLowerCase().includes(q));
+      || e.description.toLowerCase().includes(q));
   }, [entries, filter]);
 
   useEffect(() => {
@@ -56,12 +59,18 @@ export function GalleryPage() {
       <Text size="lg" c="dimmed">
         Public SVGs shared by the community. Open one to view it, or start from a copy of your own.
       </Text>
+      <Text size="sm" c="dimmed">
+        {GALLERY_LICENSE_NOTE}{' '}
+        <Anchor href={CC0_URL} target="_blank" rel="noopener noreferrer" size="sm">
+          Read the licence
+        </Anchor>
+      </Text>
 
       {entries.length > 0 && (
         <TextInput
           value={filter}
           onChange={(ev) => setFilter(ev.currentTarget.value)}
-          placeholder="Filter by title, description or author"
+          placeholder="Filter by title or description"
           leftSection={<IconSearch size={16} />}
           maw={420}
         />

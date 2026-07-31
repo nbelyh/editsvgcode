@@ -1,4 +1,5 @@
 import { Container, Title, Text, Stack, Anchor, List } from '@mantine/core';
+import { CC0_URL } from '../lib/visibility';
 
 export function TermsPage() {
   return (
@@ -97,6 +98,15 @@ export function TermsPage() {
         <Text>
           <strong>Your content:</strong> You retain full ownership of all SVG files and other content you create or upload using the Service.
           You grant us a temporary license to process your files solely for the purpose of providing the Service.
+        </Text>
+        <Text>
+          <strong>Publishing to the gallery:</strong> Publishing a file to the public gallery is voluntary and dedicates
+          that file, its title and description, and its accompanying AI chat to the public domain under the{' '}
+          <Anchor href={CC0_URL} target="_blank" rel="noopener noreferrer">Creative Commons CC0 1.0 Universal</Anchor>{' '}
+          dedication. Anyone may then use, modify and redistribute it for any purpose, including commercially, without
+          permission or attribution. Only publish files you have the right to release on those terms. You may unpublish
+          a file at any time, which removes it from the gallery, but the dedication cannot be withdrawn for copies
+          already made. Files you keep private or unlisted are unaffected.
         </Text>
         <Text>
           <strong>AI-generated content:</strong> You own all AI-generated content you create using the Service.
