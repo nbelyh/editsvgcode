@@ -63,6 +63,15 @@ export function visibleEditModels(selected: string): ModelOption[] {
   return EDIT_MODELS.filter(m => !m.hidden || m.value === selected);
 }
 
+/**
+ * Model behind the publish dialog's "Suggest with AI". Must stay in step with
+ * META_MODEL in the API's suggest-meta function — the server picks the model,
+ * this only tells the user what it will cost.
+ */
+export const GALLERY_META_MODEL = 'gpt-4.1-mini';
+export const GALLERY_META_CREDITS =
+  EDIT_MODELS.find((m) => m.value === GALLERY_META_MODEL)?.credits ?? 1;
+
 export const DEFAULT_EDIT_MODEL = 'gpt-5.4-mini';
 export const DEFAULT_IMAGE_MODEL = 'gpt-image-1-mini';
 

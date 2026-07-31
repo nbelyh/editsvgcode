@@ -85,7 +85,10 @@ export function GalleryPage() {
         // just excluded everything.
         <Text c="dimmed" size="sm">No files match “{filter.trim()}”.</Text>
       ) : (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="sm">
+        // Caps at three across, not four: the title gets one line and the
+        // description two, and at quarter width an AI-written title truncates
+        // before it has said anything.
+        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
           {visible.map((e) => (
             // flex column + mt="auto" on the meta row pins it to the card
             // bottom, so rows align across cards with/without a description

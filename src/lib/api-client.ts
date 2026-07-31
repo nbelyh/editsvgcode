@@ -413,3 +413,46 @@ export async function sendChatRequest(
     rawOutput: allRawOutput,
   };
 }
+
+/**
+ * Gallery title + description written by the cheapest model, for the publish
+ * dialog's "Suggest with AI" button. Costs one credit, charged server-side only
+ * when a usable answer comes back.
+ *
+ * Throws a CreditsError on 402 exactly like the chat path, so callers can tell
+ * "out of credits" apart from a transport failure.
+ */
+export async function suggestGalleryMetaAi(
+  svg: string,
+  opts?: { image?: string; prompt?: string },
+): Promise<{ title: string; description: string }> {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error('Not authenticated');
+  const idToken = await user.getIdToken();
+
+  const res = await fetch(`${API_URL}/api/suggest-meta`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+    // The rendered preview is what the model actually looks at; the markup rides
+    // along only as a fallback for drawings that could not be rasterised.
+    body: JSON.stringify({
+      svg: svg.replace(/\r\n/g, '\n'),
+      image: opts?.image,
+      prompt: opts?.prompt,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    const err = data as ChatErrorResponse;
+    const error = new Error(err.error ?? `Request failed (${res.status})`) as CreditsError;
+    if (res.status === 402) {
+      error.code = 'CREDITS_ERROR';
+      error.creditCode = err.code;
+      error.remaining = err.remaining;
+      error.limit = err.limit;
+    }
+    throw error;
+  }
+  return data as { title: string; description: string };
+}
