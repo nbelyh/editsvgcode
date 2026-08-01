@@ -298,14 +298,22 @@ export function EditorPage() {
         <>
           {sharedInput}
           {publishDialog}
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {sharedToolbar}
-            <div style={{ flex: '0 0 30%', minHeight: 0, overflow: 'hidden' }}>
-              {previewPanel}
+          {/* Scrolls, unlike the other two layouts. The editor itself keeps the
+              whole viewport — the inner column is 100% tall — and the ad sits
+              below it, so it costs no screen space and is found by scrolling.
+              Carbon's mobile rule is "within 3x the viewport height from the
+              top", not "on screen", so one screen down is well inside it. */}
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {sharedToolbar}
+              <div style={{ flex: '0 0 30%', minHeight: 0, overflow: 'hidden' }}>
+                {previewPanel}
+              </div>
+              <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', borderTop: '1px solid var(--esvg-chrome-border)' }}>
+                {aiChatPanel}
+              </div>
             </div>
-            <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', borderTop: '1px solid var(--esvg-chrome-border)' }}>
-              {aiChatPanel}
-            </div>
+            {adSlot}
           </div>
         </>
       );
