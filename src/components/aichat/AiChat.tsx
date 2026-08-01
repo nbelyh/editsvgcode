@@ -116,7 +116,6 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
   // Arms the deferred-send effect below (see its comment): set alongside
   // setInput by edit-resubmit and the post-sign-in draft restore.
@@ -241,9 +240,17 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     }
   }, [messages, fileId, canWrite]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change.
+  //
+  // Scroll the thread's own container rather than endRef.scrollIntoView():
+  // scrollIntoView walks every scrollable ancestor, and the phone layout wraps
+  // the whole editor in one so the ad can sit below the fold. Revealing the end
+  // of the chat therefore scrolled that outer container too, dragging the ad
+  // into view on open — the effect runs on mount, before there are any messages
+  // to scroll to. Setting scrollTop here cannot move anything but the thread.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const viewport = viewportRef.current;
+    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
   }, [messages, isRunning]);
 
   const handleSend = useCallback(async () => {
@@ -639,7 +646,6 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           isAnonymous={isAnonymous === true}
           isViewer={isViewer}
           viewportRef={viewportRef}
-          endRef={endRef}
           onAccept={handleAccept}
           onReject={handleReject}
           onUpdateToolCallSvg={handleUpdateToolCallSvg}

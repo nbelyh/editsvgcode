@@ -21,7 +21,6 @@ interface ChatThreadProps {
   progressStatus: ProgressStatus;
   canUndo: boolean;
   viewportRef: React.RefObject<HTMLDivElement | null>;
-  endRef: React.RefObject<HTMLDivElement | null>;
   onAccept: (msgIndex: number, tcIndex: number) => void;
   onReject: (msgIndex: number, tcIndex: number) => void;
   onUpdateToolCallSvg: (msgIndex: number, tcIndex: number, newSvg: string) => void;
@@ -151,7 +150,7 @@ const SAMPLE_PROMPTS = [
 
 export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
-  viewportRef, endRef,
+  viewportRef,
   onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
   onThumbsUp, onThumbsDown,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
@@ -433,7 +432,6 @@ export function ChatThread({
         </div>
       )}
 
-      <div ref={endRef} />
     </div>
   );
 }
