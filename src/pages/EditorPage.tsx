@@ -72,8 +72,14 @@ export function EditorPage() {
   const [selectedXPath, setSelectedXPath] = useState<string | undefined>();
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem('esvg-show-preview') !== 'false');
   const [showSidebar, setShowSidebar] = useState(() => localStorage.getItem('esvg-show-sidebar') !== 'false');
-  const isDesktop = useMediaQuery('(min-width: 64em)');
-  const isPhone = useMediaQuery('(max-width: 35.99em)');
+  // Resolved during render, not in an effect. Left to default, both report
+  // false on the first pass and the tablet branch below runs — which mounts the
+  // editor. On a phone that branch is then thrown away, but @monaco-editor's
+  // loader has already started and the fetch completes regardless: ~1 MB, 73%
+  // of everything a phone downloads, for an editor the phone layout never
+  // shows. Reading matchMedia synchronously picks the right branch first time.
+  const isDesktop = useMediaQuery('(min-width: 64em)', undefined, { getInitialValueInEffect: false });
+  const isPhone = useMediaQuery('(max-width: 35.99em)', undefined, { getInitialValueInEffect: false });
   // useMediaQuery resolves in an effect and reports false — never undefined —
   // until it does, so the first render always picks the phone/tablet branch
   // before the real layout takes over. Withholding the ad for that one pass
