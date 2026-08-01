@@ -19,7 +19,14 @@ export { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
 export function useDocument(routeFileId: string | undefined) {
   const navigate = useNavigate();
 
-  const [svgCode, setSvgCode] = useState('Loading please wait...');
+  // With no routed id and none stored, the load below can only land on
+  // DEFAULT_SVG — so show it now rather than a placeholder string. Whatever the
+  // editor holds at first paint is the biggest thing on the page, and with the
+  // placeholder there the biggest thing was an advert, so LCP waited on it.
+  // Must stay above the fileId state below, whose initialiser writes the id.
+  const [svgCode, setSvgCode] = useState(() =>
+    !routeFileId && !localStorage.getItem('esvg-local-id') ? DEFAULT_SVG : 'Loading please wait...'
+  );
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('private');
