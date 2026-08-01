@@ -116,6 +116,11 @@ onAuthStateChanged(firebaseAuth, (user) => {
   } else {
     signInAnonymously(firebaseAuth).catch((error) => {
       logError('auth', error);
+      // Carry on without an account. Nothing the editor needs to open a local
+      // draft is behind auth — it comes from IndexedDB — but the load waits on
+      // this event, so failing silently here left the editor stuck on its
+      // placeholder text forever with no error and no way out.
+      document.dispatchEvent(new Event('dbinit'));
     });
   }
 });
