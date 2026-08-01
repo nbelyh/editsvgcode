@@ -376,6 +376,10 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     svg.style.width = `${w * zoomPct / 100}px`;
     svg.style.height = `${h * zoomPct / 100}px`;
 
+    // An <svg> defaults to display:inline, so it sits on the text baseline and
+    // the line box reserves descender space beneath it — around 6px that the
+    // preview then had to scroll, showing a scrollbar on a drawing that fits.
+    svg.style.display = 'block';
     svg.style.border = '1px solid lightgray';
     const bg = BG[bgMode];
     svg.style.background = bg.background;
@@ -460,7 +464,12 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       </Group>
 
       <div ref={scrollRef} tabIndex={0} style={{ flex: 1, overflow: 'auto', outline: 'none' }} onClick={handleClick} onKeyDown={handleKeyDown} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onContextMenu={(e) => e.preventDefault()}>
-        <div style={{ minWidth: '100%', minHeight: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* inline-flex so the wrapper grows past the viewport when zoomed in,
+            which block-level flex would not. verticalAlign top because inline
+            level also means baseline-aligned, and the descender gap under it is
+            scrollable height — a second phantom scrollbar on top of the one the
+            SVG itself caused. */}
+        <div style={{ minWidth: '100%', minHeight: '100%', display: 'inline-flex', verticalAlign: 'top', alignItems: 'center', justifyContent: 'center' }}>
           <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair' }} />
         </div>
       </div>
