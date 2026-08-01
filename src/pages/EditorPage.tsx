@@ -80,15 +80,14 @@ export function EditorPage() {
   // shows. Reading matchMedia synchronously picks the right branch first time.
   const isDesktop = useMediaQuery('(min-width: 64em)', undefined, { getInitialValueInEffect: false });
   const isPhone = useMediaQuery('(max-width: 35.99em)', undefined, { getInitialValueInEffect: false });
-  // useMediaQuery resolves in an effect and reports false — never undefined —
-  // until it does, so the first render always picks the phone/tablet branch
-  // before the real layout takes over. Withholding the ad for that one pass
-  // stops the flip from mounting two hosts and loading carbon.js twice.
-  // Callers must also withhold it while their pane is collapsed: Carbon's
-  // placement policy forbids serving an ad that is concealed rather than shown.
-  const [layoutReady, setLayoutReady] = useState(false);
-  useEffect(() => { setLayoutReady(true); }, []);
-  const adSlot = layoutReady ? <CarbonAd /> : null;
+  // Carbon's placement policy forbids serving an ad that is concealed rather
+  // than shown, so each branch withholds this while its pane is collapsed —
+  // see the desktop layout, which gates it on showSidebar.
+  //
+  // This used to be held back for one render as well. The layout is now chosen
+  // during the first render, so there is no longer a pass on the wrong branch
+  // to mount a second host through.
+  const adSlot = <CarbonAd />;
 
   // Global F1 handler so it works even when focus is outside the editor
   useEffect(() => {
