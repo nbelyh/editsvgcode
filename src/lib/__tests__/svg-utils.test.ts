@@ -137,6 +137,77 @@ describe('formatXml', () => {
   it('handles empty string', () => {
     expect(formatXml('')).toBe('');
   });
+
+  it('gives a closing tag its own line instead of trailing the text element', () => {
+    // The whole point: an edit to the label must not have to reproduce </g> too.
+    const out = formatXml('<svg><g><text x="4">dbo</text></g></svg>');
+    expect(out).toBe('<svg>\n  <g>\n    <text x="4">dbo</text>\n  </g>\n</svg>');
+  });
+
+  it('keeps a text element and its tspans on one line, byte for byte', () => {
+    // A line break inside <text> would land in the rendered label.
+    const text = '<text x="4">AdventureWorks<tspan x="4" dy="1.2em">November 2005</tspan></text>';
+    expect(formatXml(`<svg>${text}</svg>`)).toBe(`<svg>\n  ${text}\n</svg>`);
+  });
+
+  it('preserves significant whitespace inside a text element', () => {
+    const text = '<text>rowguid <tspan> </tspan> ModifiedDate</text>';
+    expect(formatXml(`<svg>${text}</svg>`)).toContain(text);
+  });
+
+  it('keeps CSS inside <style> intact and unindented', () => {
+    // Whitespace at the edges of a CSS block is meaningless, so the formatter
+    // trimming it is fine; what must survive is every rule, unindented — CSS is
+    // not XML and must not be laid out as if it were.
+    const style = '<style type="text/css">\n.st1 {fill:#800080;}\n.st2 {font-size:1em;}\n</style>';
+    const out = formatXml(`<svg>${style}</svg>`);
+    expect(out).toContain('.st1 {fill:#800080;}');
+    expect(out).toContain('.st2 {font-size:1em;}');
+    expect(out).not.toContain('  .st1');
+  });
+
+  it('drops layout whitespace between elements', () => {
+    expect(formatXml('<svg>\n\t\t<g>\n\t\t\t<rect/>\n\t\t</g>\n</svg>'))
+      .toBe('<svg>\n  <g>\n    <rect/>\n  </g>\n</svg>');
+  });
+
+  it('indents by nesting depth', () => {
+    const out = formatXml('<svg><g><g><rect/></g></g></svg>').split('\n');
+    expect(out[2]).toBe('    <g>');
+    expect(out[3]).toBe('      <rect/>');
+  });
+
+  it('is not fooled by a ">" inside an attribute value', () => {
+    const out = formatXml('<svg><rect data-note="a > b"/></svg>');
+    expect(out).toBe('<svg>\n  <rect data-note="a > b"/>\n</svg>');
+  });
+
+  it('keeps comments and processing instructions', () => {
+    const out = formatXml('<?xml version="1.0"?><svg><!-- note --><rect/></svg>');
+    expect(out).toContain('<?xml version="1.0"?>');
+    expect(out).toContain('<!-- note -->');
+  });
+
+  it('handles nested elements of the same name', () => {
+    const text = '<text>a<tspan>b<tspan>c</tspan></tspan></text>';
+    expect(formatXml(`<svg>${text}</svg>`)).toContain(text);
+  });
+
+  it('is idempotent', () => {
+    const once = formatXml('<svg><g><text x="4">dbo</text></g></svg>');
+    expect(formatXml(once)).toBe(once);
+  });
+
+  it('does not throw on invalid markup, and keeps the content', () => {
+    // A text editor sees half-typed documents constantly.
+    expect(() => formatXml('<svg><g><rect fill="red"')).not.toThrow();
+    expect(formatXml('<svg><text>unclosed')).toContain('unclosed');
+    expect(formatXml('<svg><text>a</text></g></svg>')).toContain('<text>a</text>');
+  });
+
+  it('returns input untouched when there is no markup at all', () => {
+    expect(formatXml('just some text')).toBe('just some text');
+  });
 });
 
 // ---------------------------------------------------------------------------

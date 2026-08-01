@@ -28,17 +28,110 @@ export function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
 }
 
-/** Pretty-print XML/SVG with proper indentation */
+/**
+ * Pretty-print XML/SVG with proper indentation.
+ *
+ * `xml:space="preserve"` on the root is why this needs any care. It is on almost
+ * every exported SVG, and to a general-purpose XML formatter it means "leave all
+ * whitespace in this subtree alone" — which, on the root, is the whole document.
+ * The file therefore came back exactly as it went in, and formatting was
+ * silently a no-op. That is what left label lines looking like
+ *
+ *     <text x="4" y="1469.68" class="st2">dbo</text>		</g>
+ *
+ * where the group's closing tag rides along on the label's line, so every edit
+ * to that label had to reproduce `</text>		</g>` exactly or break the nesting.
+ *
+ * In SVG the attribute governs how character data inside text elements is
+ * rendered, not the layout whitespace between elements — nothing renders that.
+ * So it is masked on the root tag for the duration of the pass and restored
+ * afterwards, leaving the document semantically identical.
+ *
+ * Masking is not safe on its own, though, so the result is CHECKED rather than
+ * trusted. `collapseContent` only keeps a `<text>` on one line when its content
+ * begins with character data; one whose children are all elements gets
+ * re-indented, and under `preserve` that indentation renders — turning
+ * `<tspan>a</tspan>\n<tspan>b</tspan>` from one space between the words into
+ * five. Any such change fails the check below and the document is returned
+ * untouched.
+ */
+const XML_SPACE_MASK = 'data-preserve-during-format';
+
+/**
+ * The `xml:space="preserve"` on the ROOT `<svg>`, in any spelling.
+ *
+ * Matching only the root matters: the same attribute on a nested element is a
+ * genuine instruction about that element. But the root is rarely the first
+ * thing in the file — Illustrator, Inkscape and Visio all emit an XML
+ * declaration, often a DOCTYPE, and a generator comment ahead of it. Anchoring
+ * at `^\s*<svg` skipped every one of those documents, and the failure is
+ * invisible: nothing is masked, the formatter preserves the whole file, and the
+ * unchanged result is indistinguishable from "already formatted".
+ *
+ * So the prologue is skipped explicitly, then the first `<svg` must follow.
+ */
+const ROOT_XML_SPACE =
+  /^((?:\s|<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE[^>]*>)*<svg\b[^>]*?)\sxml:space\s*=\s*(['"])preserve\2/;
+
+/**
+ * The characters a reader actually sees: character data inside text-rendering
+ * elements. Whitespace elsewhere is layout and may be changed freely.
+ */
+function renderedText(svg: string): string {
+  const out: string[] = [];
+  const re = /<(text|tspan|textPath|tref|title|desc)\b[^>]*>([^<]*)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(svg)) !== null) out.push(m[2]);
+  // Joined with a separator that cannot occur in character data, so two
+  // adjacent runs cannot merge and hide a difference between them.
+  return out.join('\u0001');
+}
+
+/**
+ * The ordered open/close tag names — the document's structure.
+ *
+ * The formatter completes unclosed markup rather than refusing it, turning
+ * `<svg><g><text>half typed` into a whole valid document. That is reasonable in
+ * a formatter and wrong in a text editor: a truncated file would be invisibly
+ * "repaired" on open. Inventing tags changes this sequence; so does dropping
+ * them.
+ */
+function tagSequence(svg: string): string {
+  return (svg.match(/<\/?[A-Za-z][\w.:-]*/g) ?? []).join(',').toLowerCase();
+}
+
 export function formatXml(xml: string): string {
   if (!xml.trim()) return xml;
   try {
-    return xmlFormat(xml, {
+    const masked = xml.replace(ROOT_XML_SPACE, `$1 ${XML_SPACE_MASK}="preserve"`);
+    const formatted = xmlFormat(masked, {
       indentation: '  ',
       collapseContent: true,
       lineSeparator: '\n',
     });
-  } catch {
-    // Return unformatted if xml-formatter can't parse (e.g. CSS in <style>)
+    const restored = formatted.replace(`${XML_SPACE_MASK}="preserve"`, 'xml:space="preserve"');
+
+    // Verify the invariant instead of trusting the transform. This also catches
+    // a mask that failed to restore, since the leftover attribute would have to
+    // survive a document that no longer round-trips.
+    if (renderedText(restored) !== renderedText(xml) || restored.includes(XML_SPACE_MASK)) {
+      console.warn('[formatXml] formatting would have changed rendered text; left the document unchanged');
+      return xml;
+    }
+    if (tagSequence(restored) !== tagSequence(xml)) {
+      console.warn('[formatXml] formatting would have added or removed elements; left the document unchanged');
+      return xml;
+    }
+    return restored;
+  } catch (err) {
+    // Return unformatted if xml-formatter can't parse it — a text editor sees
+    // half-typed documents constantly, and refusing to mangle them matters more
+    // than formatting them.
+    //
+    // Say so, though. Swallowing this silently is how formatting could fail on
+    // every real document without anyone noticing: the input came back
+    // unchanged, which is indistinguishable from "already formatted".
+    console.warn('[formatXml] could not format; leaving the document unchanged', err);
     return xml;
   }
 }
@@ -110,7 +203,7 @@ export function findElementAtOffset(svgCode: string, offset: number) {
   while ((m = openRegex.exec(svgCode)) !== null) {
     // Skip closing tags (matched by accident) - the regex only matches opening
     if (svgCode[m.index - 1] === '/') continue;
-    
+
     const tagStart = m.index;
     const tagName = m[1];
     const domEl = domElements[domIdx];

@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase/auth';
-import { buildSvgContext, executeReadTool, applyLineEditBatches, summarizeLineEdits, type LineEdit, type LineEditOutcome } from './svg-ai';
+import { buildSvgContext, executeReadTool, applyLineEdits, applyLineEditBatches, summarizeLineEdits, type LineEdit, type LineEditOutcome } from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
@@ -146,7 +146,12 @@ export interface ReadToolCall {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function describeEditArgs(name: string, args: any): Record<string, unknown> {
   if (name === 'replace_lines') {
-    const edits = (args?.edits ?? []) as Array<{ start?: number; end?: number }>;
+    // Accept the legacy single-range shape too — it is deliberately still
+    // applied, so logging it as "0 edits" would misreport a call that worked.
+    const edits = (Array.isArray(args?.edits)
+      ? args.edits
+      : typeof args?.start === 'number' ? [{ start: args.start, end: args.end }] : []
+    ) as Array<{ start?: number; end?: number }>;
     const ranges = edits.map((e) => (e.start === e.end ? `${e.start}` : `${e.start}-${e.end}`));
     return {
       edits: edits.length,
@@ -338,30 +343,30 @@ export async function sendChatRequest(
         if (iconsRejected) {
           result = 'User already rejected icon results. Use generate_image to create a custom icon instead.';
         } else {
-        const excludeNames: string[] = [];
-        let picked = false;
-        while (!picked) {
-          const { icons, error } = await fetchIcons(args.query, args.style, args.noAttribution ?? true, args.palette ?? 'any', signal, excludeNames);
-          if (error || icons.length === 0) {
-            result = error ?? 'No icons found.';
-            picked = true;
-          } else if (onIconPick) {
-            const selected = await onIconPick(icons);
-            if (selected === 'none') {
-              result = 'User rejected all icon results and wants a custom generated icon instead. Use generate_image to create the icon.';
-              iconsRejected = true;
+          const excludeNames: string[] = [];
+          let picked = false;
+          while (!picked) {
+            const { icons, error } = await fetchIcons(args.query, args.style, args.noAttribution ?? true, args.palette ?? 'any', signal, excludeNames);
+            if (error || icons.length === 0) {
+              result = error ?? 'No icons found.';
               picked = true;
-            } else if (selected === 'more') {
-              excludeNames.push(...icons.map(i => i.name));
+            } else if (onIconPick) {
+              const selected = await onIconPick(icons);
+              if (selected === 'none') {
+                result = 'User rejected all icon results and wants a custom generated icon instead. Use generate_image to create the icon.';
+                iconsRejected = true;
+                picked = true;
+              } else if (selected === 'more') {
+                excludeNames.push(...icons.map(i => i.name));
+              } else {
+                result = formatIconForModel(selected);
+                picked = true;
+              }
             } else {
-              result = formatIconForModel(selected);
+              result = formatIconForModel(icons[0]);
               picked = true;
             }
-          } else {
-            result = formatIconForModel(icons[0]);
-            picked = true;
           }
-        }
         }
       } else if (call.name === 'get_element_bounds') {
         result = getElementBounds(normalizedSvg, args.selector);
@@ -406,6 +411,10 @@ export async function sendChatRequest(
   // the second call's line numbers by however much the first one grew or shrank
   // the file.
   const editPlan = planResponseLineEdits(normalizedSvg, response.output);
+  // Whether the whole document has actually been rewritten this response. The
+  // planner stops at calls that COULD rewrite it; only this says one DID, and
+  // the difference decides whether later line numbers are stale or fine.
+  let documentReplaced = false;
 
   // Track running SVG state so multiple tool calls chain correctly
   let runningSvg = normalizedSvg;
@@ -447,10 +456,25 @@ export async function sendChatRequest(
       let toolOutput = 'OK';
       if (item.name === 'replace_lines') {
         const planned = editPlan.get(item.call_id!);
-        if (!planned) {
-          // Only reachable when this call follows a whole-document rewrite, where
-          // its line numbers no longer describe anything.
+        if (!planned && documentReplaced) {
+          // The document really was rewritten earlier in this response, so these
+          // line numbers no longer describe anything.
+          args.notExecuted = true;
+          args.failedOperations = ['the document was replaced earlier in this response'];
           toolOutput = 'Not executed: the document was replaced earlier in this response, so these line numbers are stale. Re-read it and re-issue.';
+        } else if (!planned) {
+          // The planner stops at any image call, but the loop may never execute
+          // one — an unconfirmed image, or modify_image with no PNG to modify.
+          // Nothing was replaced, so claiming otherwise would drop good edits and
+          // tell the model something untrue. Apply against the current document.
+          const { svg, outcomes } = applyLineEdits(runningSvg, Array.isArray(args.edits)
+            ? args.edits
+            : typeof args.start === 'number' ? [{ start: args.start, end: args.end, content: args.content }] : []);
+          args.svg = svg;
+          runningSvg = svg;
+          const problems = outcomes.filter((o) => o.status !== 'applied');
+          if (problems.length) args.failedOperations = problems.map((o) => `${o.label}: ${o.detail}`);
+          toolOutput = summarizeLineEdits(outcomes);
         } else {
           args.svg = planned.svg;
           runningSvg = planned.svg;
@@ -460,6 +484,7 @@ export async function sendChatRequest(
         }
       } else if (item.name === 'replace_svg') {
         runningSvg = args.svg;
+        documentReplaced = true;
       } else if (item.name === 'generate_image') {
         onProgress?.('generating-image');
         let result;
@@ -472,10 +497,14 @@ export async function sendChatRequest(
         args.svg = result.svg;
         args.pngDataUrl = result.pngDataUrl;
         runningSvg = result.svg;
+        documentReplaced = true;
         latestCredits = result.credits;
         currentPngDataUrl = result.pngDataUrl;
       } else if (item.name === 'modify_image') {
         if (!currentPngDataUrl) {
+          // Same reason as the refused line edit: without this the call would
+          // render as "Accepted" despite doing nothing.
+          args.notExecuted = true;
           toolOutput = 'Error: No previously generated image available to modify. Use generate_image to create a new image first.';
         } else {
           onProgress?.('modifying-image');
@@ -489,6 +518,7 @@ export async function sendChatRequest(
           args.svg = result.svg;
           args.pngDataUrl = result.pngDataUrl;
           runningSvg = result.svg;
+          documentReplaced = true;
           latestCredits = result.credits;
           currentPngDataUrl = result.pngDataUrl;
         }

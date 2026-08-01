@@ -369,7 +369,13 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         content: response.message,
         toolCalls: response.toolCalls?.map(tc => ({
           ...tc,
-          status: tc.arguments.svg ? 'pending' as const : 'accepted' as const,
+          // A call that produced no SVG is normally one that needs no approval
+          // (an image tool that already ran). A call the client REFUSED also has
+          // no SVG, and used to fall through to the same branch — so an edit
+          // that changed nothing rendered with a green "Accepted" badge.
+          status: tc.arguments.svg
+            ? 'pending' as const
+            : tc.arguments.notExecuted ? 'rejected' as const : 'accepted' as const,
         })),
         rawItems: [
           { role: 'user', content: text },
