@@ -1,6 +1,7 @@
 import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
+import { EditorPlaceholder } from './EditorPlaceholder';
 import { registerSvgProviders } from '../lib/completion-provider';
 import { formatXml, findElementAtOffset } from '../lib/svg-utils';
 import { getElementBounds } from '../lib/svg-bounds';
@@ -109,14 +110,21 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
     editorRef.current?.updateOptions({ readOnly });
   }, [readOnly]);
 
+  // Resolved once: the placeholder has to default the same way the editor does,
+  // or omitting the prop hands you a light stand-in followed by a dark editor —
+  // the very flash the placeholder exists to avoid.
+  const resolvedTheme = theme || 'vs-dark';
+
   return (
     <MonacoEditor
       height="100%"
       language="xml"
-      theme={theme || 'vs-dark'}
+      theme={resolvedTheme}
       value={value}
       onChange={(v) => onChange(v ?? '')}
       onMount={handleMount}
+      // Replaces the default "Loading..." label — see EditorPlaceholder.
+      loading={<EditorPlaceholder value={value} theme={resolvedTheme} />}
       options={{
         automaticLayout: true,
         tabSize: 2,
