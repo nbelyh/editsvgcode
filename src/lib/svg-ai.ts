@@ -133,40 +133,141 @@ export function executeReadTool(
   return null;
 }
 
-/**
- * Apply find_replace operations to the SVG, returning the result and any failed operations.
- */
-export function applyEditSvg(
-  currentSvg: string,
-  operations: Array<{ find: string; replace: string; replaceAll?: boolean }>
-): { svg: string; failed: string[] } {
-  let svg = normalize(currentSvg);
-  const failed: string[] = [];
-  for (const op of operations) {
-    const find = normalize(op.find);
-    const replace = normalize(op.replace);
-    if (svg.includes(find)) {
-      svg = op.replaceAll ? svg.split(find).join(replace) : svg.replace(find, replace);
-    } else {
-      failed.push(find.length > 60 ? find.substring(0, 60) + '…' : find);
-    }
-  }
-  return { svg, failed };
+/** One line-range replacement. `content` is the full new text for the range. */
+export interface LineEdit {
+  start: number;
+  end: number;
+  content: string;
+}
+
+/** What became of one requested edit, reported back to the model. */
+export interface LineEditOutcome {
+  label: string;
+  status: 'applied' | 'failed' | 'conflict';
+  detail?: string;
 }
 
 /**
- * Apply replace_lines: replace lines [start..end] (1-based, inclusive) with new content.
+ * Apply a batch of line-range replacements.
+ *
+ * Line numbers are the only way edits are addressed. Searching for text to
+ * replace could never say *which* occurrence was meant without the model
+ * knowing something about the whole document — a count, or a uniqueness
+ * guarantee — and obtaining that costs a round trip per edit. A line number is
+ * different: the model reads it straight off the numbered context or a search
+ * result, so a hundred edits need no more lookups than one.
+ *
+ * Every range refers to the document as the model was shown it. Edits are
+ * validated against that snapshot and then applied HIGHEST LINE FIRST, so an
+ * edit that changes the line count cannot shift the target of any edit still to
+ * come. Applying them in the given order against a document that each edit
+ * mutates is what used to make a batch invalidate itself.
+ *
+ * Overlapping ranges are a contradiction in the request, not something to merge:
+ * the first is applied and the rest are reported.
  */
-export function applyReplaceLines(
+export function applyLineEdits(
   currentSvg: string,
-  start: number,
-  end: number,
-  content: string
-): string {
-  const svg = normalize(currentSvg);
-  const lines = svg.split('\n');
-  const before = lines.slice(0, start - 1);
-  const after = lines.slice(end);
-  const newContent = content ? content.split('\n') : [];
-  return [...before, ...newContent, ...after].join('\n');
+  edits: LineEdit[],
+): { svg: string; outcomes: LineEditOutcome[] } {
+  const lines = normalize(currentSvg).split('\n');
+  const total = lines.length;
+  const outcomes: LineEditOutcome[] = [];
+  const accepted: LineEdit[] = [];
+
+  for (const edit of edits) {
+    const start = Number(edit.start);
+    const end = Number(edit.end);
+    const label = start === end ? `line ${start}` : `lines ${start}-${end}`;
+
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+      outcomes.push({ label, status: 'failed', detail: 'not a valid line range' });
+      continue;
+    }
+    if (start > total) {
+      outcomes.push({ label, status: 'failed', detail: `the document has only ${total} lines` });
+      continue;
+    }
+    // Deleting a range is spelled with an explicit empty string. Treating a
+    // MISSING content as "" would turn a malformed edit — one the model got cut
+    // off writing, or an older client's shape — into a silent range deletion
+    // reported as success. Destructive and invisible is the worst pair.
+    if (typeof edit.content !== 'string') {
+      outcomes.push({ label, status: 'failed', detail: 'no "content" given; use an empty string to delete the range' });
+      continue;
+    }
+    const clash = accepted.find((a) => start <= a.end && a.start <= end);
+    if (clash) {
+      outcomes.push({
+        label,
+        status: 'conflict',
+        detail: `overlaps the earlier edit to lines ${clash.start}-${clash.end}; this one was skipped`,
+      });
+      continue;
+    }
+    accepted.push({ start, end: Math.min(end, total), content: edit.content });
+    outcomes.push({ label, status: 'applied' });
+  }
+
+  for (const e of [...accepted].sort((a, b) => b.start - a.start)) {
+    const replacement = e.content === '' ? [] : normalize(e.content).split('\n');
+    lines.splice(e.start - 1, e.end - e.start + 1, ...replacement);
+  }
+
+  return { svg: lines.join('\n'), outcomes };
+}
+
+/**
+ * Apply several batches — one per replace_lines call in a single model response
+ * — that all address the same snapshot.
+ *
+ * This is the cross-call half of the same defect. The model writes every call in
+ * a response against the document it was SHOWN, not against the result of its
+ * own earlier call, and it is explicitly told to split large jobs this way.
+ * Feeding each call the previous call's output therefore shifted every line
+ * number in the second call by however much the first one grew or shrank the
+ * document — silently editing the wrong lines.
+ *
+ * `svgAfter[i]` is the document once batches 0..i have landed, which is what
+ * each proposal needs to show.
+ */
+export function applyLineEditBatches(
+  currentSvg: string,
+  batches: LineEdit[][],
+): { svgAfter: string[]; outcomes: LineEditOutcome[][]; final: string } {
+  const snapshot = normalize(currentSvg);
+  const flat: LineEdit[] = [];
+  const ends: number[] = [];
+  for (const batch of batches) {
+    flat.push(...batch);
+    ends.push(flat.length);
+  }
+  // One pass over the whole response decides every outcome, so a range in call 2
+  // that collides with one in call 1 is reported as a conflict rather than
+  // quietly compounding.
+  const all = applyLineEdits(snapshot, flat);
+
+  const svgAfter = ends.map((end) => applyLineEdits(snapshot, flat.slice(0, end)).svg);
+  const outcomes = batches.map((_, i) => all.outcomes.slice(i === 0 ? 0 : ends[i - 1], ends[i]));
+  return { svgAfter, outcomes, final: svgAfter[svgAfter.length - 1] ?? snapshot };
+}
+
+/**
+ * The tool result the model sees. A bare count of failures left it re-issuing
+ * the same broken edits, so each problem names its range and says what is wrong.
+ */
+export function summarizeLineEdits(outcomes: LineEditOutcome[]): string {
+  // "applied 0 edit(s)" reads as success while nothing happened. The likely
+  // cause is an "edits" array that never arrived — a call written against a
+  // different schema than this client expects — and the model needs to be told
+  // that, not congratulated.
+  if (outcomes.length === 0) {
+    return 'Nothing was changed: this call carried no edits. Each edit needs "start", "end" and "content" inside the "edits" array.';
+  }
+  const bad = outcomes.filter((o) => o.status !== 'applied');
+  if (bad.length === 0) return `OK — applied ${outcomes.length} edit(s).`;
+  return [
+    `Applied ${outcomes.length - bad.length} of ${outcomes.length} edit(s); the rest changed nothing.`,
+    ...bad.map((o) => `- ${o.status.toUpperCase()} ${o.label}: ${o.detail}`),
+  ].join('\n');
 }

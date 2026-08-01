@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase/auth';
-import { buildSvgContext, executeReadTool, applyEditSvg, applyReplaceLines } from './svg-ai';
+import { buildSvgContext, executeReadTool, applyLineEditBatches, summarizeLineEdits, type LineEdit, type LineEditOutcome } from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
@@ -127,11 +127,89 @@ export type ProgressStatus =
 
 export type { IconResult };
 
-/** Intermediate read-only tool call surfaced in the UI. */
+/**
+ * A tool call surfaced in the UI's tool list. Named for its original use
+ * (read-only lookups) and kept as-is because the field is persisted with every
+ * stored chat; edit calls now appear here too, summarized.
+ */
 export interface ReadToolCall {
   name: string;
   args: Record<string, unknown>;
   result: string;
+}
+
+/**
+ * A compact stand-in for an edit call's arguments — the line ranges it touched,
+ * not their contents. Enough to see what a call did without carrying the
+ * document into the chat history.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function describeEditArgs(name: string, args: any): Record<string, unknown> {
+  if (name === 'replace_lines') {
+    const edits = (args?.edits ?? []) as Array<{ start?: number; end?: number }>;
+    const ranges = edits.map((e) => (e.start === e.end ? `${e.start}` : `${e.start}-${e.end}`));
+    return {
+      edits: edits.length,
+      // Long batches would otherwise print a wall of numbers in the toggle.
+      lines: ranges.length > 12 ? `${ranges.slice(0, 12).join(', ')}, … (+${ranges.length - 12} more)` : ranges.join(', '),
+    };
+  }
+  if (name === 'replace_svg') {
+    return { replacedWholeDocument: true, size: `${Math.round(String(args?.svg ?? '').length / 1024)} KB` };
+  }
+  if (name === 'generate_image' || name === 'modify_image') {
+    return { prompt: String(args?.prompt ?? '').slice(0, 200) };
+  }
+  return {};
+}
+
+/**
+ * Read the edit calls out of one response and resolve them all against the same
+ * snapshot, keyed by call_id.
+ *
+ * A whole-document rewrite ends the run: after replace_svg or an image tool the
+ * snapshot no longer describes the text, so later line numbers mean nothing and
+ * are deliberately left unplanned rather than applied to something the model
+ * never saw.
+ */
+function planResponseLineEdits(
+  snapshot: string,
+  output: ServerResponse['output'],
+): Map<string, { svg: string; outcomes: LineEditOutcome[] }> {
+  const ids: string[] = [];
+  const batches: LineEdit[][] = [];
+
+  for (const item of output) {
+    if (item.type !== 'function_call') continue;
+    if (item.name === 'replace_svg' || item.name === 'generate_image' || item.name === 'modify_image') break;
+    if (item.name !== 'replace_lines') continue;
+
+    let parsed: { edits?: unknown; start?: unknown; end?: unknown; content?: unknown };
+    try {
+      parsed = JSON.parse(item.arguments ?? '{}');
+    } catch {
+      continue; // truncated arguments are reported by the normal tool path
+    }
+
+    if (Array.isArray(parsed.edits)) {
+      batches.push(parsed.edits as LineEdit[]);
+    } else if (typeof parsed.start === 'number') {
+      // The single-range shape this tool used to take. The two repos deploy
+      // separately, so a browser running the new client can be talking to an API
+      // still advertising the old schema; accepting both means the deploy order
+      // cannot silently turn every edit into a no-op.
+      batches.push([{ start: parsed.start as number, end: parsed.end as number, content: parsed.content as string }]);
+    } else {
+      batches.push([]);
+    }
+    ids.push(item.call_id!);
+  }
+
+  const out = new Map<string, { svg: string; outcomes: LineEditOutcome[] }>();
+  if (ids.length === 0) return out;
+  const { svgAfter, outcomes } = applyLineEditBatches(snapshot, batches);
+  ids.forEach((id, i) => out.set(id, { svg: svgAfter[i], outcomes: outcomes[i] }));
+  return out;
 }
 
 export async function sendChatRequest(
@@ -173,7 +251,7 @@ export async function sendChatRequest(
       : []),
     // When a previously generated image exists, tell the model so it knows modify_image is available
     ...(lastPngDataUrl
-      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was generated from an AI image (generate_image or modify_image was used earlier in this conversation). A source PNG is available for further editing. If the user asks to change, add, or remove visual elements in this image, strongly prefer the modify_image tool — the vectorized SVG paths are auto-generated and very hard to edit by hand. Only use find_replace/replace_lines for trivial attribute changes (e.g. width/height, opacity, transforms) that don\'t alter the image content itself.' }]
+      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was generated from an AI image (generate_image or modify_image was used earlier in this conversation). A source PNG is available for further editing. If the user asks to change, add, or remove visual elements in this image, strongly prefer the modify_image tool — the vectorized SVG paths are auto-generated and very hard to edit by hand. Only use replace_lines for trivial attribute changes (e.g. width/height, opacity, transforms) that don\'t alter the image content itself.' }]
       : []),
     { role: 'developer', content: svgContext },
     { role: 'user', content: userText },
@@ -213,7 +291,7 @@ export async function sendChatRequest(
           // User declined — send rejection back and ask model to use SVG tools
           allRawOutput.push(...response.output);
           const rejectionMsg = genImageCall.name === 'modify_image'
-            ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (find_replace, replace_lines, or replace_svg) instead.'
+            ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (replace_lines or replace_svg) instead.'
             : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
           allRawOutput.push({
             type: 'function_call_output',
@@ -320,6 +398,15 @@ export async function sendChatRequest(
   const toolCalls: ChatToolCall[] = [];
   let latestCredits: Credits = response.credits;
 
+  // Every line number the model wrote in this response refers to the document it
+  // was SHOWN — not to the result of its own earlier call in the same response,
+  // which is exactly how it is told to split large jobs. So all the edit calls
+  // are resolved together against that one snapshot before any of them is
+  // applied; resolving them one at a time against a mutating document shifted
+  // the second call's line numbers by however much the first one grew or shrank
+  // the file.
+  const editPlan = planResponseLineEdits(normalizedSvg, response.output);
+
   // Track running SVG state so multiple tool calls chain correctly
   let runningSvg = normalizedSvg;
   // Track the latest generated PNG for modify_image chaining within a single turn
@@ -332,7 +419,7 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'find_replace' || item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image' || item.name === 'modify_image')) {
+    } else if (item.type === 'function_call' && (item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image' || item.name === 'modify_image')) {
       if ((item.name === 'generate_image' || item.name === 'modify_image') && onImageConfirm && !imageApproved) {
         // Image call that never passed the confirmation gate (budget exit with
         // a mixed response) — answer it without executing so no credits are
@@ -340,19 +427,37 @@ export async function sendChatRequest(
         allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: 'Not executed: image generation requires user confirmation and the tool-call limit for this turn was reached.' });
         continue;
       }
-      const args = JSON.parse(item.arguments!);
+      // A tool call whose arguments are cut off mid-string is not a parse bug to
+      // propagate — it means the model ran out of output budget while writing
+      // them. Throwing here lost the whole turn, including any calls that were
+      // complete. Answer this one call and carry on.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let args: any;
+      try {
+        args = JSON.parse(item.arguments!);
+      } catch {
+        const explanation = 'Not executed: the arguments to this call were cut off before they were complete, so nothing was changed. You ran out of room. Split the work into several smaller calls — each with fewer edits — rather than one large one.';
+        allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: explanation });
+        // Leave a visible trace. Skipping straight to the next item produced no
+        // proposal and no tool-list entry, so a response whose only call was
+        // truncated rendered as an empty assistant bubble with a credit spent.
+        onToolCall?.({ name: item.name, args: { truncated: true }, result: explanation });
+        continue;
+      }
       let toolOutput = 'OK';
-      if (item.name === 'find_replace') {
-        const { svg, failed } = applyEditSvg(runningSvg, args.operations);
-        args.svg = svg;
-        runningSvg = svg;
-        if (failed.length) {
-          args.failedOperations = failed;
-          toolOutput = `Applied with ${failed.length} failed operation(s)`;
+      if (item.name === 'replace_lines') {
+        const planned = editPlan.get(item.call_id!);
+        if (!planned) {
+          // Only reachable when this call follows a whole-document rewrite, where
+          // its line numbers no longer describe anything.
+          toolOutput = 'Not executed: the document was replaced earlier in this response, so these line numbers are stale. Re-read it and re-issue.';
+        } else {
+          args.svg = planned.svg;
+          runningSvg = planned.svg;
+          const problems = planned.outcomes.filter((o) => o.status !== 'applied');
+          if (problems.length) args.failedOperations = problems.map((o) => `${o.label}: ${o.detail}`);
+          toolOutput = summarizeLineEdits(planned.outcomes);
         }
-      } else if (item.name === 'replace_lines') {
-        args.svg = applyReplaceLines(runningSvg, args.start, args.end, args.content);
-        runningSvg = args.svg;
       } else if (item.name === 'replace_svg') {
         runningSvg = args.svg;
       } else if (item.name === 'generate_image') {
@@ -389,6 +494,12 @@ export async function sendChatRequest(
         }
       }
       toolCalls.push({ name: item.name, arguments: args });
+      // Surface the edit alongside the read calls, so the tool list shows the
+      // whole turn rather than only the lookups. Deliberately a SUMMARY, never
+      // the arguments: this list is persisted with the chat, and one
+      // replace_lines call can carry hundreds of full lines — storing those
+      // would duplicate the document into every message.
+      onToolCall?.({ name: item.name, args: describeEditArgs(item.name, args), result: toolOutput });
       // Add function_call_output so the API sees completed tool calls on replay
       allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: toolOutput });
     }

@@ -160,9 +160,9 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
   return (
     <div className="aui-proposal" style={{ marginBottom: 2 }}>
       <div className="aui-proposal-header">
-        {tc.name === 'find_replace' ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
+        {tc.name === 'replace_lines' ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">
-          {(tc.arguments.summary as string) || (tc.name === 'find_replace' ? 'Find & replace' : tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
+          {(tc.arguments.summary as string) || (tc.name === 'replace_lines' ? 'Edit lines' : tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
         </span>
       </div>
       {pngDataUrl && tc.status === 'pending' && (
