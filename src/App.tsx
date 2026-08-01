@@ -98,7 +98,9 @@ export default function App() {
       <AppShell.Header className="app-chrome">
         <Group h="100%" px="sm" justify="space-between">
           <Group gap="sm">
-            <img src="/editsvgcode-logo.svg" alt="Logo" height={28} />
+            {/* width too: without it the box is 0px wide until the SVG decodes,
+                and the title beside it shifts. */}
+            <img src="/editsvgcode-logo.svg" alt="Logo" width={28} height={28} />
             <Text fw={700} size="lg" c="inherit" component="a" href="/" className="app-header-title" visibleFrom="sm">Online SVG Code Editor</Text>
             <Text fw={700} size="lg" c="inherit" component="a" href="/" className="app-header-title" hiddenFrom="sm">SVG Code Editor</Text>
             <Group gap="sm" ml="lg" visibleFrom="sm">
