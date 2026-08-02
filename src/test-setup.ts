@@ -1,4 +1,17 @@
-import '@testing-library/jest-dom/vitest';
+/// <reference types="@testing-library/jest-dom/vitest" />
+import { expect } from 'vitest';
+import * as jestDomMatchers from '@testing-library/jest-dom/matchers';
+
+// Register the matchers against THIS vitest instance rather than importing
+// '@testing-library/jest-dom/vitest', whose entry is CJS and does its own
+// `require('vitest')`. Vite's dep optimizer picks the require condition
+// depending on cache state, and when it does, that `require` yields a second,
+// half-initialized vitest module: `expect` exists but its chai binding does
+// not, so `expect.extend` dies with "Cannot read properties of undefined
+// (reading 'config')" — in the SETUP file, which fails every test file at once
+// while any single file run on its own passes. That is what made it look
+// random rather than broken.
+expect.extend(jestDomMatchers);
 
 // Runtime config normally arrives from /config.js before the bundle, so modules
 // that read it at import time (api-client, firebase) explode in jsdom without a
