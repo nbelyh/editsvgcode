@@ -132,9 +132,16 @@ export function validateSvg(source: string): SvgValidity {
   }
   const error = doc.querySelector('parsererror');
   if (error) {
-    // Browsers phrase this differently; whatever they say usually names the
-    // line, which is exactly what the model needs to go and fix it.
-    return { valid: false, message: (error.textContent ?? 'not well-formed XML').trim().replace(/\s+/g, ' ').slice(0, 300) };
+    // Browsers wrap the useful sentence in boilerplate ("This page contains the
+    // following errors… Below is a rendering of the page up to the first
+    // error."). Keep the part that names the position, since that is what the
+    // model needs to go and fix it.
+    const raw = (error.textContent ?? '').trim().replace(/\s+/g, ' ');
+    const specific = /error on line \d+ at column \d+:[^]*?(?= Below is a rendering|$)/i.exec(raw);
+    return {
+      valid: false,
+      message: (specific ? specific[0] : raw || 'not well-formed XML').trim().slice(0, 300),
+    };
   }
   if (!doc.documentElement) return { valid: false, message: 'no root element' };
   return { valid: true, doc };

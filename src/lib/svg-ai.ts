@@ -1,3 +1,5 @@
+import { validateSvg, resolveSelector, isSelectorError, describeMatches } from './svg-dom';
+
 /**
  * Client-side AI utilities: context budgeting, read-tool execution, edit application.
  * All SVG processing stays on the client — the server never receives the full SVG.
@@ -113,6 +115,35 @@ export function executeReadTool(
     if (start > lines.length) return `No content — SVG has only ${lines.length} lines.`;
     const slice = lines.slice(start - 1, end);
     return numberLines(slice, start - 1);
+  }
+
+  if (toolName === 'query') {
+    const selector = String(args.query ?? args.selector ?? '');
+    const limit = typeof args.limit === 'number' && args.limit > 0 ? args.limit : 200;
+    const validity = validateSvg(currentSvg);
+    if (!validity.doc) {
+      // Routine while the user is mid-keystroke. Say which tools still work
+      // rather than leaving the model to discover it by failing.
+      return `The document is not valid XML right now (${validity.message}), so elements cannot be addressed. Use search_svg and read_svg_lines to look around, and replace_lines to edit, until it parses.`;
+    }
+    const found = resolveSelector(validity.doc, selector);
+    if (isSelectorError(found)) return `Error: ${found.error}`;
+    if (found.length === 0) {
+      return `Nothing matched "${selector}". Paths start with "/" and name one element (/svg[1]/g[3]/text[1]); anything else is a CSS selector (.st1, #logo, text).`;
+    }
+    const shown = describeMatches(currentSvg, validity.doc, found.slice(0, limit));
+    const rows = shown.map((m) => {
+      const bits = [m.path, `<${m.tag}>`];
+      if (m.id) bits.push(`id=${JSON.stringify(m.id)}`);
+      if (m.className) bits.push(`class=${JSON.stringify(m.className)}`);
+      if (m.line !== undefined) bits.push(`line ${m.line}`);
+      if (m.text !== undefined) bits.push(`text=${JSON.stringify(m.text)}`);
+      return '  ' + bits.join('  ');
+    });
+    const header = found.length > shown.length
+      ? `${found.length} element(s) matched "${selector}"; showing the first ${shown.length}.`
+      : `${found.length} element(s) matched "${selector}".`;
+    return [header, ...rows].join('\n');
   }
 
   if (toolName === 'search_svg') {

@@ -281,7 +281,7 @@ export async function sendChatRequest(
   let imageApproved = false; // user confirmed the image call in the final response
   for (let round = 0; ; round++) {
     const readCalls = response.output.filter(
-      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'search_icons' || item.name === 'get_element_bounds')
+      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds')
     );
 
     if (readCalls.length === 0) {
