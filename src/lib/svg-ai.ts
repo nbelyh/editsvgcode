@@ -217,6 +217,73 @@ export function applyLineEdits(
   return { svg: lines.join('\n'), outcomes };
 }
 
+/** A replacement of an exact span of the source. */
+export interface SourceRange {
+  start: number;
+  end: number;
+  replacement: string;
+}
+
+/**
+ * Splice ranges in, highest offset first so none of them shift each other.
+ *
+ * Shared by every addressing mode — line numbers, element paths, selectors —
+ * because they only differ in how a target is NAMED. Once resolved to a span of
+ * the snapshot they are the same thing, which is what lets a response mix them
+ * and still be checked for conflicts as one set.
+ */
+export function applyRanges(source: string, ranges: SourceRange[]): string {
+  let out = source;
+  for (const r of [...ranges].sort((a, b) => b.start - a.start)) {
+    out = out.slice(0, r.start) + r.replacement + out.slice(r.end);
+  }
+  return out;
+}
+
+/** Ranges that overlap an earlier one, so a caller can report instead of
+ * compounding them. Returns the indices of the losers, earliest wins. */
+export function conflictingRanges(ranges: SourceRange[]): number[] {
+  const losers: number[] = [];
+  const kept: SourceRange[] = [];
+  ranges.forEach((r, i) => {
+    if (kept.some((k) => r.start < k.end && k.start < r.end)) losers.push(i);
+    else kept.push(r);
+  });
+  return losers;
+}
+
+/**
+ * The same line edits as `applyLineEdits`, expressed as source ranges so they
+ * can be merged with structurally-addressed edits before anything is written.
+ */
+export function lineEditsToRanges(
+  currentSvg: string,
+  edits: LineEdit[],
+): { ranges: SourceRange[]; outcomes: LineEditOutcome[] } {
+  const source = normalize(currentSvg);
+  const lines = source.split('\n');
+  const starts: number[] = [];
+  let at = 0;
+  for (const line of lines) {
+    starts.push(at);
+    at += line.length + 1;
+  }
+
+  // Reuse the validation and conflict rules rather than restating them.
+  const { outcomes } = applyLineEdits(source, edits);
+  const ranges: SourceRange[] = [];
+  edits.forEach((edit, i) => {
+    if (outcomes[i]?.status !== 'applied') return;
+    const start = Number(edit.start);
+    const end = Math.min(Number(edit.end), lines.length);
+    const from = starts[start - 1];
+    const to = end < lines.length ? starts[end] : source.length;
+    const replacement = edit.content === '' ? '' : normalize(edit.content) + (end < lines.length ? '\n' : '');
+    ranges.push({ start: from, end: to, replacement });
+  });
+  return { ranges, outcomes };
+}
+
 /**
  * Apply several batches — one per replace_lines call in a single model response
  * — that all address the same snapshot.

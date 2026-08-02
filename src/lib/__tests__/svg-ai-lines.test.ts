@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { applyLineEdits, applyLineEditBatches, summarizeLineEdits } from '../svg-ai';
+import {
+  applyLineEdits, applyLineEditBatches, summarizeLineEdits,
+  lineEditsToRanges, applyRanges, conflictingRanges, type LineEdit,
+} from '../svg-ai';
 
 const doc = 'a\nb\nc\nd\ne';
 
@@ -200,5 +203,47 @@ describe('summarizeLineEdits', () => {
     const s = summarizeLineEdits(outcomes);
     expect(s).toContain('Applied 1 of 2 edit(s)');
     expect(s).toContain('FAILED line 99');
+  });
+});
+
+describe('lineEditsToRanges — line edits as source ranges', () => {
+  it('produces ranges that apply identically to applyLineEdits', () => {
+    const cases: LineEdit[][] = [
+      [{ start: 2, end: 2, content: 'B' }],
+      [{ start: 2, end: 2, content: 'B1\nB2\nB3' }, { start: 4, end: 4, content: 'D' }],
+      [{ start: 2, end: 3, content: '' }],
+      [{ start: 5, end: 5, content: 'E' }],
+      [{ start: 1, end: 1, content: 'A' }, { start: 3, end: 3, content: 'C' }, { start: 5, end: 5, content: 'E' }],
+      [{ start: 2, end: 99, content: 'X' }],
+    ];
+    for (const edits of cases) {
+      const viaLines = applyLineEdits(doc, edits).svg;
+      const { ranges } = lineEditsToRanges(doc, edits);
+      expect(applyRanges(doc, ranges)).toBe(viaLines);
+    }
+  });
+
+  it('carries the same outcomes, including refusals', () => {
+    const edits: LineEdit[] = [
+      { start: 1, end: 1, content: 'A' },
+      { start: 99, end: 99, content: 'nope' },
+    ];
+    const { ranges, outcomes } = lineEditsToRanges(doc, edits);
+    expect(outcomes.map((o) => o.status)).toEqual(['applied', 'failed']);
+    expect(ranges).toHaveLength(1);
+  });
+
+  it('lets a line edit and a structural edit be conflict-checked together', () => {
+    const { ranges } = lineEditsToRanges(doc, [{ start: 2, end: 2, content: 'B' }]);
+    const overlapping = [...ranges, { start: ranges[0].start + 1, end: ranges[0].end, replacement: 'x' }];
+    expect(conflictingRanges(overlapping)).toEqual([1]);
+  });
+
+  it('reports no conflict for disjoint ranges', () => {
+    const { ranges } = lineEditsToRanges(doc, [
+      { start: 1, end: 1, content: 'A' },
+      { start: 3, end: 3, content: 'C' },
+    ]);
+    expect(conflictingRanges(ranges)).toEqual([]);
   });
 });
