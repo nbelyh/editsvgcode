@@ -3,6 +3,7 @@
  */
 
 import xmlFormat from 'xml-formatter';
+import { pathOf as computeXPath } from './svg-dom';
 
 /** Extract document ID from the URL pathname (first segment after '/') */
 export function getUniqueId(): string {
@@ -254,20 +255,11 @@ export function findElementAtOffset(svgCode: string, offset: number) {
   };
 }
 
-/** Compute a positional xpath for an element, e.g. "/svg[1]/g[1]/path[3]" */
-export function computeXPath(el: Element): string {
-  const parts: string[] = [];
-  let current: Element | null = el;
-  while (current && current.nodeType === 1) {
-    const tag = current.tagName.toLowerCase();
-    let index = 1;
-    let sibling = current.previousElementSibling;
-    while (sibling) {
-      if (sibling.tagName.toLowerCase() === tag) index++;
-      sibling = sibling.previousElementSibling;
-    }
-    parts.unshift(`${tag}[${index}]`);
-    current = current.parentElement;
-  }
-  return '/' + parts.join('/');
-}
+/**
+ * Compute a positional xpath for an element, e.g. "/svg[1]/g[1]/path[3]".
+ *
+ * One implementation, in the addressing module: click-to-select emits this and
+ * the edit tools resolve it, so if the two ever disagreed the editor and the
+ * model would be naming different elements by the same string.
+ */
+export { computeXPath };

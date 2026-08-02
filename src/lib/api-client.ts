@@ -1,5 +1,9 @@
 import { getAuth } from 'firebase/auth';
-import { buildSvgContext, executeReadTool, applyLineEdits, applyLineEditBatches, summarizeLineEdits, type LineEdit, type LineEditOutcome } from './svg-ai';
+import {
+  buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned,
+  planStructuralEdits, isStructuralEditTool, summarizeEdits,
+  type LineEdit, type LineEditOutcome, type PlannedEdit,
+} from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
@@ -159,6 +163,14 @@ function describeEditArgs(name: string, args: any): Record<string, unknown> {
       lines: ranges.length > 12 ? `${ranges.slice(0, 12).join(', ')}, … (+${ranges.length - 12} more)` : ranges.join(', '),
     };
   }
+  if (isStructuralEditTool(name)) {
+    const edits = (Array.isArray(args?.edits) ? args.edits : []) as Array<{ selector?: string; name?: string }>;
+    const targets = edits.map((e) => (name === 'set_attribute' ? `${e.name}@${e.selector}` : String(e.selector)));
+    return {
+      edits: edits.length,
+      targets: targets.length > 12 ? `${targets.slice(0, 12).join(', ')}, … (+${targets.length - 12} more)` : targets.join(', '),
+    };
+  }
   if (name === 'replace_svg') {
     return { replacedWholeDocument: true, size: `${Math.round(String(args?.svg ?? '').length / 1024)} KB` };
   }
@@ -168,53 +180,86 @@ function describeEditArgs(name: string, args: any): Record<string, unknown> {
   return {};
 }
 
+/** The line edits in one replace_lines call, in either accepted shape. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lineEditsOf(args: any): LineEdit[] {
+  if (Array.isArray(args?.edits)) return args.edits as LineEdit[];
+  // The single-range shape this tool used to take. The two repos deploy
+  // separately, so a browser running the new client can be talking to an API
+  // still advertising the old schema; accepting both means the deploy order
+  // cannot silently turn every edit into a no-op.
+  if (typeof args?.start === 'number') return [{ start: args.start, end: args.end, content: args.content }];
+  return [];
+}
+
+/** What the model is told an empty call should have carried. */
+function emptyCallHint(name: string): string {
+  if (name === 'set_text') return 'Each edit needs "selector" and "text" inside the "edits" array.';
+  if (name === 'set_attribute') return 'Each edit needs "selector", "name" and "value" inside the "edits" array.';
+  return 'Each edit needs "start", "end" and "content" inside the "edits" array.';
+}
+
 /**
- * Read the edit calls out of one response and resolve them all against the same
+ * Read every edit call out of one response and resolve them all against the same
  * snapshot, keyed by call_id.
  *
+ * Line ranges and structural addresses are planned together, not separately:
+ * once each is resolved to the bytes it covers, an element edit that lands on a
+ * line another call is rewriting is the same kind of contradiction as two
+ * overlapping line ranges, and is reported rather than compounded.
+ *
  * A whole-document rewrite ends the run: after replace_svg or an image tool the
- * snapshot no longer describes the text, so later line numbers mean nothing and
- * are deliberately left unplanned rather than applied to something the model
- * never saw.
+ * snapshot no longer describes the text, so later addresses mean nothing and are
+ * deliberately left unplanned rather than applied to something the model never
+ * saw.
  */
-function planResponseLineEdits(
+function planResponseEdits(
   snapshot: string,
   output: ServerResponse['output'],
-): Map<string, { svg: string; outcomes: LineEditOutcome[] }> {
+): { plans: Map<string, { svg: string; outcomes: LineEditOutcome[] }>; refusals: Map<string, string> } {
   const ids: string[] = [];
-  const batches: LineEdit[][] = [];
+  const batches: PlannedEdit[][] = [];
+  const refusals = new Map<string, string>();
 
   for (const item of output) {
     if (item.type !== 'function_call') continue;
-    if (item.name === 'replace_svg' || item.name === 'generate_image' || item.name === 'modify_image') break;
-    if (item.name !== 'replace_lines') continue;
+    // Only replace_svg is certain to rewrite the document; past it, nothing in
+    // this response describes the same text. An IMAGE call is not certain — the
+    // user may decline it, or modify_image may have no PNG to work from — so
+    // calls after one are planned here too, against the same snapshot, and the
+    // execution loop refuses them only if a replacement actually happened.
+    // Re-planning them later against a document the earlier calls had already
+    // mutated reintroduced exactly the cross-call drift this planner removes.
+    if (item.name === 'replace_svg') break;
+    const structural = isStructuralEditTool(item.name ?? '');
+    if (item.name !== 'replace_lines' && !structural) continue;
 
-    let parsed: { edits?: unknown; start?: unknown; end?: unknown; content?: unknown };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let parsed: any;
     try {
       parsed = JSON.parse(item.arguments ?? '{}');
     } catch {
       continue; // truncated arguments are reported by the normal tool path
     }
 
-    if (Array.isArray(parsed.edits)) {
-      batches.push(parsed.edits as LineEdit[]);
-    } else if (typeof parsed.start === 'number') {
-      // The single-range shape this tool used to take. The two repos deploy
-      // separately, so a browser running the new client can be talking to an API
-      // still advertising the old schema; accepting both means the deploy order
-      // cannot silently turn every edit into a no-op.
-      batches.push([{ start: parsed.start as number, end: parsed.end as number, content: parsed.content as string }]);
+    if (structural) {
+      const { planned, available, reason } = planStructuralEdits(snapshot, item.name!, parsed);
+      if (!available) {
+        refusals.set(item.call_id!, `Not executed: ${reason}`);
+        continue;
+      }
+      batches.push(planned);
     } else {
-      batches.push([]);
+      batches.push(lineEditsToPlanned(snapshot, lineEditsOf(parsed)));
     }
     ids.push(item.call_id!);
   }
 
-  const out = new Map<string, { svg: string; outcomes: LineEditOutcome[] }>();
-  if (ids.length === 0) return out;
-  const { svgAfter, outcomes } = applyLineEditBatches(snapshot, batches);
-  ids.forEach((id, i) => out.set(id, { svg: svgAfter[i], outcomes: outcomes[i] }));
-  return out;
+  const plans = new Map<string, { svg: string; outcomes: LineEditOutcome[] }>();
+  if (ids.length === 0) return { plans, refusals };
+  const { svgAfter, outcomes } = applyPlannedBatches(snapshot, batches);
+  ids.forEach((id, i) => plans.set(id, { svg: svgAfter[i], outcomes: outcomes[i] }));
+  return { plans, refusals };
 }
 
 export async function sendChatRequest(
@@ -410,7 +455,7 @@ export async function sendChatRequest(
   // applied; resolving them one at a time against a mutating document shifted
   // the second call's line numbers by however much the first one grew or shrank
   // the file.
-  const editPlan = planResponseLineEdits(normalizedSvg, response.output);
+  const { plans: editPlan, refusals: editRefusals } = planResponseEdits(normalizedSvg, response.output);
   // Whether the whole document has actually been rewritten this response. The
   // planner stops at calls that COULD rewrite it; only this says one DID, and
   // the difference decides whether later line numbers are stale or fine.
@@ -428,7 +473,8 @@ export async function sendChatRequest(
           message += part.text;
         }
       }
-    } else if (item.type === 'function_call' && (item.name === 'replace_svg' || item.name === 'replace_lines' || item.name === 'generate_image' || item.name === 'modify_image')) {
+    } else if (item.type === 'function_call' && (item.name === 'replace_svg' || item.name === 'replace_lines' || isStructuralEditTool(item.name!) || item.name === 'generate_image' || item.name === 'modify_image')) {
+      const toolName = item.name!;
       if ((item.name === 'generate_image' || item.name === 'modify_image') && onImageConfirm && !imageApproved) {
         // Image call that never passed the confirmation gate (budget exit with
         // a mixed response) — answer it without executing so no credits are
@@ -450,37 +496,38 @@ export async function sendChatRequest(
         // Leave a visible trace. Skipping straight to the next item produced no
         // proposal and no tool-list entry, so a response whose only call was
         // truncated rendered as an empty assistant bubble with a credit spent.
-        onToolCall?.({ name: item.name, args: { truncated: true }, result: explanation });
+        onToolCall?.({ name: toolName, args: { truncated: true }, result: explanation });
         continue;
       }
       let toolOutput = 'OK';
-      if (item.name === 'replace_lines') {
+      if (item.name === 'replace_lines' || isStructuralEditTool(item.name!)) {
         const planned = editPlan.get(item.call_id!);
-        if (!planned && documentReplaced) {
-          // The document really was rewritten earlier in this response, so these
-          // line numbers no longer describe anything.
+        const refusal = editRefusals.get(item.call_id!);
+        if (refusal) {
+          // The document does not parse, so nothing could be addressed by
+          // element. Say which tools still work rather than reporting a change
+          // that never happened.
+          args.notExecuted = true;
+          args.failedOperations = [refusal];
+          toolOutput = refusal;
+        } else if (documentReplaced || !planned) {
+          // Either the document really was rewritten earlier in this response,
+          // so these addresses describe nothing — or this call sits past a
+          // replace_svg and was never planned. Both mean: do not guess.
           args.notExecuted = true;
           args.failedOperations = ['the document was replaced earlier in this response'];
-          toolOutput = 'Not executed: the document was replaced earlier in this response, so these line numbers are stale. Re-read it and re-issue.';
-        } else if (!planned) {
-          // The planner stops at any image call, but the loop may never execute
-          // one — an unconfirmed image, or modify_image with no PNG to modify.
-          // Nothing was replaced, so claiming otherwise would drop good edits and
-          // tell the model something untrue. Apply against the current document.
-          const { svg, outcomes } = applyLineEdits(runningSvg, Array.isArray(args.edits)
-            ? args.edits
-            : typeof args.start === 'number' ? [{ start: args.start, end: args.end, content: args.content }] : []);
-          args.svg = svg;
-          runningSvg = svg;
-          const problems = outcomes.filter((o) => o.status !== 'applied');
-          if (problems.length) args.failedOperations = problems.map((o) => `${o.label}: ${o.detail}`);
-          toolOutput = summarizeLineEdits(outcomes);
+          toolOutput = 'Not executed: the document was replaced earlier in this response, so these addresses are stale. Re-read it and re-issue.';
         } else {
           args.svg = planned.svg;
           runningSvg = planned.svg;
           const problems = planned.outcomes.filter((o) => o.status !== 'applied');
           if (problems.length) args.failedOperations = problems.map((o) => `${o.label}: ${o.detail}`);
-          toolOutput = summarizeLineEdits(planned.outcomes);
+          // Applied-but-ineffective is not a failure and not a success; it is
+          // the case where the markup changed and the drawing did not, and the
+          // user is the one who will otherwise wonder why nothing happened.
+          const notes = planned.outcomes.filter((o) => o.status === 'applied' && o.detail);
+          if (notes.length) args.warnings = notes.map((o) => `${o.label}: ${o.detail}`);
+          toolOutput = summarizeEdits(planned.outcomes, emptyCallHint(item.name!));
         }
       } else if (item.name === 'replace_svg') {
         runningSvg = args.svg;
@@ -523,13 +570,13 @@ export async function sendChatRequest(
           currentPngDataUrl = result.pngDataUrl;
         }
       }
-      toolCalls.push({ name: item.name, arguments: args });
+      toolCalls.push({ name: toolName, arguments: args });
       // Surface the edit alongside the read calls, so the tool list shows the
       // whole turn rather than only the lookups. Deliberately a SUMMARY, never
       // the arguments: this list is persisted with the chat, and one
       // replace_lines call can carry hundreds of full lines — storing those
       // would duplicate the document into every message.
-      onToolCall?.({ name: item.name, args: describeEditArgs(item.name, args), result: toolOutput });
+      onToolCall?.({ name: toolName, args: describeEditArgs(toolName, args), result: toolOutput });
       // Add function_call_output so the API sees completed tool calls on replay
       allRawOutput.push({ type: 'function_call_output', call_id: item.call_id, output: toolOutput });
     }

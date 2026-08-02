@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  validateSvg, parseSvg, resolveSelector, isSelectorError,
+  validateSvg, parseSvg, resolveSelector, isSelectorError, resolveWithin,
   startTagRanges, elementSourceRanges, describeMatches, pathOf,
   directText, textRangeOf, escapeText, planTextEdits, planAttributeEdits,
 } from '../svg-dom';
@@ -490,5 +490,49 @@ describe('a presentation attribute a CSS rule overrides', () => {
   it('still applies the edit — it is a warning, not a refusal', () => {
     const { ranges } = planAttributeEdits(CSS_DOC, [{ selector: '.st1', name: 'fill', value: 'red' }]);
     expect(ranges).toHaveLength(1);
+  });
+});
+
+// resolveWithin — the same addressing rooted at an element rather than a
+// document, so a detached subtree (get_element_bounds renders into one) can
+// take both address forms instead of CSS only.
+describe('resolveWithin', () => {
+  const detached = () => {
+    const host = document.createElement('div');
+    host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="root">'
+      + '<g><rect id="a"/><rect id="b"/></g></svg>';
+    return host.querySelector('svg')!;
+  };
+
+  it('resolves a positional path from the root element', () => {
+    const found = resolveWithin(detached(), '/svg[1]/g[1]/rect[2]');
+    expect(isSelectorError(found)).toBe(false);
+    expect((found as Element[]).map((e) => e.getAttribute('id'))).toEqual(['b']);
+  });
+
+  it('resolves a CSS selector', () => {
+    const found = resolveWithin(detached(), 'rect') as Element[];
+    expect(found.map((e) => e.getAttribute('id'))).toEqual(['a', 'b']);
+  });
+
+  it('includes the root itself, which querySelectorAll never returns', () => {
+    const root = detached();
+    expect(resolveWithin(root, '.root')).toEqual([root]);
+    expect((resolveWithin(root, 'svg') as Element[])[0]).toBe(root);
+  });
+
+  it('reports a malformed selector rather than throwing', () => {
+    const found = resolveWithin(detached(), 'rect[[[');
+    expect(isSelectorError(found)).toBe(true);
+  });
+
+  it('matches what resolveSelector does on the same markup', () => {
+    const doc = parseSvg('<svg xmlns="http://www.w3.org/2000/svg" class="root">'
+      + '<g><rect id="a"/><rect id="b"/></g></svg>')!;
+    for (const sel of ['rect', '.root', 'svg', 'g > rect', '/svg[1]/g[1]/rect[1]']) {
+      const viaDoc = resolveSelector(doc, sel) as Element[];
+      const viaRoot = resolveWithin(doc.documentElement, sel) as Element[];
+      expect(viaRoot.map(pathOf)).toEqual(viaDoc.map(pathOf));
+    }
   });
 });

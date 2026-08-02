@@ -68,6 +68,42 @@ describe('applyLineEdits — replace, insert, delete', () => {
   });
 });
 
+describe('applyLineEdits — deleting through the end of the document', () => {
+  // The last line has no newline after it to absorb, so the one before it is
+  // left dangling. Widening the span backwards to take that byte made the
+  // deletion collide with any edit to the line above, and one of the two was
+  // silently dropped as a conflict.
+  it('deletes the last line without leaving a blank one', () => {
+    expect(applyLineEdits('A\nB\nC', [{ start: 3, end: 3, content: '' }]).svg).toBe('A\nB');
+  });
+
+  it('does not contend with an edit to the line above', () => {
+    const { svg, outcomes } = applyLineEdits('A\nB\nC\nD\nE', [
+      { start: 1, end: 4, content: 'A\nB\nC\nD' },
+      { start: 5, end: 5, content: '' },
+    ]);
+    expect(outcomes.map((o) => o.status)).toEqual(['applied', 'applied']);
+    expect(svg).toBe('A\nB\nC\nD');
+  });
+
+  it('applies two adjacent deletions that reach the end', () => {
+    const { svg, outcomes } = applyLineEdits('A\nB\nC\nD\nE', [
+      { start: 4, end: 4, content: '' },
+      { start: 5, end: 5, content: '' },
+    ]);
+    expect(outcomes.map((o) => o.status)).toEqual(['applied', 'applied']);
+    expect(svg).toBe('A\nB\nC');
+  });
+
+  it('deletes the whole document', () => {
+    expect(applyLineEdits('A\nB', [{ start: 1, end: 2, content: '' }]).svg).toBe('');
+  });
+
+  it('leaves a replacement at the end alone', () => {
+    expect(applyLineEdits('A\nB\nC', [{ start: 3, end: 3, content: 'Z' }]).svg).toBe('A\nB\nZ');
+  });
+});
+
 describe('applyLineEdits — refusals', () => {
   it('reports a range past the end of the document', () => {
     const { svg, outcomes } = applyLineEdits(doc, [{ start: 9, end: 9, content: 'x' }]);

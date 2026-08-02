@@ -4,6 +4,7 @@
  */
 
 import { sanitizeSvg } from './sanitize';
+import { resolveWithin, isSelectorError } from './svg-dom';
 
 export interface ElementBounds {
   selector: string;
@@ -38,15 +39,14 @@ export function getElementBounds(svgCode: string, selector: string): string {
     const svgWidth = svgEl.getAttribute('width') || 'auto';
     const svgHeight = svgEl.getAttribute('height') || 'auto';
 
-    let elements: Element[];
-    try {
-      elements = Array.from(svgEl.querySelectorAll(selector));
-    } catch {
-      return `Error: invalid CSS selector "${selector}". Use standard CSS selectors like "circle", "#myId", ".myClass", "rect:nth-child(2)".`;
-    }
+    // Both address forms, same as every other tool: a path names one element,
+    // a CSS selector names a set.
+    const found = resolveWithin(svgEl, selector);
+    if (isSelectorError(found)) return `Error: ${found.error}`;
+    const elements = found;
 
     if (elements.length === 0) {
-      return `No elements matched selector "${selector}". Check the selector and try again.`;
+      return `No elements matched "${selector}". Note that this tool only measures what is DRAWN, so gradients, <defs> contents and hidden elements never appear here — use query to see everything.`;
     }
 
     // Limit results to avoid overwhelming the model

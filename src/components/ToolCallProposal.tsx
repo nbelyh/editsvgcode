@@ -154,15 +154,22 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
   );
 }
 
+/** Tools that edit the existing document in place, and how they read in the card. */
+const EDIT_TOOL_LABELS: Record<string, string> = {
+  replace_lines: 'Edit lines',
+  set_text: 'Set text',
+  set_attribute: 'Set attribute',
+};
+
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {
   const pngDataUrl = (tc.name === 'generate_image' || tc.name === 'modify_image') ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
 
   return (
     <div className="aui-proposal" style={{ marginBottom: 2 }}>
       <div className="aui-proposal-header">
-        {tc.name === 'replace_lines' ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
+        {EDIT_TOOL_LABELS[tc.name] ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">
-          {(tc.arguments.summary as string) || (tc.name === 'replace_lines' ? 'Edit lines' : tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
+          {(tc.arguments.summary as string) || EDIT_TOOL_LABELS[tc.name] || (tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
         </span>
       </div>
       {pngDataUrl && tc.status === 'pending' && (
@@ -204,6 +211,13 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
       {'failedOperations' in tc.arguments && (
         <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
           ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
+        </div>
+      )}
+      {'warnings' in tc.arguments && (
+        // An edit that applied but changes nothing on screen. Without this the
+        // assistant reports success over a drawing that did not move.
+        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-yellow-filled)' }}>
+          ⚠ Applied, but with no visible effect: {JSON.stringify(tc.arguments.warnings)}
         </div>
       )}
     </div>

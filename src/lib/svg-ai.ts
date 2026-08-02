@@ -1,4 +1,7 @@
-import { validateSvg, resolveSelector, isSelectorError, describeMatches } from './svg-dom';
+import {
+  validateSvg, resolveSelector, isSelectorError, describeMatches, describeNoMatch,
+  planTextEdits, planAttributeEdits, type TextEdit, type AttributeEdit,
+} from './svg-dom';
 
 /**
  * Client-side AI utilities: context budgeting, read-tool execution, edit application.
@@ -129,7 +132,7 @@ export function executeReadTool(
     const found = resolveSelector(validity.doc, selector);
     if (isSelectorError(found)) return `Error: ${found.error}`;
     if (found.length === 0) {
-      return `Nothing matched "${selector}". Paths start with "/" and name one element (/svg[1]/g[3]/text[1]); anything else is a CSS selector (.st1, #logo, text).`;
+      return `Nothing matched "${selector}": ${describeNoMatch(validity.doc, selector)}`;
     }
     const shown = describeMatches(currentSvg, validity.doc, found.slice(0, limit));
     const rows = shown.map((m) => {
@@ -201,51 +204,9 @@ export function applyLineEdits(
   currentSvg: string,
   edits: LineEdit[],
 ): { svg: string; outcomes: LineEditOutcome[] } {
-  const lines = normalize(currentSvg).split('\n');
-  const total = lines.length;
-  const outcomes: LineEditOutcome[] = [];
-  const accepted: LineEdit[] = [];
-
-  for (const edit of edits) {
-    const start = Number(edit.start);
-    const end = Number(edit.end);
-    const label = start === end ? `line ${start}` : `lines ${start}-${end}`;
-
-    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
-      outcomes.push({ label, status: 'failed', detail: 'not a valid line range' });
-      continue;
-    }
-    if (start > total) {
-      outcomes.push({ label, status: 'failed', detail: `the document has only ${total} lines` });
-      continue;
-    }
-    // Deleting a range is spelled with an explicit empty string. Treating a
-    // MISSING content as "" would turn a malformed edit — one the model got cut
-    // off writing, or an older client's shape — into a silent range deletion
-    // reported as success. Destructive and invisible is the worst pair.
-    if (typeof edit.content !== 'string') {
-      outcomes.push({ label, status: 'failed', detail: 'no "content" given; use an empty string to delete the range' });
-      continue;
-    }
-    const clash = accepted.find((a) => start <= a.end && a.start <= end);
-    if (clash) {
-      outcomes.push({
-        label,
-        status: 'conflict',
-        detail: `overlaps the earlier edit to lines ${clash.start}-${clash.end}; this one was skipped`,
-      });
-      continue;
-    }
-    accepted.push({ start, end: Math.min(end, total), content: edit.content });
-    outcomes.push({ label, status: 'applied' });
-  }
-
-  for (const e of [...accepted].sort((a, b) => b.start - a.start)) {
-    const replacement = e.content === '' ? [] : normalize(e.content).split('\n');
-    lines.splice(e.start - 1, e.end - e.start + 1, ...replacement);
-  }
-
-  return { svg: lines.join('\n'), outcomes };
+  const source = normalize(currentSvg);
+  const { svgAfter, outcomes } = applyPlannedBatches(source, [lineEditsToPlanned(source, edits)]);
+  return { svg: svgAfter[0] ?? source, outcomes: outcomes[0] ?? [] };
 }
 
 /** A replacement of an exact span of the source. */
@@ -253,6 +214,15 @@ export interface SourceRange {
   start: number;
   end: number;
   replacement: string;
+  /** Identity for zero-width spans — see `TextEditRange.key`. */
+  key?: string;
+  /**
+   * This span deletes through to the end of the document. The newline that
+   * used to terminate the line before it is then left dangling, so the caller
+   * trims it once at the end rather than reaching backwards here — reaching
+   * back made the span collide with the edit above it and get dropped.
+   */
+  toEndOfDocument?: boolean;
 }
 
 /**
@@ -284,6 +254,97 @@ export function conflictingRanges(ranges: SourceRange[]): number[] {
 }
 
 /**
+ * One requested operation, resolved to spans of the snapshot but not yet applied.
+ *
+ * This is where the addressing modes meet. A line range, an element path and a
+ * CSS selector are three ways of NAMING a target; once each is turned into the
+ * bytes it covers they are the same kind of thing, so one response can mix them
+ * and still be checked for contradictions as a single set. An operation that
+ * could not be resolved at all arrives here already failed, carrying the reason
+ * the model needs to hear.
+ */
+export interface PlannedEdit {
+  /** How this operation is named back to the model, e.g. `lines 4-9`. */
+  label: string;
+  status: 'applied' | 'failed';
+  detail?: string;
+  /** Every span this one operation touches — a selector may reach many. */
+  ranges: SourceRange[];
+}
+
+/** Whether two spans contend for the same bytes, counting an insertion point
+ * that falls inside another span. */
+function rangesOverlap(a: SourceRange, b: SourceRange): boolean {
+  const aEmpty = a.start === a.end;
+  const bEmpty = b.start === b.end;
+  // Two insertions occupy no bytes, so byte overlap can never separate them.
+  // Setting two DIFFERENT absent attributes on one element puts both at the
+  // same offset and both belong; setting the SAME one twice is a
+  // contradiction, and applying both wrote a duplicate attribute that made the
+  // document stop being well-formed while reporting success.
+  if (aEmpty && bEmpty) return a.start === b.start && a.key !== undefined && a.key === b.key;
+  if (a.start < b.end && b.start < a.end) return true;
+  if (aEmpty) return a.start > b.start && a.start < b.end;
+  if (bEmpty) return b.start > a.start && b.start < a.end;
+  return false;
+}
+
+/**
+ * Resolve line edits to spans, validating each one on its own.
+ *
+ * Contradictions between edits are deliberately NOT decided here: they are
+ * settled by `applyPlannedBatches` over the whole response, so a line edit
+ * colliding with a structural one is caught by the same rule as two line edits
+ * colliding.
+ */
+export function lineEditsToPlanned(currentSvg: string, edits: LineEdit[]): PlannedEdit[] {
+  const source = normalize(currentSvg);
+  const lines = source.split('\n');
+  const total = lines.length;
+  const starts: number[] = [];
+  let at = 0;
+  for (const line of lines) {
+    starts.push(at);
+    at += line.length + 1;
+  }
+
+  return edits.map((edit): PlannedEdit => {
+    const start = Number(edit.start);
+    const end = Number(edit.end);
+    const label = start === end ? `line ${start}` : `lines ${start}-${end}`;
+
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+      return { label, status: 'failed', detail: 'not a valid line range', ranges: [] };
+    }
+    if (start > total) {
+      return { label, status: 'failed', detail: `the document has only ${total} lines`, ranges: [] };
+    }
+    // Deleting a range is spelled with an explicit empty string. Treating a
+    // MISSING content as "" would turn a malformed edit — one the model got cut
+    // off writing, or an older client's shape — into a silent range deletion
+    // reported as success. Destructive and invisible is the worst pair.
+    if (typeof edit.content !== 'string') {
+      return { label, status: 'failed', detail: 'no "content" given; use an empty string to delete the range', ranges: [] };
+    }
+
+    const last = Math.min(end, total);
+    const deleting = edit.content === '';
+    const from = starts[start - 1];
+    const to = last < total ? starts[last] : source.length;
+    const replacement = deleting ? '' : normalize(edit.content) + (last < total ? '\n' : '');
+    // A deletion running to the end of the file leaves the newline that
+    // terminated the line above it, so the file would end in a blank line.
+    // Widening this span backwards to eat that byte was the obvious fix and the
+    // wrong one: the byte belongs to the line above, so the span collided with
+    // any edit to it and one of the two was silently dropped as a conflict.
+    // The trim happens once, on the finished document, where nothing contends
+    // for it.
+    const toEndOfDocument = deleting && last === total && start > 1;
+    return { label, status: 'applied', ranges: [{ start: from, end: to, replacement, toEndOfDocument }] };
+  });
+}
+
+/**
  * The same line edits as `applyLineEdits`, expressed as source ranges so they
  * can be merged with structurally-addressed edits before anything is written.
  */
@@ -292,35 +353,18 @@ export function lineEditsToRanges(
   edits: LineEdit[],
 ): { ranges: SourceRange[]; outcomes: LineEditOutcome[] } {
   const source = normalize(currentSvg);
-  const lines = source.split('\n');
-  const starts: number[] = [];
-  let at = 0;
-  for (const line of lines) {
-    starts.push(at);
-    at += line.length + 1;
-  }
-
-  // Reuse the validation and conflict rules rather than restating them.
-  const { outcomes } = applyLineEdits(source, edits);
-  const ranges: SourceRange[] = [];
-  edits.forEach((edit, i) => {
-    if (outcomes[i]?.status !== 'applied') return;
-    const start = Number(edit.start);
-    const end = Math.min(Number(edit.end), lines.length);
-    const from = starts[start - 1];
-    const to = end < lines.length ? starts[end] : source.length;
-    const replacement = edit.content === '' ? '' : normalize(edit.content) + (end < lines.length ? '\n' : '');
-    ranges.push({ start: from, end: to, replacement });
-  });
-  return { ranges, outcomes };
+  const planned = lineEditsToPlanned(source, edits);
+  const { outcomes } = applyPlannedBatches(source, [planned]);
+  const ranges = planned.flatMap((p, i) => (outcomes[0][i]?.status === 'applied' ? p.ranges : []));
+  return { ranges, outcomes: outcomes[0] };
 }
 
 /**
- * Apply several batches — one per replace_lines call in a single model response
- * — that all address the same snapshot.
+ * Apply several batches — one per edit call in a single model response — that
+ * all address the same snapshot.
  *
- * This is the cross-call half of the same defect. The model writes every call in
- * a response against the document it was SHOWN, not against the result of its
+ * This is the cross-call half of the drift defect. The model writes every call
+ * in a response against the document it was SHOWN, not against the result of its
  * own earlier call, and it is explicitly told to split large jobs this way.
  * Feeding each call the previous call's output therefore shifted every line
  * number in the second call by however much the first one grew or shrank the
@@ -329,43 +373,179 @@ export function lineEditsToRanges(
  * `svgAfter[i]` is the document once batches 0..i have landed, which is what
  * each proposal needs to show.
  */
+export function applyPlannedBatches(
+  currentSvg: string,
+  batches: PlannedEdit[][],
+): { svgAfter: string[]; outcomes: LineEditOutcome[][]; final: string } {
+  const source = normalize(currentSvg);
+  // Earliest wins, across the whole response rather than within one call.
+  const kept: Array<{ range: SourceRange; label: string }> = [];
+  const perBatch: SourceRange[][] = [];
+  const outcomes: LineEditOutcome[][] = [];
+
+  for (const batch of batches) {
+    const mine: SourceRange[] = [];
+    const batchOutcomes: LineEditOutcome[] = [];
+
+    for (const edit of batch) {
+      if (edit.status !== 'applied' || edit.ranges.length === 0) {
+        batchOutcomes.push({ label: edit.label, status: edit.status, detail: edit.detail });
+        continue;
+      }
+
+      let clash: string | undefined;
+      const free = edit.ranges.filter((r) => {
+        const hit = kept.find((k) => rangesOverlap(r, k.range));
+        if (hit && !clash) clash = hit.label;
+        return !hit;
+      });
+
+      if (free.length === 0) {
+        batchOutcomes.push({
+          label: edit.label,
+          status: 'conflict',
+          // Naming the same address on both sides of "overlaps" reads as a bug
+          // in the tool rather than a contradiction in the request, and the
+          // model needs to know it asked for the same thing twice.
+          detail: clash === edit.label
+            ? 'this target was already changed earlier in this response; the first change was kept and this one was skipped. Address each element once.'
+            : `overlaps the earlier edit to ${clash}; this one was skipped`,
+        });
+        continue;
+      }
+
+      for (const r of free) kept.push({ range: r, label: edit.label });
+      mine.push(...free);
+      const lost = edit.ranges.length - free.length;
+      const note = lost > 0
+        ? clash === edit.label
+          ? `${lost} of ${edit.ranges.length} target(s) were already changed earlier in this response and were skipped`
+          : `${lost} of ${edit.ranges.length} target(s) overlapped the earlier edit to ${clash} and were skipped`
+        : undefined;
+      batchOutcomes.push({
+        label: edit.label,
+        status: 'applied',
+        detail: [note, edit.detail].filter(Boolean).join('; ') || undefined,
+      });
+    }
+
+    perBatch.push(mine);
+    outcomes.push(batchOutcomes);
+  }
+
+  const svgAfter: string[] = [];
+  const running: SourceRange[] = [];
+  for (const mine of perBatch) {
+    running.push(...mine);
+    const out = applyRanges(source, running);
+    // See `SourceRange.toEndOfDocument`: the dangling newline is removed here,
+    // after everything has landed, so no edit has to contend for that byte.
+    svgAfter.push(running.some((r) => r.toEndOfDocument) && out.endsWith('\n') ? out.slice(0, -1) : out);
+  }
+  return { svgAfter, outcomes, final: svgAfter[svgAfter.length - 1] ?? source };
+}
+
+/** Line-edit batches only — the shape most of the client still speaks. */
 export function applyLineEditBatches(
   currentSvg: string,
   batches: LineEdit[][],
 ): { svgAfter: string[]; outcomes: LineEditOutcome[][]; final: string } {
   const snapshot = normalize(currentSvg);
-  const flat: LineEdit[] = [];
-  const ends: number[] = [];
-  for (const batch of batches) {
-    flat.push(...batch);
-    ends.push(flat.length);
-  }
-  // One pass over the whole response decides every outcome, so a range in call 2
-  // that collides with one in call 1 is reported as a conflict rather than
-  // quietly compounding.
-  const all = applyLineEdits(snapshot, flat);
+  return applyPlannedBatches(snapshot, batches.map((b) => lineEditsToPlanned(snapshot, b)));
+}
 
-  const svgAfter = ends.map((end) => applyLineEdits(snapshot, flat.slice(0, end)).svg);
-  const outcomes = batches.map((_, i) => all.outcomes.slice(i === 0 ? 0 : ends[i - 1], ends[i]));
-  return { svgAfter, outcomes, final: svgAfter[svgAfter.length - 1] ?? snapshot };
+/** Structural edit tools, and how their arguments are shaped. */
+export const STRUCTURAL_EDIT_TOOLS = ['set_text', 'set_attribute'] as const;
+
+/** Is this a tool whose targets are named structurally rather than by line? */
+export function isStructuralEditTool(name: string): boolean {
+  return (STRUCTURAL_EDIT_TOOLS as readonly string[]).includes(name);
+}
+
+/**
+ * Resolve a structural edit call against the snapshot, in the same currency as
+ * line edits.
+ *
+ * `available: false` is the deliberate answer while the document does not parse:
+ * a half-typed SVG is an ordinary state in an editor, and the honest response is
+ * to say so and point at line editing rather than to guess at a broken tree.
+ */
+export function planStructuralEdits(
+  snapshot: string,
+  toolName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: any,
+): { planned: PlannedEdit[]; available: boolean; reason?: string } {
+  const source = normalize(snapshot);
+  const raw = Array.isArray(args?.edits) ? args.edits : [];
+
+  if (toolName === 'set_text') {
+    const edits: TextEdit[] = raw.map((e: Record<string, unknown>) => ({
+      selector: String(e?.selector ?? ''),
+      text: typeof e?.text === 'string' ? e.text : '',
+    }));
+    // Every edit is checked, not just the first bad one. A missing "text" would
+    // otherwise blank the element and be reported as a success — the same
+    // silent-destruction shape a missing "content" has.
+    const missingText = raw.map((e: Record<string, unknown>) => typeof e?.text !== 'string');
+    const result = planTextEdits(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    const planned = result.outcomes.map((o, i): PlannedEdit => ({
+      label: `text of ${JSON.stringify(o.selector)}`,
+      status: missingText[i] ? 'failed' : o.status,
+      detail: missingText[i] ? 'no "text" given; use an empty string to clear the element' : o.detail,
+      ranges: missingText[i] ? [] : o.ranges,
+    }));
+    return { planned, available: true };
+  }
+
+  if (toolName === 'set_attribute') {
+    const edits: AttributeEdit[] = raw.map((e: Record<string, unknown>) => ({
+      selector: String(e?.selector ?? ''),
+      name: String(e?.name ?? ''),
+      // An explicit null removes the attribute; anything else is a value.
+      value: e?.value === null ? null : String(e?.value ?? ''),
+    }));
+    const result = planAttributeEdits(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    const planned = result.outcomes.map((o, i): PlannedEdit => ({
+      label: `${edits[i]?.name || 'attribute'} on ${JSON.stringify(o.selector)}`,
+      status: o.status,
+      detail: o.detail,
+      ranges: o.ranges,
+    }));
+    return { planned, available: true };
+  }
+
+  return { planned: [], available: false, reason: `unknown structural tool "${toolName}"` };
 }
 
 /**
  * The tool result the model sees. A bare count of failures left it re-issuing
- * the same broken edits, so each problem names its range and says what is wrong.
+ * the same broken edits, so each problem names its target and says what is wrong.
  */
-export function summarizeLineEdits(outcomes: LineEditOutcome[]): string {
+export function summarizeEdits(outcomes: LineEditOutcome[], emptyHint: string): string {
   // "applied 0 edit(s)" reads as success while nothing happened. The likely
   // cause is an "edits" array that never arrived — a call written against a
   // different schema than this client expects — and the model needs to be told
   // that, not congratulated.
-  if (outcomes.length === 0) {
-    return 'Nothing was changed: this call carried no edits. Each edit needs "start", "end" and "content" inside the "edits" array.';
-  }
+  if (outcomes.length === 0) return `Nothing was changed: this call carried no edits. ${emptyHint}`;
   const bad = outcomes.filter((o) => o.status !== 'applied');
-  if (bad.length === 0) return `OK — applied ${outcomes.length} edit(s).`;
-  return [
-    `Applied ${outcomes.length - bad.length} of ${outcomes.length} edit(s); the rest changed nothing.`,
-    ...bad.map((o) => `- ${o.status.toUpperCase()} ${o.label}: ${o.detail}`),
-  ].join('\n');
+  // An edit can succeed and still not do what was asked — setting a presentation
+  // attribute that a <style> rule overrides changes the markup and nothing on
+  // screen. Reporting only failures dropped that note entirely, so the model
+  // said "done" about an edit with no visible effect. Notes on APPLIED edits are
+  // the whole reason the check exists.
+  const notes = outcomes.filter((o) => o.status === 'applied' && o.detail);
+  const lines: string[] = [];
+  lines.push(bad.length === 0
+    ? `OK — applied ${outcomes.length} edit(s).`
+    : `Applied ${outcomes.length - bad.length} of ${outcomes.length} edit(s); the rest changed nothing.`);
+  for (const o of bad) lines.push(`- ${o.status.toUpperCase()} ${o.label}: ${o.detail}`);
+  for (const o of notes) lines.push(`- NOTE ${o.label}: ${o.detail}`);
+  return lines.join('\n');
+}
+
+export function summarizeLineEdits(outcomes: LineEditOutcome[]): string {
+  return summarizeEdits(outcomes, 'Each edit needs "start", "end" and "content" inside the "edits" array.');
 }

@@ -163,13 +163,14 @@ function parseStep(step: string): { name: string; index: number } | null {
   return index >= 1 ? { name: m[1].toLowerCase(), index } : null;
 }
 
-/** Walk a positional path. Returns the single node it denotes, or nothing. */
-function resolvePath(doc: Document, path: string): Element[] {
+/** Walk a positional path from a root element. Returns the single node it
+ * denotes, or nothing. */
+function resolvePathFrom(rootEl: Element | null, path: string): Element[] {
   const steps = path.split('/').filter((s) => s !== '');
   if (steps.length === 0) return [];
 
   const root = parseStep(steps[0]);
-  let current: Element | null = doc.documentElement;
+  let current: Element | null = rootEl;
   if (!root || !current || current.tagName.toLowerCase() !== root.name || root.index !== 1) return [];
 
   for (const raw of steps.slice(1)) {
@@ -179,6 +180,58 @@ function resolvePath(doc: Document, path: string): Element[] {
     current = siblings[step.index - 1] ?? null;
   }
   return current ? [current] : [];
+}
+
+/**
+ * Why a path matched nothing, in terms of what IS there.
+ *
+ * A bare "matched no element" leaves a model with nothing to do but guess
+ * again, and it guesses the same way twice. Walking the path to the last step
+ * that does resolve and naming that node's real children turns a dead end into
+ * a correction it can make without another round trip.
+ */
+export function explainPathFailure(doc: Document, path: string): string {
+  const steps = path.split('/').filter((s) => s !== '');
+  const root = steps[0] ? parseStep(steps[0]) : null;
+  const docEl = doc.documentElement;
+  if (!root || !docEl || docEl.tagName.toLowerCase() !== root.name || root.index !== 1) {
+    return `matched no element: a path must start at /${docEl ? docEl.tagName.toLowerCase() : 'svg'}[1]`;
+  }
+
+  let current: Element = docEl;
+  let reached = `/${root.name}[1]`;
+  for (const raw of steps.slice(1)) {
+    const step = parseStep(raw);
+    if (!step) return `matched no element: "${raw}" is not a valid path step`;
+    const siblings = Array.from(current.children).filter((c) => c.tagName.toLowerCase() === step.name);
+    const next = siblings[step.index - 1];
+    if (next) {
+      current = next;
+      reached += `/${step.name}[${step.index}]`;
+      continue;
+    }
+    // This is the step that failed. Say what the parent actually holds.
+    const counts = new Map<string, number>();
+    for (const c of current.children) {
+      const n = c.tagName.toLowerCase();
+      counts.set(n, (counts.get(n) ?? 0) + 1);
+    }
+    const children = counts.size === 0
+      ? 'no child elements'
+      : Array.from(counts).map(([n, k]) => (k === 1 ? `${n}[1]` : `${n}[1..${k}]`)).join(', ');
+    const why = siblings.length === 0
+      ? `has no <${step.name}> child`
+      : `has only ${siblings.length} <${step.name}> child(ren), so [${step.index}] is out of range`;
+    return `matched no element: ${reached} ${why}. Its children are: ${children}. Use query to see the real paths.`;
+  }
+  return 'matched no element. Use query to see what is there.';
+}
+
+/** The "nothing matched" message for either address form. */
+export function describeNoMatch(doc: Document, selector: string): string {
+  const trimmed = selector.trim();
+  if (trimmed.startsWith('/')) return explainPathFailure(doc, trimmed);
+  return `matched no element. "${trimmed}" is read as a CSS selector; a positional path has to start with "/". Use query to see what is there.`;
 }
 
 export interface SelectorError {
@@ -198,11 +251,28 @@ export function isSelectorError(v: unknown): v is SelectorError {
  * is a problem — but a malformed CSS selector is, because the model can fix that.
  */
 export function resolveSelector(doc: Document, selector: string): Element[] | SelectorError {
+  return resolveWithin(doc.documentElement, selector);
+}
+
+/**
+ * The same resolution rooted at an element rather than a document.
+ *
+ * `get_element_bounds` measures a document parsed into a detached container, so
+ * its root is an `<svg>` element and not `documentElement`. Without this it
+ * could only take CSS, while every other tool took both — and the prompt said
+ * both worked everywhere, so a path handed to it came back as "invalid CSS
+ * selector".
+ */
+export function resolveWithin(root: Element | null, selector: string): Element[] | SelectorError {
   const trimmed = selector.trim();
   if (trimmed === '') return { error: 'empty selector' };
-  if (trimmed.startsWith('/')) return resolvePath(doc, trimmed);
+  if (!root) return [];
+  if (trimmed.startsWith('/')) return resolvePathFrom(root, trimmed);
   try {
-    return Array.from(doc.querySelectorAll(trimmed));
+    const descendants = Array.from(root.querySelectorAll(trimmed));
+    // querySelectorAll never returns the element it was called on, and the root
+    // <svg> is a legitimate target for both `svg` and a class selector.
+    return root.matches(trimmed) ? [root, ...descendants] : descendants;
   } catch {
     return {
       error: `"${trimmed}" is not a valid CSS selector, and is not a path (those start with "/"). ` +
@@ -321,6 +391,18 @@ function cssRulesOverriding(doc: Document, elements: Element[], property: string
   return hits;
 }
 
+/**
+ * Escape a string for literal use inside a regular expression.
+ *
+ * An attribute name arrives from the model and goes straight into a RegExp, so
+ * an unescaped one is not cosmetic: "wid(th" threw SyntaxError out of the
+ * planner and killed the whole turn, and a "." silently matched a neighbouring
+ * attribute and replaced the wrong one.
+ */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Escape a value for a double-quoted attribute. */
 function escapeAttr(s: string): string {
   return s.replace(/[&<>"]/g, (c) => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;'));
@@ -352,33 +434,41 @@ export function planAttributeEdits(
   for (const edit of edits) {
     const found = resolveSelector(doc, edit.selector);
     if (isSelectorError(found)) {
-      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: found.error });
+      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: found.error, ranges: [] });
       continue;
     }
     if (found.length === 0) {
-      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: 'matched no element. Use query to see what is there.' });
+      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: describeNoMatch(doc, edit.selector), ranges: [] });
       continue;
     }
 
-    let changed = 0;
+    const resolved: TextEditRange[] = [];
     for (const el of found) {
       const tag = tags.get(el);
       if (!tag) continue;
       const text = source.slice(tag.start, tag.end);
-      const attr = new RegExp(`\\s${edit.name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*=\\s*(["'])[\\s\\S]*?\\1`);
+      const attr = new RegExp(`\\s${escapeRegExp(edit.name)}\\s*=\\s*(["'])[\\s\\S]*?\\1`);
       const m = attr.exec(text);
 
       if (m) {
         const replacement = edit.value === null ? '' : ` ${edit.name}="${escapeAttr(edit.value)}"`;
-        ranges.push({ start: tag.start + m.index, end: tag.start + m.index + m[0].length, replacement });
-        changed += 1;
+        resolved.push({ start: tag.start + m.index, end: tag.start + m.index + m[0].length, replacement });
       } else if (edit.value !== null) {
         // Absent: insert just before the tag closes, leaving everything else put.
+        // Two edits setting DIFFERENT attributes land on this same offset and
+        // both belong; two setting the SAME one are a contradiction. Zero-width
+        // spans cannot overlap, so the key is what tells those apart.
         const at = tag.end - (tag.selfClosing ? 2 : 1);
-        ranges.push({ start: at, end: at, replacement: ` ${edit.name}="${escapeAttr(edit.value)}"` });
-        changed += 1;
+        resolved.push({
+          start: at,
+          end: at,
+          replacement: ` ${edit.name}="${escapeAttr(edit.value)}"`,
+          key: `attr:${edit.name.toLowerCase()}`,
+        });
       }
     }
+    ranges.push(...resolved);
+    const changed = resolved.length;
 
     const overridden = changed > 0 ? cssRulesOverriding(doc, found, edit.name) : [];
     outcomes.push(changed > 0
@@ -386,6 +476,7 @@ export function planAttributeEdits(
           selector: edit.selector,
           status: 'applied',
           matched: changed,
+          ranges: resolved,
           // A presentation attribute is the LOWEST priority in the SVG cascade, so
           // a class rule setting the same property wins and the edit has no visible
           // effect. Silently succeeding while nothing changes on screen is the
@@ -394,7 +485,7 @@ export function planAttributeEdits(
             ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Edit the rule in the <style> block instead, with replace_lines.`
             : undefined,
         }
-      : { selector: edit.selector, status: 'failed', matched: found.length, detail: `matched ${found.length} element(s), none of which has a "${edit.name}" attribute to remove` });
+      : { selector: edit.selector, status: 'failed', matched: found.length, ranges: [], detail: `matched ${found.length} element(s), none of which has a "${edit.name}" attribute to remove` });
   }
 
   return { ranges, outcomes, available: true };
@@ -419,6 +510,12 @@ export interface TextEditRange {
   start: number;
   end: number;
   replacement: string;
+  /**
+   * What this change is OF, for spans that occupy no bytes. Two insertions at
+   * the same offset cannot overlap, so identity is the only thing that can say
+   * whether they contradict each other or merely sit side by side.
+   */
+  key?: string;
 }
 
 export interface TextEditOutcome {
@@ -427,6 +524,13 @@ export interface TextEditOutcome {
   /** How many nodes this change reached. */
   matched: number;
   detail?: string;
+  /**
+   * The spans this one request resolved to. The flat `ranges` list is what gets
+   * applied; this is the same spans kept with the request that produced them, so
+   * a conflict can be reported against the selector the model actually wrote
+   * rather than against an anonymous offset.
+   */
+  ranges: TextEditRange[];
 }
 
 /**
@@ -457,7 +561,7 @@ export function planTextEdits(
   for (const edit of edits) {
     const found = resolveSelector(doc, edit.selector);
     if (isSelectorError(found)) {
-      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: found.error });
+      outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: found.error, ranges: [] });
       continue;
     }
     if (found.length === 0) {
@@ -465,7 +569,8 @@ export function planTextEdits(
         selector: edit.selector,
         status: 'failed',
         matched: 0,
-        detail: 'matched no element. Use query to see what is there.',
+        ranges: [],
+        detail: describeNoMatch(doc, edit.selector),
       });
       continue;
     }
@@ -488,6 +593,7 @@ export function planTextEdits(
         selector: edit.selector,
         status: 'failed',
         matched: found.length,
+        ranges: [],
         detail: `matched ${found.length} element(s), but none holds a single run of text — they have child elements. Address the children instead: ${refused.slice(0, 3).join(', ')}`,
       });
       continue;
@@ -498,6 +604,7 @@ export function planTextEdits(
       selector: edit.selector,
       status: 'applied',
       matched: resolved.length,
+      ranges: resolved,
       detail: refused.length > 0
         ? `${refused.length} match(es) skipped for having child elements; address those directly: ${refused.slice(0, 3).join(', ')}`
         : undefined,
