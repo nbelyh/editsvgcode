@@ -223,6 +223,14 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           ⚠ Applied, but with no visible effect: {JSON.stringify(tc.arguments.warnings)}
         </div>
       )}
+      {'documentBroken' in tc.arguments && (
+        // Red, and worded as damage. This shares nothing but a colour with the
+        // note above: there the markup changed and the picture did not, here the
+        // document stopped parsing.
+        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
+          ⚠ This change breaks the SVG: {String(tc.arguments.documentBroken)}
+        </div>
+      )}
     </div>
   );
 }

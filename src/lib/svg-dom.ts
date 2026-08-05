@@ -410,7 +410,13 @@ export function textRangeOf(
   const textNodes = Array.from(el.childNodes).filter(isText);
   // Two separate runs — `<text>a<tspan>b</tspan>c</text>` — have no single span
   // to replace, and picking one would silently drop the other.
-  if (textNodes.length !== 1) return null;
+  //
+  // ZERO runs is fine: `<text></text>` has an empty span between its tags, and
+  // that is exactly where new text goes. Requiring exactly one made set_text
+  // refuse every empty element, so clearing one with the documented `text: ""`
+  // left it permanently unfillable — and said the reason was child elements,
+  // which was not true either.
+  if (textNodes.length > 1) return null;
 
   if (el.children.length === 0) {
     const close = source.indexOf('</', tag.end);
@@ -432,6 +438,9 @@ export function textRangeOf(
   if (between.includes('<')) return null;
   return { start: tag.end, end: firstChildTag.start, current: between };
 }
+
+/** XML's Name production, near enough: what may appear as an attribute name. */
+const XML_NAME = /^[A-Za-z_:][\w.:-]*$/;
 
 /** One requested attribute change. A null value removes the attribute. */
 export interface AttributeEdit {
@@ -456,7 +465,10 @@ function cssRulesOverriding(doc: Document, elements: Element[], property: string
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     const selectorText = m[1].trim();
     const body = m[2];
-    if (!new RegExp(`(^|[;\\s])${property}\\s*:`).test(body)) continue;
+    // Escaped: `property` is whatever the model put in set_attribute's "name",
+    // and an unescaped "(" here threw a SyntaxError straight out of the planner
+    // and lost the whole turn.
+    if (!new RegExp(`(^|[;\\s])${escapeRegExp(property)}\\s*:`).test(body)) continue;
     for (const one of selectorText.split(',').map((x) => x.trim()).filter(Boolean)) {
       let matches = false;
       try {
@@ -511,6 +523,24 @@ export function planAttributeEdits(
   const outcomes: TextEditOutcome[] = [];
 
   for (const edit of edits) {
+    // The name is written into the tag verbatim and compiled into a regex, so
+    // an unchecked one is two bugs at once: `""` matched the ` = "…"` of a
+    // NEIGHBOURING attribute and rewrote its value while reporting success, and
+    // a name containing a quote or a space produced markup that no longer
+    // parses. CSS values were already checked; names were not.
+    if (!XML_NAME.test(edit.name)) {
+      outcomes.push({
+        selector: edit.selector,
+        status: 'failed',
+        matched: 0,
+        ranges: [],
+        detail: edit.name === ''
+          ? 'no attribute name given'
+          : `"${edit.name}" is not a valid attribute name — it must start with a letter, "_" or ":" and contain only letters, digits, "-", ".", ":" and "_"`,
+      });
+      continue;
+    }
+
     const found = resolveSelector(doc, edit.selector);
     if (isSelectorError(found)) {
       outcomes.push({ selector: edit.selector, status: 'failed', matched: 0, detail: found.error, ranges: [] });
@@ -960,36 +990,44 @@ export function planElementInserts(
       const extent = extents.get(el);
       if (!tag || !extent) { refused.push(pathOf(el)); continue; }
 
+      const inside = edit.position === 'first-child' || edit.position === 'last-child';
+      // Where the element's own content ends. Needed for both child positions:
+      // one to know whether the element is empty, the other to land past the
+      // final child rather than inside the closing tag's indentation.
+      const close = inside && !tag.selfClosing ? source.lastIndexOf('</', extent.end) : -1;
+
       let at: number | null = null;
       if (edit.position === 'before') at = extent.start;
       else if (edit.position === 'after') at = extent.end;
-      else if (tag.selfClosing) at = null; // no inside to put anything in
+      else if (tag.selfClosing || close < 0) at = null; // no inside to put anything in
       else if (edit.position === 'first-child') at = tag.end;
       else {
         // Just past the last child, NOT just before the closing tag: the
         // whitespace that indents `</g>` belongs to `</g>`, and inserting into
         // the middle of it left a line of stray spaces and pulled the closing
         // tag up onto the new element's line.
-        const close = source.lastIndexOf('</', extent.end);
-        at = close < 0 ? null : close - (/[ \t\r\n]*$/.exec(source.slice(tag.end, close))?.[0].length ?? 0);
+        at = close - (/[ \t\r\n]*$/.exec(source.slice(tag.end, close))?.[0].length ?? 0);
       }
 
       if (at === null || at < 0) { refused.push(pathOf(el)); continue; }
 
       const indent = indentAt(source, extent.start);
-      const inner = edit.position === 'first-child' || edit.position === 'last-child' ? indent + '  ' : indent;
+      const inner = inside ? indent + '  ' : indent;
       const body = edit.svg.trim();
-      const replacement = edit.position === 'before' || edit.position === 'first-child'
-        ? `${body}\n${inner}`
-        : `\n${inner}${body}`;
-      resolved.push({
-        start: at,
-        end: at,
-        replacement,
-        // Two insertions at one point are usually both wanted — two icons side
-        // by side — so they are kept distinct rather than treated as rivals.
-        key: `insert:${i}:${pathOf(el)}`,
-      });
+      // An element with nothing between its tags has no newline of its own to
+      // reuse, so the closing tag needs one or it ends up sharing a line with
+      // what was just put inside it.
+      const tail = inside && close === tag.end ? `\n${indent}` : '';
+      const replacement = edit.position === 'before'
+        ? `${body}\n${indent}`
+        : `\n${inner}${body}${tail}`;
+      // No key, deliberately. A key marks zero-width spans that CONTRADICT each
+      // other, and two insertions never do — asking for two things at one point
+      // means you want both. The key used to carry the per-call edit index, so
+      // two insert_element calls aiming at the same anchor produced the same
+      // key and the second was dropped as a conflict, in a response the prompt
+      // itself tells the model to split across calls.
+      resolved.push({ start: at, end: at, replacement });
     }
 
     if (resolved.length === 0) {

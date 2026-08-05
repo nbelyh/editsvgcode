@@ -1,10 +1,37 @@
 import { describe, it, expect } from 'vitest';
 import {
-  applyLineEdits, applyLineEditBatches, summarizeLineEdits,
-  lineEditsToRanges, applyRanges, conflictingRanges, type LineEdit,
+  lineEditsToPlanned, applyPlannedBatches, applyRanges, summarizeLineEdits,
+  type LineEdit, type PlannedEdit,
 } from '../svg-ai';
 
 const doc = 'a\nb\nc\nd\ne';
+
+// These wrappers are the live path — `planResponseEdits` plans a response with
+// exactly these two calls — spelled out here so the tests below read as line
+// editing rather than as plumbing. They used to be exported from svg-ai, which
+// left four convenience functions in the module with no caller but these tests,
+// and a second way to apply an edit that skipped the response-wide conflict
+// check.
+
+/** One call's worth of line edits. */
+const applyLineEdits = (source: string, edits: LineEdit[]) => {
+  const { svgAfter, outcomes } = applyPlannedBatches(source, [lineEditsToPlanned(source, edits)]);
+  return { svg: svgAfter[0] ?? source, outcomes: outcomes[0] ?? [] };
+};
+
+/** Several calls in one response, all addressing the same snapshot. */
+const applyLineEditBatches = (source: string, batches: LineEdit[][]) =>
+  applyPlannedBatches(source, batches.map((b) => lineEditsToPlanned(source, b)));
+
+/** The spans a batch resolves to, and what became of each edit. */
+const lineEditsToRanges = (source: string, edits: LineEdit[]) => {
+  const planned = lineEditsToPlanned(source, edits);
+  const { outcomes } = applyPlannedBatches(source, [planned]);
+  return {
+    ranges: planned.flatMap((p, i) => (outcomes[0][i]?.status === 'applied' ? p.ranges : [])),
+    outcomes: outcomes[0],
+  };
+};
 
 describe('applyLineEdits — a batch must not invalidate itself', () => {
   it('keeps later line numbers valid when an earlier edit grows the document', () => {
@@ -269,17 +296,28 @@ describe('lineEditsToRanges — line edits as source ranges', () => {
     expect(ranges).toHaveLength(1);
   });
 
-  it('lets a line edit and a structural edit be conflict-checked together', () => {
-    const { ranges } = lineEditsToRanges(doc, [{ start: 2, end: 2, content: 'B' }]);
-    const overlapping = [...ranges, { start: ranges[0].start + 1, end: ranges[0].end, replacement: 'x' }];
-    expect(conflictingRanges(overlapping)).toEqual([1]);
+  it('conflict-checks a line edit against a structurally-addressed one', () => {
+    // The point of the shared currency: an element edit landing inside a line
+    // another call is rewriting is the same contradiction as two overlapping
+    // line ranges, and is caught by the same rule.
+    const line = lineEditsToPlanned(doc, [{ start: 2, end: 2, content: 'B' }]);
+    const span = line[0].ranges[0];
+    const structural: PlannedEdit[] = [{
+      label: 'text of "#x"',
+      status: 'applied',
+      ranges: [{ start: span.start + 1, end: span.end, replacement: 'x' }],
+    }];
+    const { outcomes } = applyPlannedBatches(doc, [line, structural]);
+    expect(outcomes[0][0].status).toBe('applied');
+    expect(outcomes[1][0].status).toBe('conflict');
+    expect(outcomes[1][0].detail).toMatch(/overlaps the earlier edit to line 2/);
   });
 
-  it('reports no conflict for disjoint ranges', () => {
-    const { ranges } = lineEditsToRanges(doc, [
+  it('leaves disjoint ranges alone', () => {
+    const { outcomes } = applyLineEdits(doc, [
       { start: 1, end: 1, content: 'A' },
       { start: 3, end: 3, content: 'C' },
     ]);
-    expect(conflictingRanges(ranges)).toEqual([]);
+    expect(outcomes.map((o) => o.status)).toEqual(['applied', 'applied']);
   });
 });

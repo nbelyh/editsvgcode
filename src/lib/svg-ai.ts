@@ -183,34 +183,6 @@ export interface LineEditOutcome {
   detail?: string;
 }
 
-/**
- * Apply a batch of line-range replacements.
- *
- * Line numbers are the only way edits are addressed. Searching for text to
- * replace could never say *which* occurrence was meant without the model
- * knowing something about the whole document — a count, or a uniqueness
- * guarantee — and obtaining that costs a round trip per edit. A line number is
- * different: the model reads it straight off the numbered context or a search
- * result, so a hundred edits need no more lookups than one.
- *
- * Every range refers to the document as the model was shown it. Edits are
- * validated against that snapshot and then applied HIGHEST LINE FIRST, so an
- * edit that changes the line count cannot shift the target of any edit still to
- * come. Applying them in the given order against a document that each edit
- * mutates is what used to make a batch invalidate itself.
- *
- * Overlapping ranges are a contradiction in the request, not something to merge:
- * the first is applied and the rest are reported.
- */
-export function applyLineEdits(
-  currentSvg: string,
-  edits: LineEdit[],
-): { svg: string; outcomes: LineEditOutcome[] } {
-  const source = normalize(currentSvg);
-  const { svgAfter, outcomes } = applyPlannedBatches(source, [lineEditsToPlanned(source, edits)]);
-  return { svg: svgAfter[0] ?? source, outcomes: outcomes[0] ?? [] };
-}
-
 /** A replacement of an exact span of the source. */
 export interface SourceRange {
   start: number;
@@ -237,22 +209,18 @@ export interface SourceRange {
  */
 export function applyRanges(source: string, ranges: SourceRange[]): string {
   let out = source;
-  for (const r of [...ranges].sort((a, b) => b.start - a.start)) {
+  // Ties broken by LATER index first. Splicing right-to-left means each write
+  // pushes earlier writes rightwards, so two insertions at one offset come out
+  // reversed unless the last one goes in first. Two icons inserted after the
+  // same anchor were being painted in the opposite order to the one asked for,
+  // which in SVG is the difference between on top and underneath.
+  const ordered = ranges
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => (b.r.start - a.r.start) || (b.i - a.i));
+  for (const { r } of ordered) {
     out = out.slice(0, r.start) + r.replacement + out.slice(r.end);
   }
   return out;
-}
-
-/** Ranges that overlap an earlier one, so a caller can report instead of
- * compounding them. Returns the indices of the losers, earliest wins. */
-export function conflictingRanges(ranges: SourceRange[]): number[] {
-  const losers: number[] = [];
-  const kept: SourceRange[] = [];
-  ranges.forEach((r, i) => {
-    if (kept.some((k) => r.start < k.end && k.start < r.end)) losers.push(i);
-    else kept.push(r);
-  });
-  return losers;
 }
 
 /**
@@ -293,6 +261,18 @@ function rangesOverlap(a: SourceRange, b: SourceRange): boolean {
 
 /**
  * Resolve line edits to spans, validating each one on its own.
+ *
+ * Line numbers are how a line edit names its target, and the reason that works
+ * is cheapness: searching for text to replace could never say WHICH occurrence
+ * was meant without the model knowing something about the whole document — a
+ * count, or a uniqueness guarantee — and obtaining that costs a round trip per
+ * edit. A line number is read straight off the numbered context or a search
+ * result, so a hundred edits need no more lookups than one.
+ *
+ * Every range refers to the document as the model was SHOWN it, never to the
+ * result of its own earlier edits; applying them in the given order against a
+ * document that each one mutates is what used to make a batch invalidate
+ * itself.
  *
  * Contradictions between edits are deliberately NOT decided here: they are
  * settled by `applyPlannedBatches` over the whole response, so a line edit
@@ -344,21 +324,6 @@ export function lineEditsToPlanned(currentSvg: string, edits: LineEdit[]): Plann
     const toEndOfDocument = deleting && last === total && start > 1;
     return { label, status: 'applied', ranges: [{ start: from, end: to, replacement, toEndOfDocument }] };
   });
-}
-
-/**
- * The same line edits as `applyLineEdits`, expressed as source ranges so they
- * can be merged with structurally-addressed edits before anything is written.
- */
-export function lineEditsToRanges(
-  currentSvg: string,
-  edits: LineEdit[],
-): { ranges: SourceRange[]; outcomes: LineEditOutcome[] } {
-  const source = normalize(currentSvg);
-  const planned = lineEditsToPlanned(source, edits);
-  const { outcomes } = applyPlannedBatches(source, [planned]);
-  const ranges = planned.flatMap((p, i) => (outcomes[0][i]?.status === 'applied' ? p.ranges : []));
-  return { ranges, outcomes: outcomes[0] };
 }
 
 /**
@@ -445,15 +410,6 @@ export function applyPlannedBatches(
     svgAfter.push(running.some((r) => r.toEndOfDocument) && out.endsWith('\n') ? out.slice(0, -1) : out);
   }
   return { svgAfter, outcomes, final: svgAfter[svgAfter.length - 1] ?? source };
-}
-
-/** Line-edit batches only — the shape most of the client still speaks. */
-export function applyLineEditBatches(
-  currentSvg: string,
-  batches: LineEdit[][],
-): { svgAfter: string[]; outcomes: LineEditOutcome[][]; final: string } {
-  const snapshot = normalize(currentSvg);
-  return applyPlannedBatches(snapshot, batches.map((b) => lineEditsToPlanned(snapshot, b)));
 }
 
 /** Structural edit tools, and how their arguments are shaped. */

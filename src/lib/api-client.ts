@@ -539,7 +539,11 @@ export async function sendChatRequest(
           // attributed to the call that caused it rather than to the response.
           const broke = validityRegression(runningSvg, planned.svg);
           if (broke) {
-            args.warnings = [...(args.warnings ?? []), broke];
+            // Its OWN field, not `warnings`. That one means "applied, but you
+            // will see no change on screen", and a document that stopped
+            // parsing is the opposite of harmless — putting it there labelled a
+            // broken drawing as a no-op.
+            args.documentBroken = broke;
             toolOutput = `${toolOutput}\nWARNING: ${broke}`;
           }
           args.svg = planned.svg;
@@ -550,7 +554,7 @@ export async function sendChatRequest(
         // document, and until now nothing looked at what came back.
         const broke = validityRegression(runningSvg, String(args.svg ?? ''));
         if (broke) {
-          args.warnings = [broke];
+          args.documentBroken = broke;
           toolOutput = `WARNING: ${broke}`;
         }
         runningSvg = args.svg;
