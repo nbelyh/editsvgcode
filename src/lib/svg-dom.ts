@@ -863,25 +863,32 @@ export function planTextEdits(
     }
 
     const resolved: TextEditRange[] = [];
-    const refused: string[] = [];
+    const refused: Element[] = [];
     for (const el of found) {
       const range = textRangeOf(source, doc, el, tags);
       if (!range) {
         // Mixed content, self-closing, or unclosed: no single run of characters
         // belongs to this node, and its children each have their own address.
-        refused.push(pathOf(el));
+        refused.push(el);
         continue;
       }
       resolved.push({ start: range.start, end: range.end, replacement: escapeText(edit.text) });
     }
 
     if (resolved.length === 0) {
+      // Name where the text ACTUALLY is. This used to say "address the children
+      // instead" and then list the refused element's own path — sending the
+      // model back to the address it had just been refused, which is how a
+      // rename could burn a whole turn while every tool behaved "correctly".
+      const inside = refused.flatMap((el) => editableTextIn(source, doc, el, tags)).slice(0, TEXT_IN_LIMIT);
       outcomes.push({
         selector: edit.selector,
         status: 'failed',
         matched: found.length,
         ranges: [],
-        detail: `matched ${found.length} element(s), but none holds a single run of text — they have child elements. Address the children instead: ${refused.slice(0, 3).join(', ')}`,
+        detail: inside.length > 0
+          ? `matched ${found.length} element(s), none of which holds text directly. The text inside is at: ${inside.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`
+          : `matched ${found.length} element(s), none of which holds any text to change. Use query to see what is there.`,
       });
       continue;
     }
@@ -1152,6 +1159,15 @@ export interface MatchInfo {
   line?: number;
   /** The node's OWN character data — see directText. */
   text?: string;
+  /**
+   * Where the text under this node actually lives, when the node itself holds
+   * none. Without it, asking for a group and being handed back only the group's
+   * path is a dead end: the model addresses what it was given, set_text refuses
+   * because a group has no text of its own, and the turn is spent. Observed
+   * exactly that way — query("#shape35") answered with one <g>, and the edit
+   * that followed used that path faithfully.
+   */
+  textIn?: Array<{ path: string; text: string }>;
 }
 
 /** How much of one node's text a listing shows before truncating. A `<style>`
@@ -1212,7 +1228,43 @@ export function describeMatches(source: string, doc: Document, elements: Element
     // Whitespace-only content is layout, not something to read or translate.
     if (own.trim() !== '') {
       info.text = own.length > TEXT_PREVIEW ? own.slice(0, TEXT_PREVIEW) + `… (${own.length} chars)` : own;
+    } else {
+      const inside = editableTextIn(source, doc, el, ranges);
+      if (inside.length > 0) info.textIn = inside;
     }
     return info;
   });
+}
+
+/** How many text nodes a container lists before the rest are elided. Enough to
+ * see what a group holds without printing a whole table. */
+const TEXT_IN_LIMIT = 8;
+
+/**
+ * The addressable text nodes inside an element, with the paths that reach them.
+ *
+ * "Addressable" means `textRangeOf` accepts them, so every path returned here is
+ * one `set_text` will actually take — the point being to hand back somewhere to
+ * go, not merely to report that text exists somewhere below.
+ */
+export function editableTextIn(
+  source: string,
+  doc: Document,
+  el: Element,
+  prebuilt?: Map<Element, StartTag>,
+): Array<{ path: string; text: string }> {
+  const ranges = prebuilt ?? elementSourceRanges(source, doc);
+  const out: Array<{ path: string; text: string }> = [];
+  const walk = (node: Element) => {
+    for (const child of Array.from(node.children)) {
+      if (out.length >= TEXT_IN_LIMIT) return;
+      const own = directText(child);
+      if (own.trim() !== '' && textRangeOf(source, doc, child, ranges)) {
+        out.push({ path: pathOf(child), text: own.length > 80 ? own.slice(0, 80) + '…' : own });
+      }
+      walk(child);
+    }
+  };
+  walk(el);
+  return out;
 }

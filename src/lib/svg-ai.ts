@@ -137,13 +137,21 @@ export function executeReadTool(
       return `Nothing matched "${selector}": ${describeNoMatch(validity.doc, selector)}`;
     }
     const shown = describeMatches(currentSvg, validity.doc, found.slice(0, limit));
-    const rows = shown.map((m) => {
+    const rows = shown.flatMap((m) => {
       const bits = [m.path, `<${m.tag}>`];
       if (m.id) bits.push(`id=${JSON.stringify(m.id)}`);
       if (m.className) bits.push(`class=${JSON.stringify(m.className)}`);
       if (m.line !== undefined) bits.push(`line ${m.line}`);
       if (m.text !== undefined) bits.push(`text=${JSON.stringify(m.text)}`);
-      return '  ' + bits.join('  ');
+      const row = '  ' + bits.join('  ');
+      // A container answered with its own path alone is a dead end: set_text
+      // refuses a group, and the model has nowhere else to go. Hand back the
+      // addresses that hold the text so the next call can be the right one.
+      if (!m.textIn?.length) return [row];
+      return [
+        row,
+        `    text inside: ${m.textIn.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`,
+      ];
     });
     const header = found.length > shown.length
       ? `${found.length} element(s) matched "${selector}"; showing the first ${shown.length}.`

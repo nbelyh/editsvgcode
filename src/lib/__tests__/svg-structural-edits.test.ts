@@ -84,8 +84,9 @@ describe('set_text', () => {
   it('refuses an element whose text is split into runs either side of a child', () => {
     const { svg, outcomes } = run(DOC, 'set_text', { edits: [{ selector: '#t4', text: 'gone' }] });
     expect(outcomes[0].status).toBe('failed');
-    expect(outcomes[0].detail).toMatch(/child elements/);
-    expect(outcomes[0].detail).toMatch(/\/svg\[1\]\/text\[4\]/);
+    // Names where the text actually is, not the element just refused.
+    expect(outcomes[0].detail).toMatch(/The text inside is at:/);
+    expect(outcomes[0].detail).toMatch(/\/svg\[1\]\/text\[4\]\/tspan\[1\]/);
     expect(svg).toBe(DOC);
   });
 

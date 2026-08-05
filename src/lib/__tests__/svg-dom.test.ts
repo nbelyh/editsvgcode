@@ -138,10 +138,39 @@ describe('describeMatches — what actually matched, with somewhere to go', () =
   it('reports identity and source line for each match', () => {
     const doc = parse(DOC);
     const found = resolveSelector(doc, '.st1') as Element[];
-    expect(describeMatches(DOC, doc, found)).toEqual([
-      { path: '/svg[1]/g[1]', tag: 'g', id: 'layer', className: 'st1', line: 2 },
-      { path: '/svg[1]/g[1]/rect[1]', tag: 'rect', id: 'a', className: 'st1', line: 3 },
+    const [group, rect] = describeMatches(DOC, doc, found);
+    expect(group).toMatchObject({ path: '/svg[1]/g[1]', tag: 'g', id: 'layer', className: 'st1', line: 2 });
+    expect(rect).toEqual({ path: '/svg[1]/g[1]/rect[1]', tag: 'rect', id: 'a', className: 'st1', line: 3 });
+  });
+
+  it('tells a container where the text under it lives', () => {
+    // Asking for a group and getting back only the group's own path is a dead
+    // end: set_text refuses a group, and the model has nowhere else to go. This
+    // is what burned a whole turn on a rename.
+    const doc = parse(DOC);
+    const [group] = describeMatches(DOC, doc, [doc.querySelector('#layer')!]);
+    expect(group.text).toBeUndefined();
+    expect(group.textIn).toEqual([
+      { path: '/svg[1]/g[1]/text[1]', text: 'dbo' },
+      { path: '/svg[1]/g[1]/text[1]/tspan[1]', text: 'x' },
     ]);
+  });
+
+  it('says nothing about descendants when the node has its own text', () => {
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><text>a</text></svg>';
+    const doc = parse(src);
+    const [t] = describeMatches(src, doc, [doc.querySelector('text')!]);
+    expect(t.text).toBe('a');
+    expect(t.textIn).toBeUndefined();
+  });
+
+  it('offers only paths set_text will actually accept', () => {
+    // A node whose text is in two runs either side of a child cannot be
+    // addressed, so pointing at it would be another dead end.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><g><text>a<tspan>b</tspan>c</text></g></svg>';
+    const doc = parse(src);
+    const [g] = describeMatches(src, doc, [doc.querySelector('g')!]);
+    expect(g.textIn).toEqual([{ path: '/svg[1]/g[1]/text[1]/tspan[1]', text: 'b' }]);
   });
 
   it('includes elements a bounds query would drop', () => {
@@ -307,7 +336,10 @@ describe('planTextEdits — resolves against one snapshot, applies nothing', () 
     const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'nope' }]);
     expect(ranges).toEqual([]);
     expect(outcomes[0].status).toBe('failed');
-    expect(outcomes[0].detail).toMatch(/child elements. Address the children instead/);
+    // It used to say "address the children instead" and then name the refused
+    // element itself, sending the model back where it had just failed.
+    expect(outcomes[0].detail).toMatch(/The text inside is at: \/svg\[1\]\/text\[1\]\/tspan\[1\]/);
+    expect(outcomes[0].detail).not.toMatch(/Address the children instead/);
   });
 
   it('reports an address that matched nothing', () => {
