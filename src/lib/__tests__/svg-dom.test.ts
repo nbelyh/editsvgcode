@@ -466,7 +466,7 @@ describe('a presentation attribute a CSS rule overrides', () => {
     expect(outcomes[0].status).toBe('applied');
     expect(outcomes[0].detail).toMatch(/overrides a presentation attribute/);
     expect(outcomes[0].detail).toMatch(/\.st1/);
-    expect(outcomes[0].detail).toMatch(/<style> block instead, with replace_lines/);
+    expect(outcomes[0].detail).toMatch(/Change the rule instead, with set_style_rule/);
   });
 
   it('says nothing when no rule sets that property', () => {

@@ -58,15 +58,24 @@ function readName(src: string, i: number): string {
   return src.slice(i, j);
 }
 
+/** A tag as the scanner sees it, before any of it is matched to the tree. */
+interface TagToken {
+  kind: 'open' | 'close' | 'self';
+  start: number;
+  end: number;
+  name: string;
+}
+
 /**
- * Every element start tag in source order.
+ * Every tag in source order, with comments, CDATA, processing instructions and
+ * doctypes stepped over.
  *
- * For a well-formed document this is the same order as a pre-order walk of the
- * parsed tree, which is what lets a DOM node be mapped back to the bytes that
- * produced it without the parser telling us where anything was.
+ * One scan behind both `startTagRanges` and `elementExtents`: the rules for what
+ * is NOT a tag are fiddly, and two copies of them would eventually disagree
+ * about where an element begins and ends.
  */
-export function startTagRanges(source: string): StartTag[] {
-  const out: StartTag[] = [];
+function scanTags(source: string): TagToken[] {
+  const out: TagToken[] = [];
   let i = 0;
   while (i < source.length) {
     if (source.startsWith('<!--', i)) {
@@ -88,13 +97,19 @@ export function startTagRanges(source: string): StartTag[] {
       i = endOfTag(source, i);
       continue;
     }
-    if (source[i] === '<' && source[i + 1] !== '/' && NAME_START.test(source[i + 1] ?? '')) {
+    if (source[i] === '<' && source[i + 1] === '/' && NAME_START.test(source[i + 2] ?? '')) {
+      const end = endOfTag(source, i);
+      out.push({ kind: 'close', start: i, end, name: readName(source, i + 2).toLowerCase() });
+      i = end;
+      continue;
+    }
+    if (source[i] === '<' && NAME_START.test(source[i + 1] ?? '')) {
       const end = endOfTag(source, i);
       out.push({
+        kind: source[end - 2] === '/' ? 'self' : 'open',
         start: i,
         end,
         name: readName(source, i + 1).toLowerCase(),
-        selfClosing: source[end - 2] === '/',
       });
       i = end;
       continue;
@@ -104,6 +119,70 @@ export function startTagRanges(source: string): StartTag[] {
     i = next;
   }
   return out;
+}
+
+/**
+ * Every element start tag in source order.
+ *
+ * For a well-formed document this is the same order as a pre-order walk of the
+ * parsed tree, which is what lets a DOM node be mapped back to the bytes that
+ * produced it without the parser telling us where anything was.
+ */
+export function startTagRanges(source: string): StartTag[] {
+  return scanTags(source)
+    .filter((t) => t.kind !== 'close')
+    .map((t) => ({ start: t.start, end: t.end, name: t.name, selfClosing: t.kind === 'self' }));
+}
+
+/** An element's whole extent in the source, opening angle bracket to the byte
+ * after its closing tag. */
+export interface ElementExtent {
+  start: number;
+  end: number;
+}
+
+/**
+ * Pair each element with ALL the bytes that produced it, children included.
+ *
+ * `elementSourceRanges` stops at the start tag, which is everything an attribute
+ * edit needs and nothing removing or wrapping an element can use. Close tags are
+ * matched with a stack rather than by searching for `</name>`, so a `<g>` inside
+ * a `<g>` ends at its own closing tag and not its parent's.
+ *
+ * Empty when the tags do not balance or the two orders disagree — the same
+ * refusal `elementSourceRanges` makes, for the same reason.
+ */
+export function elementExtents(source: string, doc: Document): Map<Element, ElementExtent> {
+  const extents: ElementExtent[] = [];
+  const open: number[] = [];
+  for (const t of scanTags(source)) {
+    if (t.kind === 'self') {
+      extents.push({ start: t.start, end: t.end });
+      continue;
+    }
+    if (t.kind === 'open') {
+      extents.push({ start: t.start, end: -1 });
+      open.push(extents.length - 1);
+      continue;
+    }
+    // A close tag with nothing open means the source does not balance.
+    const idx = open.pop();
+    if (idx === undefined) return new Map();
+    extents[idx].end = t.end;
+  }
+  if (open.length > 0) return new Map();
+
+  const elements: Element[] = [];
+  const walk = (el: Element) => {
+    elements.push(el);
+    for (const child of Array.from(el.children)) walk(child);
+  };
+  walk(doc.documentElement);
+
+  const map = new Map<Element, ElementExtent>();
+  if (elements.length !== extents.length) return map;
+  for (let i = 0; i < elements.length; i++) map.set(elements[i], extents[i]);
+  return map;
 }
 
 export interface SvgValidity {
@@ -482,10 +561,188 @@ export function planAttributeEdits(
           // effect. Silently succeeding while nothing changes on screen is the
           // failure this whole approach exists to avoid, so say it.
           detail: overridden.length > 0
-            ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Edit the rule in the <style> block instead, with replace_lines.`
+            ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Change the rule instead, with set_style_rule.`
             : undefined,
         }
       : { selector: edit.selector, status: 'failed', matched: found.length, ranges: [], detail: `matched ${found.length} element(s), none of which has a "${edit.name}" attribute to remove` });
+  }
+
+  return { ranges, outcomes, available: true };
+}
+
+/** One requested change to a declaration inside a `<style>` rule. A null value
+ * removes the declaration. */
+export interface StyleRuleEdit {
+  /** The rule's selector, as written in the block — `.st11`, `text`, `#logo`. */
+  selector: string;
+  property: string;
+  value: string | null;
+}
+
+/** Where one rule lives in the source, and what it currently declares. */
+interface CssRule {
+  /** Absolute span of the whole rule, selector through closing brace. */
+  start: number;
+  end: number;
+  selectors: string[];
+  /** Absolute span of what sits between the braces. */
+  bodyStart: number;
+  bodyEnd: number;
+  body: string;
+}
+
+/**
+ * Locate every rule in every `<style>` block, in absolute source offsets.
+ *
+ * A regex rather than CSSOM for the same reason `cssRulesOverriding` uses one:
+ * what has to come back is a POSITION in the original text, and a parsed
+ * stylesheet has thrown that away. Nested at-rules are not handled — these are
+ * exported diagrams, whose blocks are flat lists of class rules — and anything
+ * unrecognised is simply not matched rather than mangled.
+ */
+function cssRulesIn(source: string, doc: Document, tags: Map<Element, StartTag>): CssRule[] {
+  const rules: CssRule[] = [];
+  for (const style of Array.from(doc.getElementsByTagName('style'))) {
+    const range = textRangeOf(source, doc, style, tags);
+    if (!range) continue;
+    const css = range.current;
+    for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      const at = m.index ?? 0;
+      const bodyStart = range.start + at + m[1].length + 1;
+      rules.push({
+        start: range.start + at,
+        end: range.start + at + m[0].length,
+        selectors: m[1].split(',').map((s) => s.trim()).filter(Boolean),
+        bodyStart,
+        bodyEnd: bodyStart + m[2].length,
+        body: m[2],
+      });
+    }
+  }
+  return rules;
+}
+
+/** A value that would end the declaration or the rule early would corrupt the
+ * whole block, and no legitimate value in these documents needs one. */
+function badCssValue(value: string): string | null {
+  for (const c of ['{', '}', ';']) if (value.includes(c)) return `a CSS value cannot contain "${c}"`;
+  if (value.includes('<') || value.includes('>')) return 'a CSS value cannot contain "<" or ">"';
+  return null;
+}
+
+/**
+ * Resolve style-rule changes to source ranges.
+ *
+ * This is the tool for the edits users actually ask for on exported diagrams.
+ * Their fill, stroke-width and font-size live in `.st11 { … }`, not on
+ * elements, so "make the boxes blue" and "make the text bigger" cannot be
+ * expressed as attributes at all — in a ten-prompt smoke run, three of the five
+ * edits that fell back to line editing were rule changes.
+ *
+ * Only the declaration moves. Rewriting the rule line wholesale is the
+ * re-emission failure this whole approach exists to remove, and a rule line in
+ * these files carries a dozen unrelated declarations.
+ */
+export function planStyleRuleEdits(
+  source: string,
+  edits: StyleRuleEdit[],
+): { ranges: TextEditRange[]; outcomes: TextEditOutcome[]; available: boolean; reason?: string } {
+  const validity = validateSvg(source);
+  if (!validity.doc) {
+    return {
+      ranges: [], outcomes: [], available: false,
+      reason: `the document is not valid XML right now (${validity.message}), so its style blocks cannot be located. Use replace_lines until it parses.`,
+    };
+  }
+  const doc = validity.doc;
+  const tags = elementSourceRanges(source, doc);
+  const rules = cssRulesIn(source, doc, tags);
+  const ranges: TextEditRange[] = [];
+  const outcomes: TextEditOutcome[] = [];
+
+  for (const edit of edits) {
+    const wanted = edit.selector.trim();
+    const property = edit.property.trim();
+    const label = `${property} in "${wanted}"`;
+
+    if (!wanted || !property) {
+      outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: 'both "selector" and "property" are required' });
+      continue;
+    }
+    if (edit.value !== null) {
+      const bad = badCssValue(edit.value);
+      if (bad) {
+        outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: bad });
+        continue;
+      }
+    }
+
+    const matching = rules.filter((r) => r.selectors.includes(wanted));
+    if (matching.length === 0) {
+      const known = Array.from(new Set(rules.flatMap((r) => r.selectors)));
+      outcomes.push({
+        selector: label,
+        status: 'failed',
+        matched: 0,
+        ranges: [],
+        detail: known.length === 0
+          ? 'this document has no <style> rules. Set the property on the elements themselves with set_attribute.'
+          : `no rule has the selector "${wanted}". The rules in this document are: ${known.slice(0, 25).join(', ')}${known.length > 25 ? `, … (+${known.length - 25} more)` : ''}`,
+      });
+      continue;
+    }
+
+    const resolved: TextEditRange[] = [];
+    for (const rule of matching) {
+      // A declaration ends at the next semicolon or the closing brace, and
+      // starts either at the body's start or just after the previous semicolon.
+      const decl = new RegExp(`(^|;)(\\s*)(${escapeRegExp(property)})(\\s*:\\s*)([^;]*)`, 'i').exec(rule.body);
+
+      if (decl) {
+        const valueAt = rule.bodyStart + (decl.index ?? 0) + decl[1].length + decl[2].length + decl[3].length + decl[4].length;
+        if (edit.value === null) {
+          // Take the whole declaration and one separator with it, so removing
+          // the last one does not leave a trailing semicolon dangling.
+          const from = rule.bodyStart + (decl.index ?? 0) + decl[1].length;
+          const to = valueAt + decl[5].length;
+          const after = source.slice(to, rule.bodyEnd);
+          const sep = /^\s*;/.exec(after);
+          resolved.push({ start: from, end: sep ? to + sep[0].length : to, replacement: '' });
+        } else {
+          resolved.push({ start: valueAt, end: valueAt + decl[5].length, replacement: edit.value });
+        }
+      } else if (edit.value !== null) {
+        // Absent: add it at the front of the rule, where it cannot disturb the
+        // spacing of anything already there.
+        const needsSemi = rule.body.trim() !== '' && !/^\s*$/.test(rule.body) ;
+        resolved.push({
+          start: rule.bodyStart,
+          end: rule.bodyStart,
+          replacement: `${property}:${edit.value}${needsSemi ? ';' : ''}`,
+          key: `style:${wanted}:${property}`,
+        });
+      }
+    }
+
+    if (resolved.length === 0) {
+      outcomes.push({
+        selector: label,
+        status: 'failed',
+        matched: matching.length,
+        ranges: [],
+        detail: `"${wanted}" has no "${property}" declaration to remove`,
+      });
+      continue;
+    }
+
+    ranges.push(...resolved);
+    outcomes.push({
+      selector: label,
+      status: 'applied',
+      matched: resolved.length,
+      detail: matching.length > 1 ? `"${wanted}" is declared by ${matching.length} rules; all were changed` : undefined,
+      ranges: resolved,
+    });
   }
 
   return { ranges, outcomes, available: true };
@@ -608,6 +865,234 @@ export function planTextEdits(
       detail: refused.length > 0
         ? `${refused.length} match(es) skipped for having child elements; address those directly: ${refused.slice(0, 3).join(', ')}`
         : undefined,
+    });
+  }
+
+  return { ranges, outcomes, available: true };
+}
+
+/** Where a new element goes relative to the one addressed. */
+export type InsertPosition = 'before' | 'after' | 'first-child' | 'last-child';
+
+/** One requested insertion of new markup. */
+export interface ElementInsert {
+  selector: string;
+  position: InsertPosition;
+  /** The markup to insert. May be several sibling elements. */
+  svg: string;
+}
+
+/** One requested removal. */
+export interface ElementRemoval {
+  selector: string;
+}
+
+/** The whitespace at the start of the line `offset` sits on, so inserted markup
+ * lands at the depth of what it sits beside. */
+function indentAt(source: string, offset: number): string {
+  const lineStart = source.lastIndexOf('\n', offset - 1) + 1;
+  const m = /^[ \t]*/.exec(source.slice(lineStart, offset));
+  return m ? m[0] : '';
+}
+
+/**
+ * Is this a well-formed fragment?
+ *
+ * Inserted markup is the one thing in this module that the model writes freehand
+ * rather than addressing, so it is the one thing that can make a valid document
+ * stop parsing. Checked in the same namespace it will land in, so an unprefixed
+ * `xlink:href` fails here rather than at the next edit.
+ */
+function fragmentError(svg: string): string | null {
+  if (!svg.trim()) return 'nothing to insert';
+  const wrapped = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${svg}</svg>`;
+  const probe = validateSvg(wrapped);
+  if (!probe.valid) return `the markup is not well-formed (${probe.message})`;
+  return null;
+}
+
+/**
+ * Resolve insertions to zero-width source ranges.
+ *
+ * An insertion is a range that replaces no bytes, so it travels the same path as
+ * every other edit and is conflict-checked against them — which matters, since
+ * inserting into an element another call is deleting is a contradiction that
+ * looks like nothing at all at the byte level.
+ */
+export function planElementInserts(
+  source: string,
+  edits: ElementInsert[],
+): { ranges: TextEditRange[]; outcomes: TextEditOutcome[]; available: boolean; reason?: string } {
+  const validity = validateSvg(source);
+  if (!validity.doc) {
+    return {
+      ranges: [], outcomes: [], available: false,
+      reason: `the document is not valid XML right now (${validity.message}), so there is nothing to insert relative to. Use replace_lines until it parses.`,
+    };
+  }
+  const doc = validity.doc;
+  const tags = elementSourceRanges(source, doc);
+  const extents = elementExtents(source, doc);
+  const ranges: TextEditRange[] = [];
+  const outcomes: TextEditOutcome[] = [];
+
+  edits.forEach((edit, i) => {
+    const label = `insert ${edit.position} ${JSON.stringify(edit.selector)}`;
+    const found = resolveSelector(doc, edit.selector);
+    if (isSelectorError(found)) {
+      outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: found.error });
+      return;
+    }
+    if (found.length === 0) {
+      outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: describeNoMatch(doc, edit.selector) });
+      return;
+    }
+    const bad = fragmentError(edit.svg);
+    if (bad) {
+      outcomes.push({ selector: label, status: 'failed', matched: found.length, ranges: [], detail: bad });
+      return;
+    }
+
+    const resolved: TextEditRange[] = [];
+    const refused: string[] = [];
+    for (const el of found) {
+      const tag = tags.get(el);
+      const extent = extents.get(el);
+      if (!tag || !extent) { refused.push(pathOf(el)); continue; }
+
+      let at: number | null = null;
+      if (edit.position === 'before') at = extent.start;
+      else if (edit.position === 'after') at = extent.end;
+      else if (tag.selfClosing) at = null; // no inside to put anything in
+      else if (edit.position === 'first-child') at = tag.end;
+      else {
+        // Just past the last child, NOT just before the closing tag: the
+        // whitespace that indents `</g>` belongs to `</g>`, and inserting into
+        // the middle of it left a line of stray spaces and pulled the closing
+        // tag up onto the new element's line.
+        const close = source.lastIndexOf('</', extent.end);
+        at = close < 0 ? null : close - (/[ \t\r\n]*$/.exec(source.slice(tag.end, close))?.[0].length ?? 0);
+      }
+
+      if (at === null || at < 0) { refused.push(pathOf(el)); continue; }
+
+      const indent = indentAt(source, extent.start);
+      const inner = edit.position === 'first-child' || edit.position === 'last-child' ? indent + '  ' : indent;
+      const body = edit.svg.trim();
+      const replacement = edit.position === 'before' || edit.position === 'first-child'
+        ? `${body}\n${inner}`
+        : `\n${inner}${body}`;
+      resolved.push({
+        start: at,
+        end: at,
+        replacement,
+        // Two insertions at one point are usually both wanted — two icons side
+        // by side — so they are kept distinct rather than treated as rivals.
+        key: `insert:${i}:${pathOf(el)}`,
+      });
+    }
+
+    if (resolved.length === 0) {
+      outcomes.push({
+        selector: label,
+        status: 'failed',
+        matched: found.length,
+        ranges: [],
+        detail: `matched ${found.length} element(s), but none can take a child there — a self-closing element has no inside. Use "before" or "after", or address a different element: ${refused.slice(0, 3).join(', ')}`,
+      });
+      return;
+    }
+
+    ranges.push(...resolved);
+    outcomes.push({
+      selector: label,
+      status: 'applied',
+      matched: resolved.length,
+      ranges: resolved,
+      // A selector that reached more than one element inserted more than one
+      // copy. That is often meant, and silently doing it is not.
+      detail: resolved.length > 1 ? `inserted beside all ${resolved.length} matching elements` : undefined,
+    });
+  });
+
+  return { ranges, outcomes, available: true };
+}
+
+/**
+ * Resolve removals to the elements' whole source extents.
+ *
+ * The span reaches back over the indentation on its line and forward over the
+ * newline that ended it, so removing an element leaves no blank line where it
+ * used to be — the same trim a line deletion makes, for the same reason.
+ */
+export function planElementRemovals(
+  source: string,
+  edits: ElementRemoval[],
+): { ranges: TextEditRange[]; outcomes: TextEditOutcome[]; available: boolean; reason?: string } {
+  const validity = validateSvg(source);
+  if (!validity.doc) {
+    return {
+      ranges: [], outcomes: [], available: false,
+      reason: `the document is not valid XML right now (${validity.message}), so elements cannot be addressed. Use replace_lines until it parses.`,
+    };
+  }
+  const doc = validity.doc;
+  const extents = elementExtents(source, doc);
+  const ranges: TextEditRange[] = [];
+  const outcomes: TextEditOutcome[] = [];
+
+  for (const edit of edits) {
+    const label = `remove ${JSON.stringify(edit.selector)}`;
+    const found = resolveSelector(doc, edit.selector);
+    if (isSelectorError(found)) {
+      outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: found.error });
+      continue;
+    }
+    if (found.length === 0) {
+      outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: describeNoMatch(doc, edit.selector) });
+      continue;
+    }
+    if (found.includes(doc.documentElement)) {
+      outcomes.push({
+        selector: label,
+        status: 'failed',
+        matched: found.length,
+        ranges: [],
+        detail: 'this matches the root <svg>, and removing it would leave no document. Use replace_svg to start over.',
+      });
+      continue;
+    }
+
+    const resolved: TextEditRange[] = [];
+    const refused: string[] = [];
+    for (const el of found) {
+      const extent = extents.get(el);
+      if (!extent) { refused.push(pathOf(el)); continue; }
+      const lineStart = source.lastIndexOf('\n', extent.start - 1) + 1;
+      const alone = /^[ \t]*$/.test(source.slice(lineStart, extent.start));
+      const trailing = /^[ \t]*\r?\n/.exec(source.slice(extent.end));
+      resolved.push({
+        start: alone ? lineStart : extent.start,
+        end: alone && trailing ? extent.end + trailing[0].length : extent.end,
+        replacement: '',
+      });
+    }
+
+    if (resolved.length === 0) {
+      outcomes.push({
+        selector: label, status: 'failed', matched: found.length, ranges: [],
+        detail: `matched ${found.length} element(s), but their source extent could not be located: ${refused.slice(0, 3).join(', ')}`,
+      });
+      continue;
+    }
+
+    ranges.push(...resolved);
+    outcomes.push({
+      selector: label,
+      status: 'applied',
+      matched: resolved.length,
+      ranges: resolved,
+      detail: resolved.length > 1 ? `removed all ${resolved.length} matching elements` : undefined,
     });
   }
 

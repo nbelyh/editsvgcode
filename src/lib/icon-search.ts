@@ -153,7 +153,7 @@ export function formatIconForModel(icon: IconResult): string {
   const licenseNote = icon.needsAttribution
     ? ` — ⚠️ requires attribution (${icon.licenseUrl ?? icon.license})`
     : '';
-  return `User selected icon: ${icon.name} — ${icon.setName} (${icon.license})${licenseNote}\n\`\`\`svg\n${icon.svg}\n\`\`\`\n\nInsert this icon into the SVG using replace_lines or replace_svg. Adjust position, size (width/height or transform), and colors (fill/stroke) to fit the document. If the icon requires attribution, mention it to the user with the license link.`;
+  return `User selected icon: ${icon.name} — ${icon.setName} (${icon.license})${licenseNote}\n\`\`\`svg\n${icon.svg}\n\`\`\`\n\nInsert this icon into the SVG using insert_element. Adjust position, size (width/height or transform), and colors (fill/stroke) to fit the document. If the icon requires attribution, mention it to the user with the license link.`;
 }
 
 /**

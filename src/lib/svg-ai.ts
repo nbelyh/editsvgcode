@@ -1,6 +1,8 @@
 import {
   validateSvg, resolveSelector, isSelectorError, describeMatches, describeNoMatch,
-  planTextEdits, planAttributeEdits, type TextEdit, type AttributeEdit,
+  planTextEdits, planAttributeEdits, planStyleRuleEdits, planElementInserts, planElementRemovals,
+  type TextEdit, type AttributeEdit, type StyleRuleEdit, type TextEditOutcome,
+  type ElementInsert, type ElementRemoval, type InsertPosition,
 } from './svg-dom';
 
 /**
@@ -455,7 +457,9 @@ export function applyLineEditBatches(
 }
 
 /** Structural edit tools, and how their arguments are shaped. */
-export const STRUCTURAL_EDIT_TOOLS = ['set_text', 'set_attribute'] as const;
+export const STRUCTURAL_EDIT_TOOLS = [
+  'set_text', 'set_attribute', 'set_style_rule', 'insert_element', 'remove_element',
+] as const;
 
 /** Is this a tool whose targets are named structurally rather than by line? */
 export function isStructuralEditTool(name: string): boolean {
@@ -517,7 +521,76 @@ export function planStructuralEdits(
     return { planned, available: true };
   }
 
+  if (toolName === 'set_style_rule') {
+    const edits: StyleRuleEdit[] = raw.map((e: Record<string, unknown>) => ({
+      selector: String(e?.selector ?? ''),
+      property: String(e?.property ?? ''),
+      value: e?.value === null ? null : String(e?.value ?? ''),
+    }));
+    const result = planStyleRuleEdits(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    return { planned: result.outcomes.map(toPlanned), available: true };
+  }
+
+  if (toolName === 'insert_element') {
+    const positions: InsertPosition[] = ['before', 'after', 'first-child', 'last-child'];
+    const edits: ElementInsert[] = raw.map((e: Record<string, unknown>) => ({
+      selector: String(e?.selector ?? ''),
+      position: positions.includes(e?.position as InsertPosition) ? (e.position as InsertPosition) : 'after',
+      svg: typeof e?.svg === 'string' ? e.svg : '',
+    }));
+    // A position we do not recognise silently became "after", which puts the
+    // element somewhere the model did not ask for and reports success.
+    const badPosition = raw.map((e: Record<string, unknown>) =>
+      e?.position !== undefined && !positions.includes(e.position as InsertPosition));
+    const result = planElementInserts(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    const planned = result.outcomes.map((o, i): PlannedEdit => badPosition[i]
+      ? {
+          label: `insert into ${JSON.stringify(edits[i].selector)}`,
+          status: 'failed',
+          detail: `"${String(raw[i]?.position)}" is not a position; use before, after, first-child or last-child`,
+          ranges: [],
+        }
+      : toPlanned(o));
+    return { planned, available: true };
+  }
+
+  if (toolName === 'remove_element') {
+    const edits: ElementRemoval[] = raw.map((e: Record<string, unknown>) => ({ selector: String(e?.selector ?? '') }));
+    const result = planElementRemovals(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    return { planned: result.outcomes.map(toPlanned), available: true };
+  }
+
   return { planned: [], available: false, reason: `unknown structural tool "${toolName}"` };
+}
+
+/** These planners already label their own outcomes, so the label passes through. */
+function toPlanned(o: TextEditOutcome): PlannedEdit {
+  return { label: o.selector, status: o.status, detail: o.detail, ranges: o.ranges };
+}
+
+/**
+ * Did this change break a document that parsed a moment ago?
+ *
+ * The structural tools are guarded on the way IN — they refuse to address a
+ * document that does not parse. Nothing was checking the way OUT, and that is
+ * the direction the damage actually travels: every failure this session took
+ * the same shape, an edit reporting success over a document that was worse than
+ * before. Each tool is individually safe, but replace_lines re-emits whole lines
+ * and replace_svg rewrites everything, so a response can still end somewhere
+ * neither the model nor the user asked to be.
+ *
+ * `null` when the document was ALREADY broken: the user is mid-keystroke, that
+ * is an ordinary state, and blaming the edit for it would cry wolf on every
+ * turn until they finish typing.
+ */
+export function validityRegression(before: string, after: string): string | null {
+  if (!validateSvg(before).valid) return null;
+  const now = validateSvg(after);
+  if (now.valid) return null;
+  return `the document parsed before this change and does not parse after it (${now.message}). Something in this call did not reproduce the markup it replaced. Re-read the affected lines and fix it — do not re-issue the same call.`;
 }
 
 /**

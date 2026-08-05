@@ -159,6 +159,9 @@ const EDIT_TOOL_LABELS: Record<string, string> = {
   replace_lines: 'Edit lines',
   set_text: 'Set text',
   set_attribute: 'Set attribute',
+  set_style_rule: 'Edit style rule',
+  insert_element: 'Insert element',
+  remove_element: 'Remove element',
 };
 
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {

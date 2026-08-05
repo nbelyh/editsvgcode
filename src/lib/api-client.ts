@@ -1,7 +1,7 @@
 import { getAuth } from 'firebase/auth';
 import {
   buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned,
-  planStructuralEdits, isStructuralEditTool, summarizeEdits,
+  planStructuralEdits, isStructuralEditTool, summarizeEdits, validityRegression,
   type LineEdit, type LineEditOutcome, type PlannedEdit,
 } from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
@@ -164,8 +164,13 @@ function describeEditArgs(name: string, args: any): Record<string, unknown> {
     };
   }
   if (isStructuralEditTool(name)) {
-    const edits = (Array.isArray(args?.edits) ? args.edits : []) as Array<{ selector?: string; name?: string }>;
-    const targets = edits.map((e) => (name === 'set_attribute' ? `${e.name}@${e.selector}` : String(e.selector)));
+    const edits = (Array.isArray(args?.edits) ? args.edits : []) as Array<{ selector?: string; name?: string; property?: string; position?: string }>;
+    const targets = edits.map((e) => {
+      if (name === 'set_attribute') return `${e.name}@${e.selector}`;
+      if (name === 'set_style_rule') return `${e.selector} { ${e.property} }`;
+      if (name === 'insert_element') return `${e.position} ${e.selector}`;
+      return String(e.selector);
+    });
     return {
       edits: edits.length,
       targets: targets.length > 12 ? `${targets.slice(0, 12).join(', ')}, … (+${targets.length - 12} more)` : targets.join(', '),
@@ -196,6 +201,9 @@ function lineEditsOf(args: any): LineEdit[] {
 function emptyCallHint(name: string): string {
   if (name === 'set_text') return 'Each edit needs "selector" and "text" inside the "edits" array.';
   if (name === 'set_attribute') return 'Each edit needs "selector", "name" and "value" inside the "edits" array.';
+  if (name === 'set_style_rule') return 'Each edit needs "selector", "property" and "value" inside the "edits" array.';
+  if (name === 'insert_element') return 'Each edit needs "selector", "position" and "svg" inside the "edits" array.';
+  if (name === 'remove_element') return 'Each edit needs a "selector" inside the "edits" array.';
   return 'Each edit needs "start", "end" and "content" inside the "edits" array.';
 }
 
@@ -518,8 +526,6 @@ export async function sendChatRequest(
           args.failedOperations = ['the document was replaced earlier in this response'];
           toolOutput = 'Not executed: the document was replaced earlier in this response, so these addresses are stale. Re-read it and re-issue.';
         } else {
-          args.svg = planned.svg;
-          runningSvg = planned.svg;
           const problems = planned.outcomes.filter((o) => o.status !== 'applied');
           if (problems.length) args.failedOperations = problems.map((o) => `${o.label}: ${o.detail}`);
           // Applied-but-ineffective is not a failure and not a success; it is
@@ -528,8 +534,25 @@ export async function sendChatRequest(
           const notes = planned.outcomes.filter((o) => o.status === 'applied' && o.detail);
           if (notes.length) args.warnings = notes.map((o) => `${o.label}: ${o.detail}`);
           toolOutput = summarizeEdits(planned.outcomes, emptyCallHint(item.name!));
+
+          // Compared against the document as of the PREVIOUS call, so a break is
+          // attributed to the call that caused it rather than to the response.
+          const broke = validityRegression(runningSvg, planned.svg);
+          if (broke) {
+            args.warnings = [...(args.warnings ?? []), broke];
+            toolOutput = `${toolOutput}\nWARNING: ${broke}`;
+          }
+          args.svg = planned.svg;
+          runningSvg = planned.svg;
         }
       } else if (item.name === 'replace_svg') {
+        // The largest blast radius of any tool: the model hand-writes the whole
+        // document, and until now nothing looked at what came back.
+        const broke = validityRegression(runningSvg, String(args.svg ?? ''));
+        if (broke) {
+          args.warnings = [broke];
+          toolOutput = `WARNING: ${broke}`;
+        }
         runningSvg = args.svg;
         documentReplaced = true;
       } else if (item.name === 'generate_image') {
