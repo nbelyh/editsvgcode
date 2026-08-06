@@ -3,7 +3,7 @@ import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, findSvgTarget, resolveXPath } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, contentOverflowsViewport, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
 interface PreviewProps {
   svgCode: string;
@@ -311,10 +311,32 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       // Prefer viewBox for natural size so 100% zoom = true 1:1 pixels
       if (hasVb) {
         size = { w: vb[2], h: vb[3] };
-      } else {
-        const el = scrollRef.current;
-        if (el) {
-          size = { w: el.clientWidth, h: el.clientHeight };
+      } else if (el) {
+        const pw = el.clientWidth;
+        const ph = el.clientHeight;
+        size = { w: pw, h: ph };
+        if (pw > 0 && ph > 0) {
+          // A percentage needs a viewport to resolve against, so lay the drawing
+          // out at the pane size and ask what actually got drawn. Content built
+          // from percentages fills exactly that box, so the pane *is* its natural
+          // size. Content built from absolute coordinates ignores the box and can
+          // run far outside it — and with no viewBox there is nothing to scale it
+          // back, so the pane would merely clip it and zoom would have nothing to
+          // act on. That case gets a viewBox around the drawing, the same as a
+          // dimensionless SVG already does.
+          //
+          // Restore the attributes afterwards: sizing the SVG here is only a
+          // measurement, and leaving it sized makes the pane overflow, which
+          // costs the auto-fit below a scrollbar's width of room.
+          const savedW = svg.getAttribute('width');
+          const savedH = svg.getAttribute('height');
+          svg.setAttribute('width', String(pw));
+          svg.setAttribute('height', String(ph));
+          const overflows = contentOverflowsViewport(svg, pw, ph);
+          for (const [name, saved] of [['width', savedW], ['height', savedH]] as const) {
+            if (saved === null) svg.removeAttribute(name); else svg.setAttribute(name, saved);
+          }
+          if (overflows) size = synthesizeViewBox(svg, pw, ph) ?? size;
         }
       }
     }

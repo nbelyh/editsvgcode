@@ -33,6 +33,27 @@ export function synthesizeViewBox(svg: SVGSVGElement, fw: number, fh: number) {
   return null;
 }
 
+/**
+ * Does the drawing reach outside a `w` x `h` viewport?
+ *
+ * Tells apart the two kinds of SVG that carry percentage width/height: one laid
+ * out from percentages, which fills whatever box it is given and never exceeds
+ * it, and one anchored to absolute coordinates, which ignores the box entirely.
+ * Only the second kind needs a viewBox to be seen whole.
+ */
+export function contentOverflowsViewport(svg: SVGSVGElement, w: number, h: number) {
+  try {
+    const bb = svg.getBBox();
+    if (bb.width <= 0 || bb.height <= 0) return false;
+    // A stroke or a glyph descender can put a percentage-sized shape a hair past
+    // the edge, so only a real overhang counts.
+    const slack = 1;
+    return bb.x < -slack || bb.y < -slack || bb.x + bb.width > w + slack || bb.y + bb.height > h + slack;
+  } catch {
+    return false; // not rendered, so nothing measurable to overflow
+  }
+}
+
 /** Find the nearest meaningful SVG child element from a click/hover target */
 export function findSvgTarget(target: Element, svg: SVGSVGElement, container: HTMLDivElement): Element | null {
   while (target && target !== svg && target !== container) {
