@@ -92,7 +92,10 @@ test.describe('getElementBounds', () => {
   test('returns error for invalid selector', async ({ page }) => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>';
     const result = await getBounds(page, svg, '!!!invalid');
-    expect(result).toContain('Error: invalid CSS selector');
+    expect(result).toContain('Error: "!!!invalid" is not a valid CSS selector');
+    // A rejection has to point somewhere: the usual cause is a path typed
+    // without its leading slash, so the message shows what one looks like.
+    expect(result).toContain('/svg[1]/g[3]/rect[2]');
   });
 
   test('returns message when no elements match', async ({ page }) => {
