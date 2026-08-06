@@ -27,7 +27,7 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
     // below (Monaco's margin then swallows their clicks).
     <Group gap="xs" px={8} py={4} justify="space-between" style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, minHeight: 36 }}>
       <Group gap="xs">
-        <Tooltip label="Create a blank SVG document">
+        <Tooltip label="Start a new SVG document">
           <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconFilePlus size={14} />} onClick={onNew}>
             New
           </Button>

@@ -76,12 +76,22 @@ export function useDocument(routeFileId: string | undefined) {
     setPublishDialogOpen(false);
   }, [routeFileId]);
 
+  // Bumped whenever the open document changes. A load is several awaits long, so
+  // one started for the previous document can still be in flight when another
+  // takes its place; without this its setState calls would land on the new
+  // document, giving it the old one's text, gallery meta and — worst — its
+  // `public` visibility, which the next Save would then honour with no publish
+  // dialog. Each load captures the token and drops out once it no longer holds.
+  const docLoadToken = useRef(0);
+
   // DB init / load
   useEffect(() => {
     const db = new EditSvgCodeDb();
     dbRef.current = db;
 
     const handleDbInit = async () => {
+      const token = ++docLoadToken.current;
+      const stale = () => docLoadToken.current !== token;
       const uniqueId = routeFileId || '';
       if (uniqueId) setFileId(uniqueId);
       const currentFileId = uniqueId || localStorage.getItem('esvg-local-id') || fileId;
@@ -97,6 +107,7 @@ export function useDocument(routeFileId: string | undefined) {
       if (uniqueId) {
         try {
           const result = await db.loadDocument(uniqueId);
+          if (stale()) return;
           if (result) {
             setVisibility(result.visibility);
             setGalleryMeta({ title: result.title, description: result.description });
@@ -111,12 +122,14 @@ export function useDocument(routeFileId: string | undefined) {
               setSvgCode(formatted);
             } else {
               const savedSvg = await loadSvgCode(currentFileId);
+              if (stale()) return;
               setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
             }
           } else {
             setSvgCode(DEFAULT_SVG);
           }
         } catch {
+          if (stale()) return;
           setSvgCode(DEFAULT_SVG);
           notifications.show({ title: 'Access denied', message: 'This file is private or does not exist.', color: 'red' });
         }
@@ -133,6 +146,7 @@ export function useDocument(routeFileId: string | undefined) {
           } catch {
             // not found / not ours — use the local copy
           }
+          if (stale()) return;
         }
         if (serverText && serverText.includes('<svg')) {
           const formatted = formatXml(serverText);
@@ -140,6 +154,7 @@ export function useDocument(routeFileId: string | undefined) {
           setSvgCode(formatted);
         } else {
           const savedSvg = await loadSvgCode(currentFileId);
+          if (stale()) return;
           setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
         }
         setReadOnly(false);
@@ -150,7 +165,13 @@ export function useDocument(routeFileId: string | undefined) {
       handleDbInit();
     }
     document.addEventListener('dbinit', handleDbInit);
-    return () => document.removeEventListener('dbinit', handleDbInit);
+    return () => {
+      // Invalidate here too, not only at the next load's start: when the route
+      // changes before auth has settled the next run does not call handleDbInit,
+      // so nothing else would supersede the load already running.
+      docLoadToken.current++;
+      document.removeEventListener('dbinit', handleDbInit);
+    };
   }, [routeFileId]);
 
   const isAnonymous = getAuth().currentUser?.isAnonymous ?? true;
@@ -269,9 +290,24 @@ export function useDocument(routeFileId: string | undefined) {
     URL.revokeObjectURL(url);
   }, [svgCode, routeFileId, fileId, downloadName]);
 
+  // New starts a genuinely separate document: a fresh permanent id (so the chat,
+  // blobs and draft of the old doc stay with the old doc) holding the same
+  // starter drawing a first-time visitor sees. Leaving the route pointing at the
+  // old file would keep its id, its chat and its Save target.
   const handleNew = useCallback(() => {
-    setSvgCode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">\n\n</svg>');
-  }, []);
+    const id = getNewUniqueId();
+    // Starting from the draft URL leaves the route unchanged, so the load effect
+    // never re-runs and never invalidates a load still in flight. Do it here.
+    docLoadToken.current++;
+    localStorage.setItem('esvg-local-id', id);
+    setFileId(id);
+    setDownloadName(null);
+    clearProposal();
+    setSvgCode(DEFAULT_SVG);
+    // Back to the draft URL. When we were already there the load effect does not
+    // re-run, which is why the state above is set directly rather than left to it.
+    if (routeFileId) navigate('/', { replace: false });
+  }, [routeFileId, navigate, clearProposal]);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
     if (!svg) {
