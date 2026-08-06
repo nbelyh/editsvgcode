@@ -13,17 +13,35 @@ export const stepDown = (z: number) => [...LEVELS].reverse().find((l) => l < z) 
 /** Check whether a string represents an absolute CSS length (e.g. "100", "100px") */
 export const isAbsoluteLength = (v: string) => /^[\d.]+(?:px)?$/.test(v.trim());
 
+/** A measured bounding box, free of the live SVGRect the DOM hands back. */
+export type Rect = { x: number; y: number; width: number; height: number };
+
+/** getBBox as a plain rect, or null when the element is not rendered. */
+export function measureBBox(svg: SVGSVGElement): Rect | null {
+  try {
+    const bb = svg.getBBox();
+    return { x: bb.x, y: bb.y, width: bb.width, height: bb.height };
+  } catch {
+    return null;
+  }
+}
+
 /** Compute viewBox from getBBox, falling back to `fw x fh` if getBBox fails. */
 export function synthesizeViewBox(svg: SVGSVGElement, fw: number, fh: number) {
   try {
     const bb = svg.getBBox();
-    if (bb.width > 0 && bb.height > 0) {
+    // A drawing flat on one axis — a single horizontal rule at y=1500 — is
+    // still content that needs framing, so accept a box with extent either way
+    // and let the max() below give the empty axis the fallback's size.
+    if (bb.width > 0 || bb.height > 0) {
       const x = Math.min(0, bb.x);
       const y = Math.min(0, bb.y);
       const w = Math.max(fw, bb.x + bb.width) - x;
       const h = Math.max(fh, bb.y + bb.height) - y;
-      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
-      return { w, h };
+      if (w > 0 && h > 0) {
+        svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+        return { w, h };
+      }
     }
   } catch { /* not rendered */ }
   if (fw > 0 && fh > 0) {
@@ -36,22 +54,38 @@ export function synthesizeViewBox(svg: SVGSVGElement, fw: number, fh: number) {
 /**
  * Does the drawing reach outside a `w` x `h` viewport?
  *
- * Tells apart the two kinds of SVG that carry percentage width/height: one laid
- * out from percentages, which fills whatever box it is given and never exceeds
- * it, and one anchored to absolute coordinates, which ignores the box entirely.
- * Only the second kind needs a viewBox to be seen whole.
+ * The first half of telling apart the two kinds of SVG that carry percentage
+ * width/height: one laid out from percentages, which fills whatever box it is
+ * given, and one anchored to absolute coordinates, which ignores the box
+ * entirely. Overflow alone does not settle it — see bboxTracksViewport.
  */
-export function contentOverflowsViewport(svg: SVGSVGElement, w: number, h: number) {
-  try {
-    const bb = svg.getBBox();
-    if (bb.width <= 0 || bb.height <= 0) return false;
-    // A stroke or a glyph descender can put a percentage-sized shape a hair past
-    // the edge, so only a real overhang counts.
-    const slack = 1;
-    return bb.x < -slack || bb.y < -slack || bb.x + bb.width > w + slack || bb.y + bb.height > h + slack;
-  } catch {
-    return false; // not rendered, so nothing measurable to overflow
-  }
+export function contentOverflowsViewport(bb: Rect | null, w: number, h: number) {
+  if (!bb) return false; // not rendered, so nothing measurable to overflow
+  // Flat on one axis still counts (a horizontal rule far down the page is the
+  // case this exists for); only a box with no extent at all means nothing drawn.
+  if (bb.width <= 0 && bb.height <= 0) return false;
+  // A stroke or a glyph descender can put a percentage-sized shape a hair past
+  // the edge, so only a real overhang counts.
+  const slack = 1;
+  return bb.x < -slack || bb.y < -slack || bb.x + bb.width > w + slack || bb.y + bb.height > h + slack;
+}
+
+/**
+ * Did the drawing's box move when the viewport it was laid out in shrank?
+ *
+ * Percentage-laid-out content resolves against the viewport, so its box follows
+ * the box it is handed; content on absolute coordinates does not budge. This is
+ * what separates a drawing that deliberately bleeds past its edge — which a
+ * browser clips, and so must the preview — from an exported diagram that ignores
+ * the viewport and needs a viewBox to be seen at all. A drawing that mixes the
+ * two reads as absolute exactly when the absolute part is the larger, which is
+ * when framing it is what the user wants.
+ */
+export function bboxTracksViewport(atFull: Rect | null, atSmaller: Rect | null) {
+  if (!atFull || !atSmaller) return false;
+  const moved = (a: number, b: number) => Math.abs(a - b) > 1;
+  return moved(atFull.x, atSmaller.x) || moved(atFull.y, atSmaller.y)
+    || moved(atFull.width, atSmaller.width) || moved(atFull.height, atSmaller.height);
 }
 
 /** Find the nearest meaningful SVG child element from a click/hover target */

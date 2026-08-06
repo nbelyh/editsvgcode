@@ -67,8 +67,13 @@ test.describe('Zoom Controls', () => {
     const pane = await page.locator('[data-testid="preview-panel"] > div').last().evaluate((el) => ({ w: el.clientWidth, h: el.clientHeight }));
     const size = await previewSize(page);
     expect(size.viewBox).toBeNull();
-    expect(size.w).toBe(pane.w);
-    expect(size.h).toBe(pane.h);
+    // Not exact equality: the preview draws a 1px border inside the shadow root,
+    // so an svg sized to the pane overflows it by 2px and the scroll container
+    // takes a scrollbar's width off clientWidth — which headless Chromium hides
+    // and a headed run does not. The claim is that the pane is the natural size
+    // rather than something viewBox-derived, and a scrollbar of slack keeps it.
+    expect(Math.abs(size.w - pane.w)).toBeLessThanOrEqual(20);
+    expect(Math.abs(size.h - pane.h)).toBeLessThanOrEqual(20);
     await expect(page.locator('.mantine-Text-root:text("100%")')).toBeVisible({ timeout: 5000 });
   });
 
@@ -89,5 +94,32 @@ test.describe('Zoom Controls', () => {
     await page.getByLabel('Reset zoom').click();
     await expect.poll(async () => (await previewSize(page)).w, { timeout: 5000 }).toBe(4000);
     expect((await previewSize(page)).h).toBe(2000);
+  });
+
+  test('percentage dimensions: a deliberate bleed off the edge is clipped, not framed', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    // A backdrop laid out from percentages with a circle centred on the origin,
+    // three quarters of which is outside the viewport by design. A browser clips
+    // it; framing the whole circle would shrink the backdrop off the edges.
+    await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="#f0e0ff"/><circle cx="0" cy="0" r="200" fill="#9b59b6"/></svg>');
+
+    // The box reaches past the edge, but it moves with the viewport, so the
+    // drawing belongs to its box and gets no viewBox invented for it.
+    await expect.poll(async () => (await previewSize(page)).viewBox, { timeout: 5000 }).toBeNull();
+  });
+
+  test('percentage dimensions: content flat on one axis is still framed', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    // A single horizontal rule far below the pane: a zero-height bounding box,
+    // but absolute coordinates all the same, and invisible without a viewBox.
+    await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><line x1="0" y1="1500" x2="800" y2="1500" stroke="#333" stroke-width="4"/></svg>');
+
+    await expect.poll(async () => (await previewSize(page)).viewBox, { timeout: 5000 }).not.toBeNull();
+    const { viewBox } = await previewSize(page);
+    // Whatever the pane contributes to the other axis, the rule has to be inside.
+    const [, y, , h] = viewBox!.split(/\s+/).map(Number);
+    expect(y + h).toBeGreaterThanOrEqual(1500);
   });
 });

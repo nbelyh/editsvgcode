@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, LEVELS } from '../preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, LEVELS } from '../preview-utils';
 
 // ---------------------------------------------------------------------------
 // stepUp / stepDown (zoom levels)
@@ -101,46 +101,88 @@ describe('isAbsoluteLength', () => {
 // ---------------------------------------------------------------------------
 // contentOverflowsViewport
 // ---------------------------------------------------------------------------
-/** jsdom has no layout, so stand in for getBBox with a fixed box. */
-function svgWithBBox(bb: { x: number; y: number; width: number; height: number } | 'throws'): SVGSVGElement {
-  return {
-    getBBox() {
-      if (bb === 'throws') throw new Error('not rendered');
-      return bb;
-    },
-  } as unknown as SVGSVGElement;
-}
-
 describe('contentOverflowsViewport', () => {
   it('reports no overflow when the drawing exactly fills the viewport', () => {
     // What percentage-laid-out content does: <rect width="100%" height="100%"/>
-    expect(contentOverflowsViewport(svgWithBBox({ x: 0, y: 0, width: 631, height: 657 }), 631, 657)).toBe(false);
+    expect(contentOverflowsViewport({ x: 0, y: 0, width: 631, height: 657 }, 631, 657)).toBe(false);
   });
 
   it('reports no overflow when the drawing is smaller than the viewport', () => {
-    expect(contentOverflowsViewport(svgWithBBox({ x: 10, y: 10, width: 100, height: 100 }), 631, 657)).toBe(false);
+    expect(contentOverflowsViewport({ x: 10, y: 10, width: 100, height: 100 }, 631, 657)).toBe(false);
   });
 
   it('reports overflow when absolute coordinates run past the viewport', () => {
     // The Visio-style export: width="100%" but content drawn at ~2679x1660
-    expect(contentOverflowsViewport(svgWithBBox({ x: 0, y: 0, width: 2679, height: 1660 }), 631, 657)).toBe(true);
+    expect(contentOverflowsViewport({ x: 0, y: 0, width: 2679, height: 1660 }, 631, 657)).toBe(true);
   });
 
   it('reports overflow when content sits above or left of the origin', () => {
-    expect(contentOverflowsViewport(svgWithBBox({ x: -50, y: 0, width: 100, height: 100 }), 631, 657)).toBe(true);
-    expect(contentOverflowsViewport(svgWithBBox({ x: 0, y: -50, width: 100, height: 100 }), 631, 657)).toBe(true);
+    expect(contentOverflowsViewport({ x: -50, y: 0, width: 100, height: 100 }, 631, 657)).toBe(true);
+    expect(contentOverflowsViewport({ x: 0, y: -50, width: 100, height: 100 }, 631, 657)).toBe(true);
   });
 
   it('tolerates a sub-pixel overhang from a stroke or descender', () => {
-    expect(contentOverflowsViewport(svgWithBBox({ x: -0.5, y: 0, width: 631.5, height: 657.5 }), 631, 657)).toBe(false);
+    expect(contentOverflowsViewport({ x: -0.5, y: 0, width: 631.5, height: 657.5 }, 631, 657)).toBe(false);
   });
 
   it('reports no overflow for an empty drawing', () => {
-    expect(contentOverflowsViewport(svgWithBBox({ x: 0, y: 0, width: 0, height: 0 }), 631, 657)).toBe(false);
+    expect(contentOverflowsViewport({ x: 0, y: 0, width: 0, height: 0 }, 631, 657)).toBe(false);
+  });
+
+  it('reports overflow for content flat on one axis but far outside', () => {
+    // A single horizontal rule at y=1500: zero height, and off the pane entirely.
+    expect(contentOverflowsViewport({ x: 0, y: 1500, width: 800, height: 0 }, 631, 657)).toBe(true);
+    // The same flat shape inside the pane still needs no viewBox.
+    expect(contentOverflowsViewport({ x: 0, y: 300, width: 400, height: 0 }, 631, 657)).toBe(false);
   });
 
   it('reports no overflow when the element cannot be measured', () => {
-    expect(contentOverflowsViewport(svgWithBBox('throws'), 631, 657)).toBe(false);
+    expect(contentOverflowsViewport(null, 631, 657)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// bboxTracksViewport
+// ---------------------------------------------------------------------------
+describe('bboxTracksViewport', () => {
+  it('sees percentage content follow the viewport it is given', () => {
+    // <rect width="100%" height="100%"/> measured at the pane, then at half.
+    expect(bboxTracksViewport(
+      { x: 0, y: 0, width: 631, height: 657 },
+      { x: 0, y: 0, width: 316, height: 329 },
+    )).toBe(true);
+  });
+
+  it('sees absolute content stay put', () => {
+    const bb = { x: 0, y: 0, width: 2679, height: 1660 };
+    expect(bboxTracksViewport(bb, { ...bb })).toBe(false);
+  });
+
+  it('reads a deliberate bleed off a percentage backdrop as viewport-driven', () => {
+    // <rect width="100%" height="100%"/> plus a circle at the origin, half of
+    // which the browser clips. The left/top edge is fixed, the far edge is not.
+    expect(bboxTracksViewport(
+      { x: -200, y: -200, width: 831, height: 857 },
+      { x: -200, y: -200, width: 516, height: 529 },
+    )).toBe(true);
+  });
+
+  it('reads a diagram larger than the pane as absolute despite a percentage backdrop', () => {
+    // The backdrop is inside the diagram's box, so the box does not move.
+    const bb = { x: 0, y: 0, width: 4000, height: 2000 };
+    expect(bboxTracksViewport(bb, { ...bb })).toBe(false);
+  });
+
+  it('ignores sub-pixel drift', () => {
+    expect(bboxTracksViewport(
+      { x: 0, y: 0, width: 2679, height: 1660 },
+      { x: 0.5, y: 0, width: 2679.5, height: 1660 },
+    )).toBe(false);
+  });
+
+  it('does not claim tracking when either measurement failed', () => {
+    expect(bboxTracksViewport(null, { x: 0, y: 0, width: 10, height: 10 })).toBe(false);
+    expect(bboxTracksViewport({ x: 0, y: 0, width: 10, height: 10 }, null)).toBe(false);
   });
 });
 

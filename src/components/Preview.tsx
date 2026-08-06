@@ -3,7 +3,7 @@ import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, contentOverflowsViewport, findSvgTarget, resolveXPath } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
 interface PreviewProps {
   svgCode: string;
@@ -330,13 +330,25 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
           // costs the auto-fit below a scrollbar's width of room.
           const savedW = svg.getAttribute('width');
           const savedH = svg.getAttribute('height');
-          svg.setAttribute('width', String(pw));
-          svg.setAttribute('height', String(ph));
-          const overflows = contentOverflowsViewport(svg, pw, ph);
+          const measureAt = (w: number, h: number) => {
+            svg.setAttribute('width', String(Math.max(1, Math.round(w))));
+            svg.setAttribute('height', String(Math.max(1, Math.round(h))));
+            return measureBBox(svg);
+          };
+          const atPane = measureAt(pw, ph);
+          // Overflow on its own does not mean absolute coordinates: a drawing
+          // built from percentages can still bleed past its edge on purpose, and
+          // that a browser simply clips. Lay it out again at half the pane and
+          // see whether the box follows — percentages do, absolute ones do not.
+          const atHalf = measureAt(pw / 2, ph / 2);
           for (const [name, saved] of [['width', savedW], ['height', savedH]] as const) {
             if (saved === null) svg.removeAttribute(name); else svg.setAttribute(name, saved);
           }
-          if (overflows) size = synthesizeViewBox(svg, pw, ph) ?? size;
+          if (contentOverflowsViewport(atPane, pw, ph) && !bboxTracksViewport(atPane, atHalf)) {
+            // Safe to re-measure inside synthesizeViewBox with the percentage
+            // attributes back on: we only get here when the box ignores them.
+            size = synthesizeViewBox(svg, pw, ph) ?? size;
+          }
         }
       }
     }
