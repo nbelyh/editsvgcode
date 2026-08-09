@@ -257,7 +257,7 @@ test.describe('AI edit tools, end to end', () => {
     const svg = await editorValue(page);
     expect(svg).toContain('>Lines<');
     expect(svg).not.toContain('>Structural<');
-    await expect(page.getByText(/Some edits failed/)).toBeVisible();
+    await expect(page.getByText(/Some changes were not applied/)).toBeVisible();
   });
 
   test('an edit that breaks the document is flagged as damage, not success', async ({ page }) => {
@@ -280,6 +280,11 @@ test.describe('AI edit tools, end to end', () => {
     ]]);
     await send(page);
     await expect(page.getByText(/no visible effect/)).toBeVisible({ timeout: 15000 });
+    // The note is folded: the headline is for the reader, and the wording that
+    // names the tool is written for the assistant. Open it to read that wording,
+    // which is the part that has to stay pointed at the rule and not the
+    // attribute — and folding it away is not the same as dropping it.
+    await page.getByText(/no visible effect/).click();
     await expect(page.getByText(/set_style_rule/)).toBeVisible();
   });
 
@@ -289,7 +294,7 @@ test.describe('AI edit tools, end to end', () => {
       call('set_text', { edits: [{ selector: '#nosuchthing', text: 'x' }], summary: 'Rename' }),
     ]]);
     await send(page);
-    await expect(page.getByText(/Some edits failed/)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Some changes were not applied/)).toBeVisible({ timeout: 15000 });
     await acceptAll(page);
     expect(await editorValue(page)).toBe(DOC);
   });
@@ -317,7 +322,10 @@ test.describe('AI edit tools, end to end', () => {
     const queryResult = results.find((r) => r.includes('matched "#table"'));
     expect(queryResult).toBeDefined();
     expect(queryResult).toContain('text inside:');
-    expect(queryResult).toContain('/svg[1]/g[1]/text[1] "Customer"');
+    // An id-anchored address, not a positional path: the long form is what the
+    // model kept mis-copying a step out of, so the short one is handed back
+    // whenever the element has an id.
+    expect(queryResult).toContain('#title "Customer"');
   });
 
   test('rejecting a proposal leaves the document untouched', async ({ page }) => {
