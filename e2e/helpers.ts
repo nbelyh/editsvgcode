@@ -19,16 +19,33 @@ export async function waitForEditor(page: Page) {
  * before setValue, which any unrelated re-render satisfied; assertions then ran
  * against the sample document. Chromium usually won that race and webkit always
  * lost it, which made the preview specs look browser-specific when they were not.
+ *
+ * Nor is a single match enough, for the same reason one level down: the load
+ * that overwrites the editor is triggered by auth settling, and WebKit restores
+ * a persisted session about a second later than Chromium does. Both browsers
+ * run the same overwrite; only Chromium reliably runs it before the editor is
+ * ready. Holding the match rather than returning on it is what makes the helper
+ * mean the same thing in both.
  */
 export async function setSvgContent(page: Page, svg: string) {
   await page.waitForFunction((s) => {
-    const editor = (window as any).__test_monaco_editor;
+    const w = window as any;
+    const editor = w.__test_monaco_editor;
     if (!editor) return false;
     if (editor.getValue() !== s) {
       editor.updateOptions({ readOnly: false });
       editor.setValue(s);
+      w.__test_svg_held = 0;
       return false;
     }
+    // Matching once is not enough. The app loads the document after auth
+    // settles and pushes it into the editor, and that lands about a second
+    // after the editor is ready — so a value set and checked in between is
+    // overwritten by a load that had not run yet. Hold the match across
+    // several polls, re-applying if it drifts, and the load has to have
+    // happened before this returns.
+    w.__test_svg_held = (w.__test_svg_held ?? 0) + 1;
+    if (w.__test_svg_held < 6) return false;
     const host = document.querySelector('[data-testid="svg-preview"]');
     const el = host?.shadowRoot?.querySelector('svg') ?? host?.querySelector('svg');
     if (!el) return false;
