@@ -1,30 +1,24 @@
 import { test, expect } from '@playwright/test';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
 import { waitForEditor } from './helpers.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const TEST_SVG = '<svg xmlns="http://www.w3.org/2000/svg"><ellipse cx="100" cy="50" rx="80" ry="40" fill="green"/></svg>';
 
 test.describe('File Upload & Download', () => {
-  // Skip upload in WebKit — setInputFiles doesn't reliably fire the change event
-  test('upload an SVG file and see it in the editor', async ({ page, browserName }) => {
-    test.skip(browserName === 'webkit', 'WebKit setInputFiles is unreliable for hidden file inputs');
-
+  test('upload an SVG file and see it in the editor', async ({ page }) => {
     await page.goto('/');
     await waitForEditor(page);
 
-    const tmpPath = path.join(__dirname, 'test-upload.svg');
-    fs.writeFileSync(tmpPath, TEST_SVG, 'utf-8');
-    try {
-      const fileInput = page.locator('input[type="file"][accept="image/svg+xml"]');
-      await fileInput.setInputFiles(tmpPath);
-    } finally {
-      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-    }
+    // Handed over in memory. A file on disk was shared by every copy of this
+    // test running at once — both projects, and every --repeat-each — under one
+    // fixed name, so one copy unlinked the bytes another was still uploading.
+    // That is what "unreliable in WebKit" turned out to be, and it failed in
+    // Chromium too once the timing was right.
+    const fileInput = page.locator('input[type="file"][accept="image/svg+xml"]');
+    await fileInput.setInputFiles({
+      name: 'test-upload.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from(TEST_SVG, 'utf-8'),
+    });
 
     const ellipse = page.locator('[data-testid="svg-preview"] ellipse[fill="green"]');
     await expect(ellipse).toBeVisible({ timeout: 10000 });
