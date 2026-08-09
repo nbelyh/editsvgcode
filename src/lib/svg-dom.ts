@@ -439,6 +439,146 @@ export function textRangeOf(
   return { start: tag.end, end: firstChildTag.start, current: between };
 }
 
+/** One line of a multi-line text block, with the geometry that positions it. */
+export interface TextBlockLine {
+  text: string;
+  /** Horizontal start. Exporters centre each line by giving it its own x. */
+  x: string | null;
+  /** Vertical step from the previous line — "1.2em" in a Visio export. */
+  dy: string | null;
+  className: string | null;
+}
+
+/**
+ * A `<text>` read as what it actually is: a label of one or more lines.
+ *
+ * An exporter writes the first line as the element's own characters and each
+ * one after it as a <tspan> carrying the line break (dy) and its own x. Treating
+ * those tspans as children rather than as lines is what left a label addressable
+ * only in pieces — and left characters sitting between them addressable not at
+ * all. Returns the span of source covering everything between the tags, so the
+ * whole block can be rewritten in one range.
+ */
+export function textBlockOf(
+  source: string,
+  doc: Document,
+  el: Element,
+  prebuilt?: Map<Element, StartTag>,
+): { start: number; end: number; lines: TextBlockLine[] } | null {
+  const ranges = prebuilt ?? elementSourceRanges(source, doc);
+  const tag = ranges.get(el);
+  if (!tag || tag.selfClosing) return null;
+  // Only the block itself. A <tspan> is one line of one, never a block of its own.
+  if (el.tagName.toLowerCase() !== 'text') return null;
+
+  const close = closingTagStart(source, el, ranges);
+  if (close === null) return null;
+
+  const lines: TextBlockLine[] = [];
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType === 3 || node.nodeType === 4) {
+      const text = node.textContent ?? '';
+      // Whitespace between tspans is formatting, not part of the label.
+      if (text.trim() === '') continue;
+      // Characters AFTER a tspan continue that tspan's line — they carry no
+      // position of their own, so the renderer sets them down where the previous
+      // run ended. Measured: in "a<tspan dy=1.2em>b</tspan>c", c sits on b's
+      // line, right after it. Only a run BEFORE any tspan begins a line of its
+      // own, at the <text>'s own x. Treating every run as a line would have
+      // split "Non" from "-Movable Furnishings" onto two lines that the drawing
+      // never had.
+      if (lines.length > 0) lines[lines.length - 1].text += text;
+      else lines.push({ text, x: null, dy: null, className: null });
+      continue;
+    }
+    if (node.nodeType !== 1) continue;
+    const child = node as Element;
+    if (child.tagName.toLowerCase() !== 'tspan') return null; // not a plain label
+    if (child.children.length > 0) return null; // nested structure — leave alone
+    lines.push({
+      text: child.textContent ?? '',
+      x: child.getAttribute('x'),
+      dy: child.getAttribute('dy'),
+      className: child.getAttribute('class'),
+    });
+  }
+  if (lines.length === 0) return null;
+  return { start: tag.end, end: close, lines };
+}
+
+/** Where an element's closing tag begins, counting nested tags of the same name. */
+function closingTagStart(source: string, el: Element, ranges: Map<Element, StartTag>): number | null {
+  const tag = ranges.get(el);
+  if (!tag) return null;
+  const name = el.tagName;
+  const open = new RegExp(`<${name}(?=[\\s/>])`, 'g');
+  const shut = new RegExp(`</${name}\\s*>`, 'g');
+  let depth = 1;
+  let i = tag.end;
+  for (;;) {
+    open.lastIndex = i; shut.lastIndex = i;
+    const o = open.exec(source);
+    const c = shut.exec(source);
+    if (!c) return null;
+    if (o && o.index < c.index) { depth += 1; i = o.index + 1; continue; }
+    depth -= 1;
+    if (depth === 0) return c.index;
+    i = c.index + 1;
+  }
+}
+
+/**
+ * Render `texts` as the inner markup of a text block, reusing the geometry of
+ * the block it replaces.
+ *
+ * Every line becomes a <tspan>, including the first — verified to render
+ * identically to the bare run an exporter writes, given the same x. Line k keeps
+ * line k's x, dy and class; a block that grew takes the last line's, which is
+ * the only answer available without measuring how wide the new words render.
+ */
+export function renderTextBlock(texts: string[], template: TextBlockLine[], ownX: string | null): string {
+  return texts.map((text, i) => {
+    const from = template[i] ?? template[template.length - 1];
+    const attrs: string[] = [];
+    // The first line sits where the <text> itself does unless the block gave it
+    // an x of its own; later lines must step down, so they inherit dy or take
+    // the standard one rather than stacking on top of the line above.
+    const x = i === 0 ? (template[0]?.x ?? ownX) : (from.x ?? ownX);
+    if (x !== null) attrs.push(` x="${escapeAttr(x)}"`);
+    const dy = i === 0 ? template[0]?.dy ?? null : (from.dy ?? '1.2em');
+    if (dy !== null) attrs.push(` dy="${escapeAttr(dy)}"`);
+    if (from.className !== null) attrs.push(` class="${escapeAttr(from.className)}"`);
+    return `<tspan${attrs.join('')}>${escapeText(text)}</tspan>`;
+  }).join('');
+}
+
+/**
+ * The element an address really means when the one it names holds no text.
+ *
+ * A group with a single label inside it can only mean that label, so an address
+ * landing on the group resolves through to it. `<desc>` never renders — it is
+ * the accessibility title an exporter writes beside the visible label — so a
+ * group holding one `<desc>` and one `<text>` is not ambiguous either: the
+ * `<text>` is the one on screen. Anything genuinely ambiguous is left alone and
+ * refused, with the candidates named as before.
+ */
+function retargetToSoleText(source: string, doc: Document, el: Element, tags: Map<Element, StartTag>): Element {
+  if (textRangeOf(source, doc, el, tags) || textBlockOf(source, doc, el, tags)) return el;
+  const holders: Element[] = [];
+  const walk = (node: Element) => {
+    for (const child of Array.from(node.children)) {
+      if (directText(child).trim() !== '' && (textRangeOf(source, doc, child, tags) || textBlockOf(source, doc, child, tags))) {
+        holders.push(child);
+      }
+      walk(child);
+    }
+  };
+  walk(el);
+  if (holders.length === 1) return holders[0];
+  const texts = holders.filter((h) => h.tagName.toLowerCase() === 'text');
+  return texts.length === 1 ? texts[0] : el;
+}
+
 /** XML's Name production, near enough: what may appear as an attribute name. */
 const XML_NAME = /^[A-Za-z_:][\w.:-]*$/;
 
@@ -864,8 +1004,58 @@ export function planTextEdits(
 
     const resolved: TextEditRange[] = [];
     const refused: Element[] = [];
-    for (const el of found) {
+    const keptLines: string[] = [];
+    const notALabel: string[] = [];
+    const retargeted: string[] = [];
+    // Newlines mean the whole multi-line label is being rewritten, one line per
+    // run. Without them the text is a single run and the old meaning holds —
+    // which matters, because a plain string reading as "the whole block" would
+    // silently delete every line after the first on the labels that already work.
+    const asBlock = edit.text.includes('\n');
+    for (const el0 of found) {
+      // A container that holds exactly one piece of text means that piece. The
+      // reply already said so — "none of which holds text directly, the text
+      // inside is at #shape1370-2607 text" — and made the model spend a round
+      // re-sending the address with " text" on the end, which is precisely the
+      // suffix it keeps dropping. There is nothing else a group with one label
+      // could mean, so resolve it here instead of refusing and explaining.
+      const el = retargetToSoleText(source, doc, el0, tags);
+      if (el !== el0) retargeted.push(`${edit.selector} → ${shortAddressFor(doc, el) ?? pathOf(el)}`);
+      if (asBlock) {
+        const block = textBlockOf(source, doc, el, tags);
+        if (block) {
+          const texts = edit.text.split('\n');
+          // Lines given replace lines in order; lines not given are kept as they
+          // were. A label of "L. Wkstn / W.27 / 6 sq m" comes back as two lines,
+          // because the area needs no translating and gets left out — and the
+          // model leaves out whatever it is not changing. Requiring the full
+          // count refused the whole edit for it; taking the short list at face
+          // value would have dropped the area from forty-odd labels. Keeping the
+          // remainder is the only reading that cannot lose anything.
+          const kept = block.lines.length - texts.length;
+          const merged = texts.length >= block.lines.length
+            ? texts
+            : block.lines.map((l, i) => (i < texts.length ? texts[i] : l.text));
+          if (kept > 0) keptLines.push(`${pathOf(el)}: ${kept} of ${block.lines.length} line(s) left unchanged`);
+          resolved.push({
+            start: block.start,
+            end: block.end,
+            replacement: renderTextBlock(merged, block.lines, el.getAttribute('x')),
+          });
+          continue;
+        }
+      }
       const range = textRangeOf(source, doc, el, tags);
+      if (asBlock && range) {
+        // Newlines mean lines of a label, and this holds one run. Writing them
+        // into it would put a literal newline into character data, which renders
+        // as a space and reports success — the change looks done and reads
+        // wrong. Only checked once the element is known to hold a run at all:
+        // checking earlier stole the far more useful "the text inside is at …"
+        // reply from every container that holds no text of its own.
+        notALabel.push(shortAddressFor(doc, el) ?? pathOf(el));
+        continue;
+      }
       if (!range) {
         // Mixed content, self-closing, or unclosed: no single run of characters
         // belongs to this node, and its children each have their own address.
@@ -875,20 +1065,40 @@ export function planTextEdits(
       resolved.push({ start: range.start, end: range.end, replacement: escapeText(edit.text) });
     }
 
+    // A selector naming both a label and a tspan inside it — "text, tspan" is
+    // the obvious one — yields a block range that CONTAINS the tspan's own
+    // range. Overlaps are only checked between edits, never inside one, and
+    // applyRanges splices right-to-left: the inner write lands first and leaves
+    // the outer one's end offset pointing into shifted text, which corrupts the
+    // markup. The block rewrite already covers every line, so the contained
+    // range is redundant as well as unsafe.
+    const nested = resolved.filter((r) => resolved.some((o) => o !== r && o.start <= r.start && r.end <= o.end));
+    if (nested.length > 0) {
+      for (const r of nested) resolved.splice(resolved.indexOf(r), 1);
+    }
+
     if (resolved.length === 0) {
       // Name where the text ACTUALLY is. This used to say "address the children
       // instead" and then list the refused element's own path — sending the
       // model back to the address it had just been refused, which is how a
       // rename could burn a whole turn while every tool behaved "correctly".
       const inside = refused.flatMap((el) => editableTextIn(source, doc, el, tags)).slice(0, TEXT_IN_LIMIT);
+      // A multi-line label refused a one-line edit: say how to write the whole
+      // thing, rather than only pointing at the pieces. Addressing the label is
+      // what the model reaches for first, and now it works.
+      const block = refused.length === 1 ? textBlockOf(source, doc, refused[0], tags) : null;
       outcomes.push({
         selector: edit.selector,
         status: 'failed',
         matched: found.length,
         ranges: [],
-        detail: inside.length > 0
-          ? `matched ${found.length} element(s), none of which holds text directly. The text inside is at: ${inside.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`
-          : `matched ${found.length} element(s), none of which holds any text to change. Use query to see what is there.`,
+        detail: notALabel.length > 0
+          ? `newlines mean the lines of a multi-line label, and ${notALabel.slice(0, 3).join(', ')} is not one — it holds a single run of characters. Send text without newlines here, or address the <text> that holds the lines.`
+          : block
+          ? `this is a ${block.lines.length}-line label, so one line of text cannot say what it should read. Send all ${block.lines.length} lines separated by newlines: ${block.lines.map((l) => JSON.stringify(l.text)).join(' / ')}`
+          : inside.length > 0
+            ? `matched ${found.length} element(s), none of which holds text directly. The text inside is at: ${inside.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`
+            : `matched ${found.length} element(s), none of which holds any text to change. Use query to see what is there.`,
       });
       continue;
     }
@@ -899,9 +1109,28 @@ export function planTextEdits(
       status: 'applied',
       matched: resolved.length,
       ranges: resolved,
-      detail: refused.length > 0
-        ? `${refused.length} match(es) skipped for having child elements; address those directly: ${refused.slice(0, 3).join(', ')}`
-        : undefined,
+      // Every note that applies, not the first one: an edit can skip a match AND
+      // keep lines on another, and picking one silently dropped the other.
+      // Applied-but-partial is worth saying out loud — a short line list is
+      // usually deliberate, the untranslated area on a room label, and
+      // occasionally a line meant to be written and forgotten.
+      detail: [
+        refused.length > 0
+          ? `${refused.length} match(es) skipped for having child elements; address those directly: ${refused.slice(0, 3).join(', ')}`
+          : null,
+        keptLines.length > 0
+          ? `fewer lines given than the label has, so the rest were kept: ${keptLines.slice(0, 3).join('; ')}${keptLines.length > 3 ? `, … (+${keptLines.length - 3} more)` : ''}`
+          : null,
+        nested.length > 0
+          ? `${nested.length} match(es) sat inside a label this call rewrites whole, and were skipped as redundant`
+          : null,
+        notALabel.length > 0
+          ? `${notALabel.length} match(es) hold a single run, not lines, so the newline text was not written to them: ${notALabel.slice(0, 3).join(', ')}`
+          : null,
+        retargeted.length > 0
+          ? `addressed a container holding one label, so the label was changed: ${retargeted.slice(0, 3).join(', ')}${retargeted.length > 3 ? `, … (+${retargeted.length - 3} more)` : ''}`
+          : null,
+      ].filter(Boolean).join('; ') || undefined,
     });
   }
 
@@ -1153,6 +1382,20 @@ export function lineOfOffset(source: string, offset: number): number {
 
 export interface MatchInfo {
   path: string;
+  /**
+   * A short address that resolves to this element and nothing else, built from
+   * the nearest id an ancestor carries. Present only when it was verified to
+   * match exactly this one element.
+   *
+   * A positional path is long and made of look-alike steps —
+   * /svg[1]/g[1]/g[1]/g[402]/g[1]/g[6]/text[1] has three g[1]s — and copying it
+   * back exactly is a transcription job. Observed failures were not invented
+   * addresses but dropped repeats: the model sent .../g[402]/g[6]/text[1], right
+   * index, one step short, and the edit was refused. An exported diagram numbers
+   * every shape, so there is nearly always a "#shape2150-4244 text" that says the
+   * same thing in a fifth of the characters with nothing repeated in it.
+   */
+  address?: string;
   tag: string;
   id?: string;
   className?: string;
@@ -1168,6 +1411,12 @@ export interface MatchInfo {
    * that followed used that path faithfully.
    */
   textIn?: Array<{ path: string; text: string }>;
+  /**
+   * The lines of a multi-line label, when no single run belongs to the element
+   * itself. Reported instead of a text= the element could not be given: what it
+   * reads is these lines, and set_text takes them back newline-separated.
+   */
+  blockLines?: string[];
 }
 
 /** How much of one node's text a listing shows before truncating. A `<style>`
@@ -1216,22 +1465,68 @@ export function pathOf(el: Element): string {
  * therefore drops gradients, `<defs>` contents and anything hidden — an
  * undercount, in the direction that surprises whoever is about to edit.
  */
+/** An id safe to write bare after "#" — no escaping, no ambiguity. */
+const ID_SAFE = /^[A-Za-z_][\w-]*$/;
+
+/**
+ * The shortest selector that picks out exactly this element via an id, or
+ * undefined when no id isolates it. Verified with the same resolver the edit
+ * tools use, so anything offered here is an address that will resolve.
+ */
+function shortAddressFor(doc: Document, el: Element): string | undefined {
+  const resolvesToJustThis = (selector: string) => {
+    const hit = resolveSelector(doc, selector);
+    return !isSelectorError(hit) && hit.length === 1 && hit[0] === el;
+  };
+  const own = el.getAttribute('id');
+  if (own && ID_SAFE.test(own) && resolvesToJustThis(`#${own}`)) return `#${own}`;
+
+  const tag = el.tagName.toLowerCase();
+  for (let anc = el.parentElement; anc; anc = anc.parentElement) {
+    const id = anc.getAttribute('id');
+    if (!id) continue;
+    // Only the NEAREST id'd ancestor is worth trying: if its subtree holds two
+    // of this tag, every ancestor further up holds at least as many.
+    if (!ID_SAFE.test(id)) return undefined;
+    return resolvesToJustThis(`#${id} ${tag}`) ? `#${id} ${tag}` : undefined;
+  }
+  return undefined;
+}
+
 export function describeMatches(source: string, doc: Document, elements: Element[]): MatchInfo[] {
   const ranges = elementSourceRanges(source, doc);
   return elements.map((el) => {
     const tag = ranges.get(el);
     const info: MatchInfo = { path: pathOf(el), tag: el.tagName.toLowerCase() };
+    const address = shortAddressFor(doc, el);
+    if (address) info.address = address;
     if (el.getAttribute('id')) info.id = el.getAttribute('id')!;
     if (el.getAttribute('class')) info.className = el.getAttribute('class')!;
     if (tag) info.line = lineOfOffset(source, tag.start);
     const own = directText(el);
-    // Whitespace-only content is layout, not something to read or translate.
-    if (own.trim() !== '') {
+    // Report text only where set_text could actually change it. The two used
+    // different tests: this reported any direct characters, while set_text needs
+    // ONE contiguous run and refuses an element whose text is interleaved with
+    // its children. A <text> reading "Computer<tspan>…</tspan>-Movable
+    // Furnishings" was therefore advertised here with a text= it could not be
+    // given — the model addressed exactly what it was shown and was refused for
+    // it, every single turn. Whitespace-only content is layout, not something to
+    // read or translate, and never counted.
+    const settable = own.trim() !== '' && textRangeOf(source, doc, el, ranges) !== null;
+    if (settable) {
       info.text = own.length > TEXT_PREVIEW ? own.slice(0, TEXT_PREVIEW) + `… (${own.length} chars)` : own;
     } else {
       const inside = editableTextIn(source, doc, el, ranges);
       if (inside.length > 0) info.textIn = inside;
     }
+    // Reported whether or not the element's own run is settable. The commonest
+    // export shape — one leading run then tspans, "L. Wkstn" / "W.27" / "6 sq m"
+    // — IS settable, so it used to be advertised as a plain one-line text=; the
+    // reply never said it was a label of three lines, and a one-line edit
+    // rewrote the first and reported success. Both are true and both are needed:
+    // text= is what a single-run edit changes, these are what the label reads.
+    const block = textBlockOf(source, doc, el, ranges);
+    if (block && block.lines.length > 1) info.blockLines = block.lines.map((l) => l.text);
     return info;
   });
 }
@@ -1260,7 +1555,9 @@ export function editableTextIn(
       if (out.length >= TEXT_IN_LIMIT) return;
       const own = directText(child);
       if (own.trim() !== '' && textRangeOf(source, doc, child, ranges)) {
-        out.push({ path: pathOf(child), text: own.length > 80 ? own.slice(0, 80) + '…' : own });
+        // Same reason as the row address: these are handed back to be copied
+        // into the next call, so give the form that survives copying.
+        out.push({ path: shortAddressFor(doc, child) ?? pathOf(child), text: own.length > 80 ? own.slice(0, 80) + '…' : own });
       }
       walk(child);
     }

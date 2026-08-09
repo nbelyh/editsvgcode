@@ -140,7 +140,8 @@ describe('describeMatches — what actually matched, with somewhere to go', () =
     const found = resolveSelector(doc, '.st1') as Element[];
     const [group, rect] = describeMatches(DOC, doc, found);
     expect(group).toMatchObject({ path: '/svg[1]/g[1]', tag: 'g', id: 'layer', className: 'st1', line: 2 });
-    expect(rect).toEqual({ path: '/svg[1]/g[1]/rect[1]', tag: 'rect', id: 'a', className: 'st1', line: 3 });
+    // An element carrying its own id needs nothing else to name it.
+    expect(rect).toEqual({ path: '/svg[1]/g[1]/rect[1]', address: '#a', tag: 'rect', id: 'a', className: 'st1', line: 3 });
   });
 
   it('tells a container where the text under it lives', () => {
@@ -150,10 +151,32 @@ describe('describeMatches — what actually matched, with somewhere to go', () =
     const doc = parse(DOC);
     const [group] = describeMatches(DOC, doc, [doc.querySelector('#layer')!]);
     expect(group.text).toBeUndefined();
+    // Anchored on the nearest id rather than spelled out positionally: these are
+    // handed back to be copied into the next call, and a path of look-alike
+    // steps is what gets miscopied.
     expect(group.textIn).toEqual([
-      { path: '/svg[1]/g[1]/text[1]', text: 'dbo' },
-      { path: '/svg[1]/g[1]/text[1]/tspan[1]', text: 'x' },
+      { path: '#layer text', text: 'dbo' },
+      { path: '#layer tspan', text: 'x' },
     ]);
+  });
+
+  it('falls back to the path when no id isolates the element', () => {
+    // Two texts under one id'd group: "#g text" would name both, so it is not an
+    // address for either and the positional path stands.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><g id="pair"><text>one</text><text>two</text></g></svg>';
+    const doc = parse(src);
+    const [first] = describeMatches(src, doc, [doc.querySelectorAll('text')[0]]);
+    expect(first.address).toBeUndefined();
+    expect(first.path).toBe('/svg[1]/g[1]/text[1]');
+  });
+
+  it('anchors on the nearest id when the element has none of its own', () => {
+    // The shape this exists for: /svg[1]/g[1]/g[1]/g[402]/g[1]/g[6]/text[1] has
+    // three g[1]s, and the step that got dropped in a real run was one of them.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><g><g><g id="shape2150-4244"><text>V</text></g></g></g></svg>';
+    const doc = parse(src);
+    const [t] = describeMatches(src, doc, [doc.querySelector('text')!]);
+    expect(t.address).toBe('#shape2150-4244 text');
   });
 
   it('says nothing about descendants when the node has its own text', () => {
@@ -171,6 +194,30 @@ describe('describeMatches — what actually matched, with somewhere to go', () =
     const doc = parse(src);
     const [g] = describeMatches(src, doc, [doc.querySelector('g')!]);
     expect(g.textIn).toEqual([{ path: '/svg[1]/g[1]/text[1]/tspan[1]', text: 'b' }]);
+  });
+
+  it('describes a multi-line label as its lines, not as settable text', () => {
+    // The legend label from a Visio floor plan. This used to report text="ac" —
+    // so the model addressed the <text> it was shown, and set_text refused it,
+    // identically, every turn. Now it reads as the two lines it renders as, and
+    // that address takes them back.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><text>a<tspan>b</tspan>c</text></svg>';
+    const doc = parse(src);
+    const [t] = describeMatches(src, doc, [doc.querySelector('text')!]);
+    expect(t.text).toBeUndefined();
+    expect(t.blockLines).toEqual(['a', 'bc']);
+  });
+
+  it('reports both the settable run and the lines, on the common export shape', () => {
+    // One leading run then tspans — the shape most of a Visio export uses.
+    // set_text handles the run, so query must keep offering text=; but it is
+    // also a two-line label, and saying only text= meant a one-line edit
+    // rewrote the first line and reported success with nothing else mentioned.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg"><text>Gross Area<tspan>545</tspan></text></svg>';
+    const doc = parse(src);
+    const [t] = describeMatches(src, doc, [doc.querySelector('text')!]);
+    expect(t.text).toBe('Gross Area');
+    expect(t.blockLines).toEqual(['Gross Area', '545']);
   });
 
   it('includes elements a bounds query would drop', () => {
@@ -331,15 +378,135 @@ describe('planTextEdits — resolves against one snapshot, applies nothing', () 
     expect(apply(src, ranges)).toBe('<svg><text>a &amp; b</text></svg>');
   });
 
-  it('refuses a node whose text is split across children', () => {
+  it('refuses one line for a multi-line label, and says how to write it', () => {
+    // "c" continues the tspan's line rather than starting one — measured in a
+    // browser — so this label reads two lines, "a" and "bc", not three.
     const src = '<svg><text>a<tspan>b</tspan>c</text></svg>';
     const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'nope' }]);
     expect(ranges).toEqual([]);
     expect(outcomes[0].status).toBe('failed');
-    // It used to say "address the children instead" and then name the refused
-    // element itself, sending the model back where it had just failed.
-    expect(outcomes[0].detail).toMatch(/The text inside is at: \/svg\[1\]\/text\[1\]\/tspan\[1\]/);
+    expect(outcomes[0].detail).toMatch(/2-line label/);
+    expect(outcomes[0].detail).toMatch(/"a" \/ "bc"/);
     expect(outcomes[0].detail).not.toMatch(/Address the children instead/);
+  });
+
+  it('rewrites a whole multi-line label, every line a tspan', () => {
+    // The Visio shape: first line bare, the rest tspans carrying x and dy. Each
+    // line keeps the geometry of the line it replaces, so the block does not move.
+    const src = '<svg><text x="10" y="5">a<tspan x="7" dy="1.2em" class="st5">b</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'A\nB' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="10" y="5"><tspan x="10">A</tspan><tspan x="7" dy="1.2em" class="st5">B</tspan></text></svg>'
+    );
+  });
+
+  it('folds a run trailing a tspan into that tspan\'s line', () => {
+    // The legend case: "Non" and "-Movable Furnishings" render as one line, and
+    // the trailing run had no address of its own. Rewriting the line reaches it.
+    const src = '<svg><text x="10" y="5">a<tspan x="7" dy="1.2em">Non</tspan>-Movable Furnishings</text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'A\nNicht-Bewegliche Ausstattung' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="10" y="5"><tspan x="10">A</tspan><tspan x="7" dy="1.2em">Nicht-Bewegliche Ausstattung</tspan></text></svg>'
+    );
+  });
+
+  it('keeps the lines a short rewrite leaves out', () => {
+    // Observed: a room label of "L. Wkstn / W.27 / 6 sq m" came back as two
+    // lines, because the area needs no translating and the model omits what it
+    // is not changing. Taking that at face value would have dropped the area
+    // from forty-odd labels; refusing it lost the whole edit. Keep the rest.
+    const src = '<svg><text x="1" y="2">L. Wkstn<tspan x="3" dy="1.2em">W.27</tspan><tspan x="4" dy="1.2em">6 sq m</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'Gr. Arbpl.\nW.27' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="1" y="2"><tspan x="1">Gr. Arbpl.</tspan><tspan x="3" dy="1.2em">W.27</tspan><tspan x="4" dy="1.2em">6 sq m</tspan></text></svg>'
+    );
+    // Not silent: a missing line is usually deliberate and occasionally a slip.
+    expect(outcomes[0].detail).toMatch(/1 of 3 line\(s\) left unchanged/);
+  });
+
+  it('accepts more lines than the label had, re-wrapping on the last line\'s geometry', () => {
+    const src = '<svg><text x="1" y="2">One<tspan x="3" dy="1.2em">Two</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'Eins\nZwei\nDrei' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="1" y="2"><tspan x="1">Eins</tspan><tspan x="3" dy="1.2em">Zwei</tspan><tspan x="3" dy="1.2em">Drei</tspan></text></svg>'
+    );
+  });
+
+  it('does not corrupt a label when the selector also names a tspan inside it', () => {
+    // "text, tspan" names the label AND its own line. A block range contains the
+    // tspan's range, overlaps are only checked BETWEEN edits, and applyRanges
+    // splices right-to-left — so an inner write would land first and leave the
+    // outer one's end offset pointing into shifted text. Newlines are refused
+    // for a lone run, so the tspan yields no range at all and the label is
+    // rewritten once, whole. The dropped match is reported, not swallowed.
+    const src = '<svg><text x="1" y="2">One<tspan x="3" dy="1.2em">Two</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: 'text, tspan', text: 'Eins\nZwei' }]);
+    expect(ranges).toHaveLength(1);
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="1" y="2"><tspan x="1">Eins</tspan><tspan x="3" dy="1.2em">Zwei</tspan></text></svg>'
+    );
+    expect(outcomes[0].detail).toMatch(/hold a single run, not lines/);
+  });
+
+  it('refuses newlines aimed at something that is not a label', () => {
+    // A tspan holds one run. Writing "A\nB" into it put a literal newline into
+    // character data, which renders as a space and reported success.
+    const src = '<svg><text>One<tspan>Two</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]/tspan[1]', text: 'A\nB' }]);
+    expect(ranges).toEqual([]);
+    expect(outcomes[0].status).toBe('failed');
+    expect(outcomes[0].detail).toMatch(/is not one — it holds a single run/);
+  });
+
+  it('resolves a container holding one label through to that label', () => {
+    // query answers "#shape211 text"; the model sends "#shape211", dropping the
+    // suffix exactly as it drops a repeated path step. The group holds one
+    // label, so there is nothing else it could have meant.
+    const src = '<svg><g id="shape211"><rect/><text x="1" y="2">Gross Area<tspan x="3" dy="1.2em">545</tspan></text></g></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '#shape211', text: 'Bruttofläche\n545' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe(
+      '<svg><g id="shape211"><rect/><text x="1" y="2"><tspan x="1">Bruttofläche</tspan><tspan x="3" dy="1.2em">545</tspan></text></g></svg>'
+    );
+    expect(outcomes[0].detail).toMatch(/addressed a container holding one label/);
+  });
+
+  it('ignores a non-rendering desc when picking the sole label', () => {
+    // Exporters write a <desc> beside the visible <text>; it never renders, so
+    // the pair is not ambiguous.
+    const src = '<svg><g id="s"><desc>Boundary</desc><text>Boundary</text></g></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '#s', text: 'Grenze' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe('<svg><g id="s"><desc>Boundary</desc><text>Grenze</text></g></svg>');
+  });
+
+  it('still refuses a container holding two labels', () => {
+    const src = '<svg><g id="s"><text>one</text><text>two</text></g></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '#s', text: 'x' }]);
+    expect(ranges).toEqual([]);
+    expect(outcomes[0].detail).toMatch(/The text inside is at:/);
+  });
+
+  it('lets an explicit empty line clear one', () => {
+    // Omission keeps a line, so blanking one has to be sayable another way.
+    const src = '<svg><text x="1" y="2">One<tspan x="3" dy="1.2em">Two</tspan></text></svg>';
+    const { ranges } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'Eins\n' }]);
+    expect(apply(src, ranges)).toBe(
+      '<svg><text x="1" y="2"><tspan x="1">Eins</tspan><tspan x="3" dy="1.2em"></tspan></text></svg>'
+    );
+  });
+
+  it('leaves a single-line edit meaning exactly what it did before', () => {
+    // The common export shape, and the reason a plain string must NOT be read as
+    // the whole block: doing so would delete the tspan on every label like this.
+    const src = '<svg><text>Gross Area<tspan>545</tspan></text></svg>';
+    const { ranges, outcomes } = planTextEdits(src, [{ selector: '/svg[1]/text[1]', text: 'Bruttofläche' }]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(apply(src, ranges)).toBe('<svg><text>Bruttofläche<tspan>545</tspan></text></svg>');
   });
 
   it('reports an address that matched nothing', () => {

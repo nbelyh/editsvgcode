@@ -138,7 +138,12 @@ export function executeReadTool(
     }
     const shown = describeMatches(currentSvg, validity.doc, found.slice(0, limit));
     const rows = shown.flatMap((m) => {
-      const bits = [m.path, `<${m.tag}>`];
+      // One address per row, and the short one when there is one. Listing both
+      // invites copying the long one; listing only the long one is what produced
+      // ".../g[402]/g[6]/text[1]" from ".../g[402]/g[1]/g[6]/text[1]" — the right
+      // index with a repeated step dropped, refused, and the label left in
+      // English. An id-anchored address has nothing in it to lose.
+      const bits = [m.address ?? m.path, `<${m.tag}>`];
       if (m.id) bits.push(`id=${JSON.stringify(m.id)}`);
       if (m.className) bits.push(`class=${JSON.stringify(m.className)}`);
       if (m.line !== undefined) bits.push(`line ${m.line}`);
@@ -147,11 +152,18 @@ export function executeReadTool(
       // A container answered with its own path alone is a dead end: set_text
       // refuses a group, and the model has nowhere else to go. Hand back the
       // addresses that hold the text so the next call can be the right one.
-      if (!m.textIn?.length) return [row];
-      return [
-        row,
-        `    text inside: ${m.textIn.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`,
-      ];
+      const extra: string[] = [];
+      if (m.textIn?.length) {
+        extra.push(`    text inside: ${m.textIn.map((t) => `${t.path} ${JSON.stringify(t.text)}`).join(', ')}`);
+      }
+      if (m.blockLines) {
+        // What the label reads, line by line, and the one call that rewrites it.
+        // Addressing this element with a single line is what the model reached
+        // for and kept being refused for; now the address is right and only the
+        // shape of the text was missing.
+        extra.push(`    ${m.blockLines.length}-line label: ${m.blockLines.map((t) => JSON.stringify(t)).join(' / ')}. set_text this path with all ${m.blockLines.length} lines separated by newlines to rewrite it.`);
+      }
+      return extra.length ? [row, ...extra] : [row];
     });
     const header = found.length > shown.length
       ? `${found.length} element(s) matched "${selector}"; showing the first ${shown.length}.`

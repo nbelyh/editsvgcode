@@ -81,13 +81,22 @@ describe('set_text', () => {
     expect(svg).toContain('<text id="t3">gone<tspan>Person</tspan></text>');
   });
 
-  it('refuses an element whose text is split into runs either side of a child', () => {
+  it('refuses one line for a label whose text is split into runs', () => {
     const { svg, outcomes } = run(DOC, 'set_text', { edits: [{ selector: '#t4', text: 'gone' }] });
     expect(outcomes[0].status).toBe('failed');
-    // Names where the text actually is, not the element just refused.
-    expect(outcomes[0].detail).toMatch(/The text inside is at:/);
-    expect(outcomes[0].detail).toMatch(/\/svg\[1\]\/text\[4\]\/tspan\[1\]/);
+    // Says how many lines the label has and what they read, so the retry can be
+    // the whole rewrite rather than another single-line guess.
+    expect(outcomes[0].detail).toMatch(/2-line label/);
+    expect(outcomes[0].detail).toMatch(/"a" \/ "bc"/);
     expect(svg).toBe(DOC);
+  });
+
+  it('rewrites that same label when given all its lines', () => {
+    const { svg, outcomes } = run(DOC, 'set_text', { edits: [{ selector: '#t4', text: 'A\nBC' }] });
+    expect(outcomes[0].status).toBe('applied');
+    // Including the run that trailed the tspan, which nothing could reach before:
+    // it belongs to that tspan's line, and the line is addressable.
+    expect(svg).toContain('<text id="t4"><tspan>A</tspan><tspan dy="1.2em">BC</tspan></text>');
   });
 
   it('refuses a self-closing element, which has no text to replace', () => {
