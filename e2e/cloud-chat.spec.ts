@@ -141,14 +141,6 @@ async function bootWithDraft(page: Page, fileId: string, opts: { twoAccepts?: bo
 
 useEmulatorSuite();
 
-// Chromium only. Measured, not assumed: on WebKit 4 of these pass and 6 fail —
-// a draft link survives its own delete dialog, and the migration cases do not
-// settle. The original note here blamed auth-session restore, which was at
-// least the right neighbourhood: WebKit restores a persisted session about a
-// second later, and setSvgContent had to be taught to wait for it. That was not
-// the whole of it, and what is left is undiagnosed rather than understood.
-test.skip(({ browserName }) => browserName === 'webkit', 'Draft delete and legacy migration fail on WebKit — real failures, not yet diagnosed');
-
 test.describe('Cloud chat persistence', () => {
   test('draft chat and SVG survive a reload', async ({ page }) => {
     const fileId = uniqueId('e2edraft');

@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
+  initializeFirestore,
   doc,
   getDoc,
   setDoc,
@@ -51,14 +52,28 @@ const firebaseConfig = {
 
 // Initialize Firebase eagerly at module level so getAuth() works from any module
 const firebaseApp = initializeApp(firebaseConfig);
-const firebaseDb = getFirestore(firebaseApp);
-const firebaseStorage = getStorage(firebaseApp);
-export { firebaseDb, firebaseStorage };
-const firebaseAuth = getAuth(firebaseApp);
 
 const isLocalhost =
   window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1';
+
+// Against the emulator, WebKit's Firestore streaming channel does not come
+// back: 26 of 30 reads never settle, while Chromium answers all 30. Forcing
+// long polling makes every one of them land. Confined to the emulator and to
+// WebKit — Chromium keeps the streaming transport, which is several hundred ms
+// per read faster, and no deployed build is affected.
+//
+// Forced rather than experimentalAutoDetectLongPolling: switching that on
+// explicitly measured identically to leaving it alone — 26 of 30 still lost —
+// so whatever it detects, it does not detect this. The choice has to be made
+// for it.
+const isWebKit = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const firebaseDb = isLocalhost && isWebKit
+  ? initializeFirestore(firebaseApp, { experimentalForceLongPolling: true })
+  : getFirestore(firebaseApp);
+const firebaseStorage = getStorage(firebaseApp);
+export { firebaseDb, firebaseStorage };
+const firebaseAuth = getAuth(firebaseApp);
 
 let firebaseAnalytics: Analytics | null = null;
 
