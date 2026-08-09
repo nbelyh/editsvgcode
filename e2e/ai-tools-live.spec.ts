@@ -96,6 +96,11 @@ useEmulatorSuite();
 
 test.describe('AI edit tools, against the real model', () => {
   test.skip(!LIVE, 'Set LIVE_AI=1 to run (spends credits, needs the API host on :7071)');
+  // One browser is enough, and the reason is the bill rather than WebKit: what
+  // this file asks is whether the MODEL reaches for the right tool, which is
+  // the same question whoever renders the page. Running it twice would double
+  // the spend to re-answer it.
+  test.skip(({ browserName }) => browserName === 'webkit', 'Model routing is browser-agnostic; one run per turn is enough');
   // A turn is several model round-trips, not a click.
   test.setTimeout(240000);
 

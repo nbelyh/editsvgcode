@@ -100,13 +100,20 @@ async function purgeUser(uid: string): Promise<void> {
 }
 
 /**
- * Install the shared afterEach purge and the emulator-suite run constraints
- * (sequential — parallel browsers contend over the shared dev server; WebKit
- * auth-session restore is flaky). Call once at the top of an emulator spec.
+ * Install the shared afterEach purge and run this file sequentially (parallel
+ * browsers contend over the shared dev server). Call once at the top of an
+ * emulator spec.
+ *
+ * Deliberately does NOT skip WebKit. It used to, and that one line — added for
+ * cloud-chat, hoisted here so gallery could share the harness — was then
+ * inherited by every later spec that wanted the purge. ai-tools picked it up
+ * without anyone having run it on WebKit; when it finally was run, its failures
+ * turned out to be a harness race in setSvgContent and nothing to do with the
+ * browser. A skip has to be chosen by the spec it applies to, so each one that
+ * still needs it states its own reason.
  */
 export function useEmulatorSuite(): void {
   test.describe.configure({ mode: 'default' });
-  test.skip(({ browserName }) => browserName === 'webkit', 'Auth/emulator flows are flaky on WebKit');
   test.afterEach(async () => {
     for (const id of createdFileIds.splice(0)) await purgeDraft(id);
     for (const uid of createdUids.splice(0)) await purgeUser(uid);
