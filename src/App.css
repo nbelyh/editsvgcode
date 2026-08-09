@@ -101,6 +101,16 @@
   --esvg-chrome-border: var(--mantine-color-gray-3);
   --app-shell-border-color: var(--esvg-chrome-border);
   --mantine-color-dimmed: var(--mantine-color-gray-7);
+  /* Accents for the rule down the left of a note — NOT for its text. Measured
+     against the panel: orange reaches only 4.3:1 as text on white and yellow
+     3.0:1, both under the 4.5 floor these 11px notes need, and the shades that
+     do pass on dark glare instead. So the hue lives in the 2px rule, which
+     carries no reading load, and the words stay on --mantine-color-dimmed.
+     Danger is the exception below: red passes in both schemes, and that note
+     should be read in its own colour. */
+  --esvg-note-missed: var(--mantine-color-orange-6);
+  --esvg-note-ineffective: var(--mantine-color-yellow-6);
+  --esvg-note-broken: var(--mantine-color-red-9);
 }
 
 :root[data-mantine-color-scheme='dark'] {
@@ -108,6 +118,9 @@
   --esvg-chrome-border: var(--mantine-color-dark-4);
   --app-shell-border-color: var(--esvg-chrome-border);
   --mantine-color-dimmed: var(--mantine-color-dark-1);
+  --esvg-note-missed: var(--mantine-color-orange-5);
+  --esvg-note-ineffective: var(--mantine-color-yellow-5);
+  --esvg-note-broken: var(--mantine-color-red-4);
 }
 
 .app-chrome {

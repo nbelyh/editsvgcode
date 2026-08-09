@@ -3,6 +3,68 @@ import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, Ico
 import type { ChatToolCall } from '../lib/api-client';
 import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
 
+/**
+ * Notes attached to a proposal — edits that missed, edits that changed nothing
+ * on screen.
+ *
+ * Folded away behind a count, because the list is as long as the job is big: a
+ * translation of a floor plan sends a hundred edits, and two of them missing is
+ * a footnote, not an alarm. Printed one per line rather than through
+ * JSON.stringify, which showed the raw array with every quote backslashed and
+ * made a footnote look like a stack trace.
+ */
+function ProposalNotes({ items, total, tone, summary, advice }: {
+  items: unknown;
+  /** How many edits the call carried, so a couple of misses read as a couple. */
+  total?: number;
+  tone: string;
+  summary: string;
+  advice?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const list = (Array.isArray(items) ? items : [items]).map(String).filter((s) => s.trim() !== '');
+  if (list.length === 0) return null;
+  return (
+    // The rule down the left is what separates a note from the assistant's own
+    // words — dimmed text alone read as more output — and its colour says which
+    // kind. The words stay dimmed rather than taking the hue: orange and yellow
+    // cannot carry 11px text at readable contrast on white, and the shades that
+    // can on dark glare. A rule carries no reading load, so it can be as
+    // saturated as it likes.
+    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--mantine-color-dimmed)', borderLeft: `2px solid ${tone}`, paddingLeft: 6 }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit' }}
+      >
+        {open ? <IconChevronDown size={11} /> : <IconChevronRight size={11} />}
+        <span>{summary}</span>
+        {/* Bare numbers rather than a sentence built around them: the count is
+            what makes two misses out of ninety read as small, and it stays
+            translatable because no prose is assembled from fragments. */}
+        <span>{total !== undefined ? `(${list.length}/${total})` : `(${list.length})`}</span>
+      </button>
+      {open && (
+        <>
+          {/* Said before the detail, because the detail is not addressed to the
+              reader. These strings are written for the assistant — "use query to
+              see what is there", "a positional path has to start with /" — and
+              are kept verbatim only so a person debugging can see them. What the
+              reader needs is whether their drawing is affected and what to do. */}
+          {advice && <div style={{ margin: '4px 0 0' }}>{advice}</div>}
+          {/* Labelled so the wording below is not mistaken for instructions to
+              the reader: it tells the assistant which addresses to use. */}
+          <div style={{ margin: '6px 0 0', opacity: 0.75 }}>Details, for the assistant:</div>
+          <ul style={{ margin: '2px 0 0', paddingLeft: 18, listStyle: 'disc', opacity: 0.75 }}>
+            {list.map((line, i) => (
+              <li key={i} style={{ marginBottom: 2, wordBreak: 'break-word' }}>{line}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 export interface StoredToolCall extends ChatToolCall {
   status: 'pending' | 'accepted' | 'rejected';
   /** Document SVG at the moment this call was accepted — the undo target.
@@ -212,23 +274,38 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
         </div>
       )}
       {'failedOperations' in tc.arguments && (
-        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
-          ⚠ Some edits failed: {JSON.stringify(tc.arguments.failedOperations)}
-        </div>
+        // Dimmed, not red: the rest of the call applied, and the drawing in the
+        // preview is the result. Red belongs to documentBroken below, where the
+        // document actually stopped parsing.
+        <ProposalNotes
+          items={tc.arguments.failedOperations}
+          total={Array.isArray(tc.arguments.edits) ? tc.arguments.edits.length : undefined}
+          tone="var(--esvg-note-missed)"
+          summary="Some changes were not applied"
+          advice="Nothing was lost: the preview shows every change that did apply, and you can accept it. If something you asked for is still wrong, say which label in the chat and it will be fixed."
+        />
       )}
       {'warnings' in tc.arguments && (
         // An edit that applied but changes nothing on screen. Without this the
         // assistant reports success over a drawing that did not move.
-        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-yellow-filled)' }}>
-          ⚠ Applied, but with no visible effect: {JSON.stringify(tc.arguments.warnings)}
-        </div>
+        <ProposalNotes
+          items={tc.arguments.warnings}
+          total={Array.isArray(tc.arguments.edits) ? tc.arguments.edits.length : undefined}
+          tone="var(--esvg-note-ineffective)"
+          summary="Applied, but with no visible effect"
+          advice="The markup changed but the picture did not, usually because a style rule overrides the value that was set. Ask for the style rule to be changed instead."
+        />
       )}
       {'documentBroken' in tc.arguments && (
         // Red, and worded as damage. This shares nothing but a colour with the
         // note above: there the markup changed and the picture did not, here the
         // document stopped parsing.
-        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--mantine-color-red-filled)' }}>
-          ⚠ This change breaks the SVG: {String(tc.arguments.documentBroken)}
+        // Never folded and never dimmed: the other two are notes about an edit,
+        // this is the drawing no longer parsing, and it is the one thing here a
+        // reader must not accept without looking.
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--esvg-note-broken)', borderLeft: '2px solid var(--esvg-note-broken)', paddingLeft: 6 }}>
+          <div>This change breaks the SVG — rejecting it is the safe option.</div>
+          <div style={{ opacity: 0.75, marginTop: 2 }}>{String(tc.arguments.documentBroken)}</div>
         </div>
       )}
     </div>
