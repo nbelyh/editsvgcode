@@ -15,15 +15,69 @@ const HEAD_LINES = 40;
 const TAIL_LINES = 10;
 const SELECTION_PADDING = 50;
 
+/**
+ * Ceiling on the context body, and on any single line within it.
+ *
+ * A line budget alone does not bound anything: minified and raster-embedding
+ * SVGs are a handful of enormous lines, so they slipped under LINE_BUDGET and
+ * went to the server whole — which is how a 9-line, 718 KB document became a
+ * "SVG too large" rejection instead of an excerpt. Chars are what the server
+ * and the model actually count, so budget in chars too.
+ */
+const CHAR_BUDGET = 100_000;
+const MAX_LINE_CHARS = 1200;
+
 /** Normalize \r\n to \n — Monaco on Windows uses \r\n, models always output \n */
 function normalize(s: string): string {
   return s.replace(/\r\n/g, '\n');
 }
 
-/** Number each line: "1: <svg ...>" */
-function numberLines(lines: string[], startIndex: number): string {
-  return lines.map((line, i) => `${startIndex + i + 1}: ${line}`).join('\n');
+/**
+ * Clip one over-long line, saying plainly how much was withheld.
+ *
+ * The marker matters as much as the clipping: a clipped line is NOT safe to
+ * rewrite with replace_lines, because reproducing what is shown would discard
+ * the rest of it — the same silent-data-loss failure the system prompt warns
+ * about for line edits generally.
+ */
+function clipLine(line: string): string {
+  if (line.length <= MAX_LINE_CHARS) return line;
+  const withheld = line.length - MAX_LINE_CHARS;
+  return `${line.slice(0, MAX_LINE_CHARS)} [... ${withheld} more chars on this line, not shown ...]`;
 }
+
+/**
+ * Number each line: "1: <svg ...>".
+ *
+ * `clip` only on the excerpt path — a document already inside both budgets is
+ * sent whole, and shortening its lines would cost replace_lines for no gain.
+ */
+function numberLines(lines: string[], startIndex: number, clip = false): string {
+  return lines.map((line, i) => `${startIndex + i + 1}: ${clip ? clipLine(line) : line}`).join('\n');
+}
+
+/**
+ * Cut text down to `limit`, never mid-line.
+ *
+ * Dropping a whole line is recoverable — the model can see the numbering jump
+ * and read the rest with read_svg_lines. Cutting one in half is not: the line
+ * still looks complete and rewriting it would discard the remainder, which is
+ * the same silent-data-loss failure clipLine guards against.
+ */
+function truncateAtLine(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const note = '[... context truncated here — later lines are not shown; use read_svg_lines/search_svg for the rest ...]';
+  const cut = text.lastIndexOf('\n', limit);
+  // Every line on this path is already clipped to MAX_LINE_CHARS, so a boundary
+  // exists well inside any sane limit; keeping nothing beats keeping half a line.
+  return cut < 0 ? note : `${text.slice(0, cut)}\n${note}`;
+}
+
+/** The warning that rides along whenever any shown line was clipped. */
+const CLIPPED_NOTE =
+  ' Some lines are too long to show in full and are marked "more chars on this line, not shown" —'
+  + ' those lines are incomplete, so do NOT rewrite them with replace_lines; address them with'
+  + ' find_replace or search_svg instead.';
 
 /**
  * Build a token-budgeted SVG context string.
@@ -39,9 +93,10 @@ export function buildSvgContext(
   const lines = svg.split('\n');
   const totalLines = lines.length;
   const sizeKB = Math.round(svg.length / 1024);
+  const clipped = lines.some((l) => l.length > MAX_LINE_CHARS);
 
   // Small file — include everything
-  if (totalLines <= LINE_BUDGET) {
+  if (totalLines <= LINE_BUDGET && svg.length <= CHAR_BUDGET) {
     const numbered = numberLines(lines, 0);
     const parts = [`SVG document (${totalLines} lines, ${sizeKB} KB):\n\`\`\`\n${numbered}\n\`\`\``];
     if (selectedElement && selectedLineRange) {
@@ -67,15 +122,15 @@ export function buildSvgContext(
   }
 
   const sections: string[] = [];
-  sections.push(`SVG document (${totalLines} lines, ${sizeKB} KB — showing excerpts, use read_svg_lines/search_svg for full content):\n\`\`\``);
+  sections.push(`SVG document (${totalLines} lines, ${sizeKB} KB — showing excerpts, use read_svg_lines/search_svg for full content).${clipped ? CLIPPED_NOTE : ''}\n\`\`\``);
 
   // Head
-  sections.push(numberLines(lines.slice(0, headEnd), 0));
+  sections.push(numberLines(lines.slice(0, headEnd), 0, true));
 
   if (selStart >= 0 && selEnd >= 0 && selStart > headEnd) {
     const omitted1 = selStart - headEnd;
     sections.push(`[... lines ${headEnd + 1}-${selStart} omitted (${omitted1} lines) ...]`);
-    sections.push(numberLines(lines.slice(selStart, selEnd), selStart));
+    sections.push(numberLines(lines.slice(selStart, selEnd), selStart, true));
     const omitted2 = tailStart - selEnd;
     if (omitted2 > 0) {
       sections.push(`[... lines ${selEnd + 1}-${tailStart} omitted (${omitted2} lines) ...]`);
@@ -89,18 +144,26 @@ export function buildSvgContext(
 
   // Tail
   if (tailStart < totalLines) {
-    sections.push(numberLines(lines.slice(tailStart), tailStart));
+    sections.push(numberLines(lines.slice(tailStart), tailStart, true));
   }
 
-  sections.push('```');
+  // The selection is quoted from the same oversized document, so it gets the
+  // same treatment — one selected <path> can carry the whole file's geometry.
+  const selection = selectedElement
+    ? selectedElement.split('\n').map(clipLine).join('\n')
+    : undefined;
+  const selectionBlock = !selection ? ''
+    : selectedLineRange
+      ? `\n\nSelected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``
+      : `\n\nSelected element:\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``;
 
-  if (selectedElement && selectedLineRange) {
-    sections.push(`\nSelected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\``);
-  } else if (selectedElement) {
-    sections.push(`\nSelected element:\n\`\`\`svg\n${selectedElement}\n\`\`\``);
-  }
-
-  return sections.join('\n');
+  // Backstop. Head, tail and a padded selection window are each bounded, but
+  // their sum is not, so the excerpt gets one last cut — taken BEFORE the fence
+  // is closed and always on a line boundary, so an overflow can never leave a
+  // numbered line half-written or a code block unterminated. The selection is
+  // budgeted out first: it is the part the user is actually pointing at.
+  const room = CHAR_BUDGET - selectionBlock.length;
+  return `${truncateAtLine(sections.join('\n'), room)}\n\`\`\`${selectionBlock}`;
 }
 
 /**
