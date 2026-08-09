@@ -57,18 +57,46 @@ const isLocalhost =
   window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1';
 
-// Against the emulator, WebKit's Firestore streaming channel does not come
-// back: 26 of 30 reads never settle, while Chromium answers all 30. Forcing
-// long polling makes every one of them land. Confined to the emulator and to
-// WebKit — Chromium keeps the streaming transport, which is several hundred ms
-// per read faster, and no deployed build is affected.
+// TODO(webkit-longpoll): a workaround for someone else's open bug — WebKit
+// 26.4 and 26.5, https://github.com/firebase/firebase-js-sdk/issues/9789.
+// Delete the whole block once WebKit is fixed; there is a recipe at the bottom
+// for deciding when that is.
 //
-// Forced rather than experimentalAutoDetectLongPolling: switching that on
-// explicitly measured identically to leaving it alone — 26 of 30 still lost —
-// so whatever it detects, it does not detect this. The choice has to be made
-// for it.
+// WebKit cannot read Firestore's default transport, so it gets long polling.
+//
+// The default is a WebChannel: one long-lived response the SDK reads bytes out
+// of as they arrive, which by design never finishes. WebKit opens it — 200,
+// every time, including the failures — and then leaves the payload buffered
+// where the SDK never sees it. The SDK waits, times the channel out, tears it
+// down and reconnects; sometimes that lands, sometimes it stalls the same way.
+// Nothing throws, so nothing is reported: reads simply take forever or never
+// arrive. Confirmed on Safari against production Firestore, not only against
+// the emulator, where 26 of 30 reads were lost against Chromium's 0 of 30.
+//
+// Long polling replaces the stream with request/response pairs that complete,
+// so there is nothing left to buffer, and all 30 land. The cost is a few
+// hundred ms per read — paid only by WebKit, and only against reads that were
+// otherwise arriving late or not at all. Chromium keeps the faster streaming
+// transport.
+//
+// Forced rather than experimentalAutoDetectLongPolling, which exists to catch
+// exactly this: switching it on explicitly measured identically to leaving it
+// alone, still 26 of 30 lost. Whatever it detects, it does not detect this.
+//
+// Upstream: https://github.com/firebase/firebase-js-sdk/issues/9789 — open, no
+// root cause, filed against Safari 26.4 where 26.2 was fine. Keyed off the
+// engine rather than a version because 26.5 measured just as broken (26 of 30
+// lost, against 27 of 30 on 26.4), so "the next release" is not a safe thing to
+// wait for.
+//
+// TO RETIRE THIS: swap the ternary below for a plain getFirestore, then point a
+// recent playwright-core's webkit at the dev server and time 30 loadDocument
+// calls with a 5s ceiling each. Still broken reads as ~26 of 30 never settling;
+// fixed reads as 0. Chromium is the control and has always been 0 of 30. A
+// newer WebKit than the one on hand comes from installing a newer
+// playwright-core in a scratch directory — no need to upgrade this project's.
 const isWebKit = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-const firebaseDb = isLocalhost && isWebKit
+const firebaseDb = isWebKit
   ? initializeFirestore(firebaseApp, { experimentalForceLongPolling: true })
   : getFirestore(firebaseApp);
 const firebaseStorage = getStorage(firebaseApp);
