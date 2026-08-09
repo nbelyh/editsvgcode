@@ -37,6 +37,12 @@ export interface ChatResponse {
   credits: Credits;
   /** Raw API output items — store these and replay on the next turn. */
   rawOutput: unknown[];
+  /** The turn stopped because it used up its tool-call rounds, not because it
+   * was finished. On a large document the model can spend the whole budget
+   * looking around and never reach the edit, and the tool calls it did make
+   * look identical to a turn that simply had nothing to change — so the caller
+   * has to say what happened and offer to carry on. */
+  outOfToolRounds?: boolean;
 }
 
 export interface ChatErrorResponse {
@@ -332,6 +338,7 @@ export async function sendChatRequest(
   // left over from a budget exit so no unanswered call is ever persisted.
   let iconsRejected = false; // track if user already clicked "None — generate instead"
   let imageApproved = false; // user confirmed the image call in the final response
+  let outOfToolRounds = false; // the loop ran out of rounds rather than finishing
   for (let round = 0; ; round++) {
     const readCalls = response.output.filter(
       item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds')
@@ -365,6 +372,7 @@ export async function sendChatRequest(
           if (round >= MAX_TOOL_ROUNDS) {
             // Out of continuation budget — end the turn with the rejection
             // recorded; the declined call must not reach final processing.
+            outOfToolRounds = true;
             response = { output: [], credits: response.credits };
             break;
           }
@@ -379,7 +387,10 @@ export async function sendChatRequest(
 
     // Out of continuation budget — stop querying; the sweep below answers the
     // read calls left in this response.
-    if (round >= MAX_TOOL_ROUNDS) break;
+    if (round >= MAX_TOOL_ROUNDS) {
+      outOfToolRounds = true;
+      break;
+    }
 
     // Report which tools are being called this round
     for (const call of readCalls) {
@@ -626,6 +637,7 @@ export async function sendChatRequest(
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     credits: latestCredits,
     rawOutput: allRawOutput,
+    outOfToolRounds: outOfToolRounds || undefined,
   };
 }
 

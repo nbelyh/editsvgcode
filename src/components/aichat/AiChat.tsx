@@ -26,6 +26,12 @@ const MAX_HISTORY = 100;
 // survive it. sessionStorage does — Firebase's own redirect flow depends on it.
 const PENDING_SEND_KEY = 'esvg-pending-send';
 
+// Sent by the Continue button after a turn ran out of tool calls. It reads as a
+// user message in the transcript, which is what it is — the previous turn's
+// findings are already replayed as history, so the point is to stop it starting
+// the search from scratch.
+const CONTINUE_TEXT = 'Continue from where you stopped. Use what you already found instead of searching again, and make the edit now.';
+
 /**
  * Heuristic: detect prompts that primarily request raster image generation.
  * Reasoning effort doesn't help much here — the model's job is to call
@@ -383,6 +389,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         ],
         selectedIcon: selectedIcon ?? undefined,
         readToolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
+        outOfToolRounds: response.outOfToolRounds ? true : undefined,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -498,6 +505,16 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // We need to trigger send after state updates, so use a ref flag
     pendingSendRef.current = true;
   }, [isRunning, messages, fileId, onPreviewSvg, onRestore, restoreTarget]);
+
+  // Resume a turn that stopped on its tool-call limit. Goes through the same
+  // deferred send as edit-resubmit, so the guards (auth, isRunning, document
+  // loaded) all still apply — and the stored rawItems mean the model gets back
+  // everything it had already found rather than starting the search over.
+  const handleContinue = useCallback(() => {
+    if (isRunning || hasPending) return;
+    setInput(CONTINUE_TEXT);
+    pendingSendRef.current = true;
+  }, [isRunning, hasPending]);
 
   // Deferred send: fires handleSend once after setInput lands. Used by
   // edit-resubmit and by the post-sign-in draft restore. Holds until the
@@ -659,6 +676,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onRestore={handleRestore}
           onThumbsUp={handleThumbsUp}
           onThumbsDown={handleThumbsDown}
+          onContinue={handleContinue}
+          hasPending={hasPending}
           editingIndex={editingIndex}
           editingText={editingText}
           onEditStart={handleEditStart}

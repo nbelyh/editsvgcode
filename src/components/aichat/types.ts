@@ -14,6 +14,10 @@ export interface DisplayMessage {
   selectedIcon?: IconResult;
   /** Intermediate read-only tool calls executed during the agentic loop. */
   readToolCalls?: ReadToolCall[];
+  /** The turn stopped on its tool-call limit rather than finishing. Shows the
+   * notice and the Continue button, since the tool calls alone are indistinguishable
+   * from a turn that found nothing to do. */
+  outOfToolRounds?: true;
 }
 
 export interface AiChatProps {

@@ -110,6 +110,7 @@ async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage
     rawItems: msg.rawItems,
     selectedIcon: msg.selectedIcon,
     readToolCalls: msg.readToolCalls,
+    outOfToolRounds: msg.outOfToolRounds,
   });
   return { seq, role: msg.role, content: msg.content, payload };
 }
@@ -120,6 +121,7 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
     rawItems?: unknown[];
     selectedIcon?: unknown;
     readToolCalls?: unknown;
+    outOfToolRounds?: true;
   };
   let toolCalls = parsed.toolCalls;
   if (toolCalls) {
@@ -147,6 +149,7 @@ async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
   if (parsed.rawItems !== undefined) msg.rawItems = parsed.rawItems;
   if (parsed.selectedIcon !== undefined) msg.selectedIcon = parsed.selectedIcon as DisplayMessage['selectedIcon'];
   if (parsed.readToolCalls !== undefined) msg.readToolCalls = parsed.readToolCalls as DisplayMessage['readToolCalls'];
+  if (parsed.outOfToolRounds) msg.outOfToolRounds = true;
   return msg;
 }
 

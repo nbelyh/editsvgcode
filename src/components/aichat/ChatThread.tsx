@@ -1,5 +1,5 @@
 import { useState, Fragment, useRef, useEffect } from 'react';
-import { ActionIcon, Tooltip, Button, Group } from '@mantine/core';
+import { ActionIcon, Tooltip, Button, Group, Text } from '@mantine/core';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
@@ -28,6 +28,10 @@ interface ChatThreadProps {
   onRestore: (msgIdx: number) => void;
   onThumbsUp: (msgIndex: number) => void;
   onThumbsDown: (msgIndex: number, prompt: string) => void;
+  /** Resume a turn that stopped on its tool-call limit. */
+  onContinue: () => void;
+  /** A proposal is awaiting accept/reject, which blocks sending anything. */
+  hasPending: boolean;
   editingIndex: number | null;
   editingText: string;
   onEditStart: (msgIdx: number) => void;
@@ -152,7 +156,7 @@ export function ChatThread({
   messages, isRunning, progressStatus, canUndo,
   viewportRef,
   onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
-  onThumbsUp, onThumbsDown,
+  onThumbsUp, onThumbsDown, onContinue, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
@@ -256,7 +260,7 @@ export function ChatThread({
         const hasAcceptedGenImage = !isViewer
           && msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
 
-        if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon) {
+        if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon && !msg.outOfToolRounds) {
           const rated = ratedMsgs[msgIdx];
           return (<div key={msgIdx} style={{ position: 'relative' }}>
             {hasAcceptedGenImage && (
@@ -333,6 +337,20 @@ export function ChatThread({
             {msg.content && (
               <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
                 {msg.content}
+              </div>
+            )}
+            {msg.outOfToolRounds && (
+              <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
+                {/* Not "the edit was never made": the response that ran out of
+                    rounds can still carry an edit, and that proposal renders
+                    directly below this notice. Says only what is true either
+                    way — it stopped early, and there is more to do. */}
+                <Text size="sm" c="dimmed">This turn ran out of tool calls before it finished. Continue to pick up where it stopped.</Text>
+                {/* Continue goes through the same send path as a message, which
+                    refuses to start while a proposal is unanswered. Left enabled,
+                    the button did nothing at all and said nothing about why. */}
+                <Button size="xs" variant="default" mt="xs" disabled={isRunning || isViewer || hasPending} onClick={onContinue}>Continue</Button>
+                {hasPending && <Text size="xs" c="dimmed" mt={4}>Accept or reject the proposed edits first.</Text>}
               </div>
             )}
             {msg.buyCredits && (
