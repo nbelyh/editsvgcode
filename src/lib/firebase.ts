@@ -171,6 +171,43 @@ onAuthStateChanged(firebaseAuth, (user) => {
 export { visibilityOf };
 export type { Visibility };
 
+/**
+ * Resolve once there is an account to attribute a write to.
+ *
+ * `authStateReady()` only promises the lookup has finished — with nothing
+ * persisted it settles on null while this module's own `signInAnonymously`
+ * (above) is still in flight. That null is exactly what a first visit looks
+ * like, and the rules refuse a create carrying no uid, so a visitor who pressed
+ * Save quickly got "Permission denied" for a file that was theirs to make. Wait
+ * for the account already on its way instead of writing without one.
+ *
+ * Bounded, because anonymous sign-in can fail outright — the handler above logs
+ * it and lets the editor carry on — and a Save that hangs forever is worse than
+ * one that says why it could not write.
+ */
+export async function sessionUser(timeoutMs = 10000): Promise<User | null> {
+  const auth = getAuth();
+  await auth.authStateReady();
+  if (auth.currentUser) return auth.currentUser;
+  return new Promise<User | null>((resolve) => {
+    let unsub: (() => void) | undefined;
+    let settled = false;
+    const done = (user: User | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsub?.();
+      resolve(user);
+    };
+    const timer = setTimeout(() => done(auth.currentUser), timeoutMs);
+    unsub = onAuthStateChanged(auth, (user) => { if (user) done(user); });
+    // onAuthStateChanged may already have fired by the time it returns, in
+    // which case `unsub` was still undefined inside done() and the listener
+    // would outlive the promise.
+    if (settled) unsub();
+  });
+}
+
 /** Gallery card text, entered/confirmed by the owner in the publish dialog. */
 export interface GalleryMeta {
   title: string;
@@ -217,14 +254,24 @@ export class EditSvgCodeDb {
 
   async saveDocument(uniqueId: string, text: string, visibility: Visibility): Promise<void> {
     const ref = doc(this.db, 'files', uniqueId);
-    const auth = getAuth();
-    const uid = auth.currentUser?.uid ?? null;
+    // Wait for the session before reading it. For a few hundred ms after a
+    // reload currentUser is still null — barely measurable on Chromium, around
+    // half a second on WebKit — while the Save button is already live. Saving
+    // inside that window wrote uid:null over the real owner, and because the
+    // read rule only grants a private document to its own uid, that left the
+    // file unreadable by everyone, the person who made it included.
+    const uid = (await sessionUser())?.uid ?? null;
     // Merge: the doc may already exist as a chat draft (saved:false) — keep its
     // createdAt/views/downloads and promote it to a saved file. The legacy
     // `private` boolean is kept in sync for older readers/rules paths.
     await setDoc(ref, {
-      text, modified: new Date(), uid, saved: true,
+      text, modified: new Date(), saved: true,
       visibility, private: visibility === 'private',
+      // Written, never cleared. Under merge, leaving it out keeps whatever owner
+      // is already stored, so no save can orphan a document; a create carrying
+      // no uid is refused by the rules, which is the right answer for a save
+      // with no session behind it.
+      ...(uid !== null ? { uid } : {}),
       // Re-saving a public file refreshes the author snapshot too.
       ...(visibility === 'public' ? authorStamp() : {}),
     }, { merge: true });

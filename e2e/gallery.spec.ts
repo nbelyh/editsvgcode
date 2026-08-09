@@ -32,13 +32,7 @@ async function seedDraft(page: Page, fileId: string) {
 useEmulatorSuite();
 
 test.describe('Gallery publish dialog and cards', () => {
-  test('publish via dialog: chat-prompt prefill, author on card, edit gallery info', async ({ page, browserName }) => {
-    // The only test in this file WebKit still fails, and it stops before it
-    // reaches the gallery: the Share menu opens but "Publish to gallery…" never
-    // appears, so the click times out. A menu interaction, not a data problem —
-    // the two cases below now pass, which they could not while the whole file
-    // was skipped for them.
-    test.skip(browserName === 'webkit', 'Share menu item never appears on WebKit — undiagnosed');
+  test('publish via dialog: chat-prompt prefill, author on card, edit gallery info', async ({ page }) => {
     const fileId = uniqueId('e2epub');
     await page.goto('/');
     await waitForEditor(page);

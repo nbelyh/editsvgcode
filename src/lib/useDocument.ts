@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import type { DiffOnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { EditSvgCodeDb, friendlyError, logError, type Visibility, type GalleryMeta } from './firebase';
+import { EditSvgCodeDb, friendlyError, logError, sessionUser, type Visibility, type GalleryMeta } from './firebase';
 import { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
 import { submitGalleryMeta } from './publish';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
@@ -190,22 +190,31 @@ export function useDocument(routeFileId: string | undefined) {
     }
     setSaving(true);
     setFileId(uniqueId);
-    // Anonymous users can't manage visibility — their saves are link-shareable
-    // (unlisted), never gallery-listed.
-    const effectiveVisibility: Visibility = getAuth().currentUser?.isAnonymous ? 'unlisted' : visibility;
-    db.saveDocument(uniqueId, svgCode, effectiveVisibility)
-      .then(() => {
-        // Draft promoted to a saved file — forget the draft pointer so a fresh
-        // "/" mints a new id instead of reopening this one.
-        localStorage.removeItem('esvg-local-id');
-        navigate('/' + uniqueId, { replace: true });
-        trackSave();
-        notifications.show({ title: 'Saved', message: 'File saved successfully.', color: 'green' });
-      })
-      .catch((err) => {
-        notifications.show({ title: 'Save failed', message: friendlyError(err), color: 'red' });
-      })
-      .finally(() => setSaving(false));
+    // One try/finally around everything that can throw, rather than a promise
+    // chain the awaits sit outside of: waiting for the session is itself
+    // fallible, and a rejection before the chain started left the button
+    // spinning forever with nothing said.
+    try {
+      // Same window saveDocument guards against. Reading currentUser before the
+      // session settles sees null, and `?.isAnonymous` on null reads as "not
+      // anonymous" — which would save an anonymous user's file under whatever
+      // visibility the editor held rather than the unlisted one they get.
+      const user = await sessionUser();
+      // Anonymous users can't manage visibility — their saves are link-shareable
+      // (unlisted), never gallery-listed.
+      const effectiveVisibility: Visibility = user?.isAnonymous ? 'unlisted' : visibility;
+      await db.saveDocument(uniqueId, svgCode, effectiveVisibility);
+      // Draft promoted to a saved file — forget the draft pointer so a fresh
+      // "/" mints a new id instead of reopening this one.
+      localStorage.removeItem('esvg-local-id');
+      navigate('/' + uniqueId, { replace: true });
+      trackSave();
+      notifications.show({ title: 'Saved', message: 'File saved successfully.', color: 'green' });
+    } catch (err) {
+      notifications.show({ title: 'Save failed', message: friendlyError(err), color: 'red' });
+    } finally {
+      setSaving(false);
+    }
   }, [svgCode, routeFileId, navigate, visibility, fileId]);
 
   const handleSetVisibility = useCallback(async (newValue: Visibility) => {

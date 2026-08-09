@@ -224,6 +224,36 @@ test.describe('Cloud chat persistence', () => {
     expect(messageCount).toBe(2);
   });
 
+  test('a saved document is still owned, and still usable by its owner', async ({ page }) => {
+    // A save once wrote uid:null over the real owner when it landed before the
+    // session had restored, leaving a private file nobody could read — its
+    // author included, and with no error to show for it. That window is a race
+    // and this test does NOT reliably enter it; the deterministic guard is
+    // save-document-owner.test.ts, which drives the contract directly. What
+    // this adds is the end of the story in a real browser: the uid on the
+    // document is the one that saved it, and that owner can still act on it.
+    const fileId = uniqueId('e2eowner');
+    const uid = await bootWithDraft(page, fileId);
+    // Let the load land first. The editor is ready about a second before the
+    // document reaches it, so saving straight away persists the placeholder
+    // over the seeded drawing — and then this would be asserting ownership of
+    // a file it had just corrupted.
+    await expect(page.getByText('Done - red.')).toBeVisible({ timeout: 15000 });
+    await expect.poll(() => editorValue(page)).toContain('fill="red"');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page).toHaveURL(`/${fileId}`, { timeout: 15000 });
+
+    const res = await fetch(`${FIRESTORE_DB}/documents/files/${fileId}`, { headers: EMULATOR_AUTH });
+    const fields = (await res.json()).fields ?? {};
+    expect(fields.uid?.stringValue).toBe(uid);
+    // The drawing, not the placeholder the editor holds before the load lands.
+    expect(fields.text?.stringValue).toContain('fill="red"');
+    // And the owner can still read their own file through the app's own path.
+    await expect(page.getByRole('button', { name: 'Share' })).toBeVisible();
+    await page.getByRole('button', { name: 'Share' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Publish to gallery…' })).toBeVisible();
+  });
+
   test('gallery lists only visibility:public; clone creates an owned draft', async ({ page }) => {
     const srcId = uniqueId('e2egallery');
     await page.goto('/');
