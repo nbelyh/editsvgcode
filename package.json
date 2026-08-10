@@ -1,6 +1,6 @@
 {
   "name": "editsvgcode",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "ship:beta": "npm run build && npm run upload-sourcemaps && npm run deploy:beta",
     "deploy": "firebase deploy --only hosting,firestore,storage",
     "deploy:beta": "firebase deploy --only hosting,firestore,storage -P beta",
-    "upload-sourcemaps": "node scripts/upload-sourcemaps.cjs",
+    "upload-sourcemaps": "node scripts/upload-sourcemaps.mjs",
     "preview:deploy": "npm run build && firebase hosting:channel:deploy preview --expires 7d",
     "test": "vitest",
     "test:run": "vitest run",

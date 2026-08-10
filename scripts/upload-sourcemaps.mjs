@@ -1,22 +1,25 @@
 /**
  * Upload source maps from dist/assets to Azure Blob Storage.
- * Usage: node scripts/upload-sourcemaps.cjs [--account NAME] [--container NAME]
+ * Usage: node scripts/upload-sourcemaps.mjs [--account NAME] [--container NAME]
  *
  * Requires: Azure CLI (`az`) logged in.
- * The maps are stored under: sourcemaps/<version>/<filename>.map
+ * The maps are stored under: sourcemaps/<build tag>/<filename>.map
  */
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const pkg = require('../package.json');
-const version = pkg.version;
+import { getBuildTag } from './version.mjs';
+
+const tag = getBuildTag();
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 // Defaults — override via CLI args or env vars
 const account = process.env.SOURCEMAP_STORAGE_ACCOUNT || 'editsvgcodestorage';
 const container = process.env.SOURCEMAP_CONTAINER || 'sourcemaps';
 
-const distAssets = path.join(__dirname, '..', 'dist', 'assets');
+const distAssets = path.join(here, '..', 'dist', 'assets');
 
 if (!fs.existsSync(distAssets)) {
   console.error('Error: dist/assets not found. Run the build first.');
@@ -48,9 +51,9 @@ try {
 
 console.log(`Uploading ${mapFiles.length} source map(s) to ${account}/${container}/`);
 
-// Upload all maps in one batch under v<version>/
+// Upload all maps in one batch under the build tag, so no two ships collide
 execSync(
-  `az storage blob upload-batch --source "${distAssets}" --destination ${container} --destination-path "v${version}" --account-name ${account} --account-key "${key}" --pattern "*.map" --overwrite`,
+  `az storage blob upload-batch --source "${distAssets}" --destination ${container} --destination-path "${tag}" --account-name ${account} --account-key "${key}" --pattern "*.map" --overwrite`,
   { stdio: 'inherit' }
 );
 
@@ -60,4 +63,4 @@ execSync(
   { stdio: 'inherit' }
 );
 
-console.log(`\nDone. Source maps uploaded for v${version}.`);
+console.log(`\nDone. Source maps uploaded for ${tag}.`);
