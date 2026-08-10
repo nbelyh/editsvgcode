@@ -22,7 +22,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "e2e": "npm run build && playwright test",
-    "e2e:ui": "npm run build && playwright test --ui"
+    "e2e:ui": "npm run build && playwright test --ui",
+    "e2e:live": "node scripts/e2e-live.mjs"
   },
   "dependencies": {
     "@mantine/core": "^9.0.2",
