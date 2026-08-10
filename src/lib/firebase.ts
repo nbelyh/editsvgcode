@@ -14,6 +14,7 @@ import {
   connectFirestoreEmulator,
   increment,
   type Firestore,
+  type FirestoreSettings,
 } from 'firebase/firestore';
 import {
   getAuth,
@@ -62,42 +63,49 @@ const isLocalhost =
 // Delete the whole block once WebKit is fixed; there is a recipe at the bottom
 // for deciding when that is.
 //
-// WebKit cannot read Firestore's default transport, so it gets long polling.
+// WebKit cannot carry Firestore's channel over the Fetch API, so it gets XHR.
 //
-// The default is a WebChannel: one long-lived response the SDK reads bytes out
-// of as they arrive, which by design never finishes. WebKit opens it — 200,
-// every time, including the failures — and then leaves the payload buffered
-// where the SDK never sees it. The SDK waits, times the channel out, tears it
-// down and reconnects; sometimes that lands, sometimes it stalls the same way.
-// Nothing throws, so nothing is reported: reads simply take forever or never
-// arrive. Confirmed on Safari against production Firestore, not only against
-// the emulator, where 26 of 30 reads were lost against Chromium's 0 of 30.
+// The SDK's WebChannel keeps a long-lived response open and reads bytes out of
+// it as they arrive, and by default it opens that response with fetch(). On
+// WebKit those fetches fail — "Fetch API cannot load … due to access control
+// checks" — and the channel jams: the SDK waits, times it out, reconnects, and
+// the replacement jams the same way. Nothing throws where the app can see it,
+// so reads and writes simply take tens of seconds or never settle. The stalling
+// was confirmed on Safari against production Firestore, not only against the
+// emulator, where 15 of 30 reads were lost against Chromium's 0 of 30.
 //
-// Long polling replaces the stream with request/response pairs that complete,
-// so there is nothing left to buffer, and all 30 land. The cost is a few
-// hundred ms per read — paid only by WebKit, and only against reads that were
-// otherwise arriving late or not at all. Chromium keeps the faster streaming
-// transport.
+// useFetchStreams: false puts the same channel back on XMLHttpRequest, which
+// WebKit does carry. All 30 land, at a median 436ms — no slower than the
+// default was on the reads it did not lose. Chromium is untouched.
 //
-// Forced rather than experimentalAutoDetectLongPolling, which exists to catch
-// exactly this: switching it on explicitly measured identically to leaving it
-// alone, still 26 of 30 lost. Whatever it detects, it does not detect this.
+// This block used to force long polling instead. That fixed the 30-read
+// benchmark (0 of 30 lost) but not the underlying transport, because
+// experimentalForceLongPolling does NOT turn fetch streams off — the channel is
+// still opened with fetch(), so anything that made the SDK rebuild it jammed
+// again. Signing a second user in and cloning a gallery document was the case
+// that survived: reads landed, then the clone's write never returned and the
+// button sat in its loading state forever (e2e "clone creates an owned draft").
+// experimentalAutoDetectLongPolling was no better — it measured identically to
+// leaving it alone, so whatever it detects, it does not detect this.
 //
 // Upstream: https://github.com/firebase/firebase-js-sdk/issues/9789 — open, no
 // root cause, filed against Safari 26.4 where 26.2 was fine. Keyed off the
-// engine rather than a version because 26.5 measured just as broken (26 of 30
-// lost, against 27 of 30 on 26.4), so "the next release" is not a safe thing to
-// wait for.
+// engine rather than a version because 26.5 measured just as broken, so "the
+// next release" is not a safe thing to wait for. useFetchStreams is a private
+// SDK setting, so it may move without a breaking-change note; if it stops
+// having any effect, the measurement below is what says so.
 //
 // TO RETIRE THIS: swap the ternary below for a plain getFirestore, then point a
 // recent playwright-core's webkit at the dev server and time 30 loadDocument
-// calls with a 5s ceiling each. Still broken reads as ~26 of 30 never settling;
+// calls with a 5s ceiling each. Still broken reads as ~15 of 30 never settling;
 // fixed reads as 0. Chromium is the control and has always been 0 of 30. A
 // newer WebKit than the one on hand comes from installing a newer
 // playwright-core in a scratch directory — no need to upgrade this project's.
 const isWebKit = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 const firebaseDb = isWebKit
-  ? initializeFirestore(firebaseApp, { experimentalForceLongPolling: true })
+  // `useFetchStreams` is not in the public FirestoreSettings type — it is one of
+  // the SDK's PrivateSettings, hence the cast.
+  ? initializeFirestore(firebaseApp, { useFetchStreams: false } as FirestoreSettings)
   : getFirestore(firebaseApp);
 const firebaseStorage = getStorage(firebaseApp);
 export { firebaseDb, firebaseStorage };
