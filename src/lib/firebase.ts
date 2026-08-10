@@ -1,7 +1,4 @@
-import { initializeApp } from 'firebase/app';
 import {
-  getFirestore,
-  initializeFirestore,
   doc,
   getDoc,
   setDoc,
@@ -11,10 +8,10 @@ import {
   where,
   orderBy,
   getDocs,
-  connectFirestoreEmulator,
+  updateDoc,
+  limit,
   increment,
   type Firestore,
-  type FirestoreSettings,
 } from 'firebase/firestore';
 import {
   getAuth,
@@ -28,97 +25,28 @@ import {
   linkWithRedirect,
   updateProfile,
   onAuthStateChanged,
-  connectAuthEmulator,
   type AuthProvider,
   type User,
 } from 'firebase/auth';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, logEvent, type Analytics } from 'firebase/analytics';
+import { firebaseApp, firebaseDb, firebaseStorage, firebaseAuth, isLocalhost } from './firebase-app';
+import { clearChatMessages } from './chat-history';
 import { visibilityOf, type Visibility } from './visibility';
 import { config } from './config';
 import { getConsent } from './cookie-consent';
 import { trackSignIn } from './analytics';
 import { notifications } from '@mantine/notifications';
 
-const firebaseConfig = {
-  apiKey: config.FIREBASE_API_KEY,
-  authDomain: config.FIREBASE_AUTH_DOMAIN,
-  databaseURL: config.FIREBASE_DATABASE_URL,
-  projectId: config.FIREBASE_PROJECT_ID,
-  storageBucket: config.FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: config.FIREBASE_MESSAGING_SENDER_ID,
-  appId: config.FIREBASE_APP_ID,
-  measurementId: config.FIREBASE_MEASUREMENT_ID,
-};
-
-// Initialize Firebase eagerly at module level so getAuth() works from any module
-const firebaseApp = initializeApp(firebaseConfig);
-
-const isLocalhost =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1';
-
-// TODO(webkit-longpoll): a workaround for someone else's open bug — WebKit
-// 26.4 and 26.5, https://github.com/firebase/firebase-js-sdk/issues/9789.
-// Delete the whole block once WebKit is fixed; there is a recipe at the bottom
-// for deciding when that is.
-//
-// WebKit cannot carry Firestore's channel over the Fetch API, so it gets XHR.
-//
-// The SDK's WebChannel keeps a long-lived response open and reads bytes out of
-// it as they arrive, and by default it opens that response with fetch(). On
-// WebKit those fetches fail — "Fetch API cannot load … due to access control
-// checks" — and the channel jams: the SDK waits, times it out, reconnects, and
-// the replacement jams the same way. Nothing throws where the app can see it,
-// so reads and writes simply take tens of seconds or never settle. The stalling
-// was confirmed on Safari against production Firestore, not only against the
-// emulator, where 15 of 30 reads were lost against Chromium's 0 of 30.
-//
-// useFetchStreams: false puts the same channel back on XMLHttpRequest, which
-// WebKit does carry. All 30 land, at a median 436ms — no slower than the
-// default was on the reads it did not lose. Chromium is untouched.
-//
-// This block used to force long polling instead. That fixed the 30-read
-// benchmark (0 of 30 lost) but not the underlying transport, because
-// experimentalForceLongPolling does NOT turn fetch streams off — the channel is
-// still opened with fetch(), so anything that made the SDK rebuild it jammed
-// again. Signing a second user in and cloning a gallery document was the case
-// that survived: reads landed, then the clone's write never returned and the
-// button sat in its loading state forever (e2e "clone creates an owned draft").
-// experimentalAutoDetectLongPolling was no better — it measured identically to
-// leaving it alone, so whatever it detects, it does not detect this.
-//
-// Upstream: https://github.com/firebase/firebase-js-sdk/issues/9789 — open, no
-// root cause, filed against Safari 26.4 where 26.2 was fine. Keyed off the
-// engine rather than a version because 26.5 measured just as broken, so "the
-// next release" is not a safe thing to wait for. useFetchStreams is a private
-// SDK setting, so it may move without a breaking-change note; if it stops
-// having any effect, the measurement below is what says so.
-//
-// TO RETIRE THIS: swap the ternary below for a plain getFirestore, then point a
-// recent playwright-core's webkit at the dev server and time 30 loadDocument
-// calls with a 5s ceiling each. Still broken reads as ~15 of 30 never settling;
-// fixed reads as 0. Chromium is the control and has always been 0 of 30. A
-// newer WebKit than the one on hand comes from installing a newer
-// playwright-core in a scratch directory — no need to upgrade this project's.
-const isWebKit = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-const firebaseDb = isWebKit
-  // `useFetchStreams` is not in the public FirestoreSettings type — it is one of
-  // the SDK's PrivateSettings, hence the cast.
-  ? initializeFirestore(firebaseApp, { useFetchStreams: false } as FirestoreSettings)
-  : getFirestore(firebaseApp);
-const firebaseStorage = getStorage(firebaseApp);
+// The app and its service handles live in ./firebase-app — see the note there
+// on why. Re-exported so the many importers of `firebaseDb`/`firebaseStorage`
+// from this module keep working.
 export { firebaseDb, firebaseStorage };
-const firebaseAuth = getAuth(firebaseApp);
 
 let firebaseAnalytics: Analytics | null = null;
 
-if (isLocalhost) {
-  console.log('Running on localhost - using Firebase Emulators');
-  connectFirestoreEmulator(firebaseDb, 'localhost', 8080);
-  connectAuthEmulator(firebaseAuth, 'http://localhost:9099', { disableWarnings: true });
-  connectStorageEmulator(firebaseStorage, 'localhost', 9199);
-} else if (getConsent() === 'accepted') {
+// Emulators are wired up in ./firebase-app; analytics stays here, with the
+// consent check and enableAnalytics() that flips it on later.
+if (!isLocalhost && getConsent() === 'accepted') {
   firebaseAnalytics = getAnalytics(firebaseApp);
 }
 
@@ -286,7 +214,6 @@ export class EditSvgCodeDb {
   }
 
   async setVisibility(uniqueId: string, visibility: Visibility, meta?: GalleryMeta): Promise<void> {
-    const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
     await updateDoc(ref, {
       visibility,
@@ -298,19 +225,16 @@ export class EditSvgCodeDb {
   }
 
   async setDocumentMeta(uniqueId: string, meta: GalleryMeta): Promise<void> {
-    const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
     await updateDoc(ref, { ...meta });
   }
 
   async incrementViews(uniqueId: string): Promise<void> {
-    const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
     await updateDoc(ref, { views: increment(1) });
   }
 
   async incrementDownloads(uniqueId: string): Promise<void> {
-    const { updateDoc } = await import('firebase/firestore');
     const ref = doc(this.db, 'files', uniqueId);
     await updateDoc(ref, { downloads: increment(1) });
   }
@@ -318,7 +242,6 @@ export class EditSvgCodeDb {
   async deleteDocument(uniqueId: string): Promise<void> {
     // Delete the chat first: subcollections are not removed with their parent,
     // and the messages rules require the parent doc to resolve ownership.
-    const { clearChatMessages } = await import('./chat-history');
     await clearChatMessages(uniqueId);
     const ref = doc(this.db, 'files', uniqueId);
     await deleteDoc(ref);
@@ -351,7 +274,6 @@ export class EditSvgCodeDb {
 
   /** Gallery: files whose owners explicitly listed them (visibility 'public'). */
   async listPublicDocuments(max = 60): Promise<Array<{ id: string; modified: Date; text: string; views: number; title: string; description: string; authorName: string; authorPhoto: string }>> {
-    const { limit } = await import('firebase/firestore');
     const q = query(
       collection(this.db, 'files'),
       where('visibility', '==', 'public'),

@@ -21,8 +21,12 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('firebase'))
               return 'firebase';
-            if (id.includes('@mantine') || id.includes('@tabler') || id.includes('monaco-editor') || id.includes('@monaco-editor') || id.includes('react-dom') || id.includes('react-router') || id.includes('/react/'))
-              return 'ui';
+            if (id.includes('@mantine'))
+              return 'mantine';
+            if (id.includes('@tabler'))
+              return 'icons';
+            if (id.includes('monaco-editor') || id.includes('@monaco-editor') || id.includes('react-dom') || id.includes('react-router') || id.includes('/react/'))
+              return 'react';
           }
         },
       },

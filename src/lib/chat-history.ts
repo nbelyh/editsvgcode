@@ -13,9 +13,11 @@ import {
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getBytes } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
-import { firebaseDb, firebaseStorage } from './firebase';
+// ./firebase-app, not ./firebase: firebase.ts imports this module, so taking
+// the handles from there would close an import cycle.
+import { firebaseDb, firebaseStorage } from './firebase-app';
 import { loadLegacyChatMessages, clearLegacyChatMessages } from './chat-storage';
-import { isCleanId } from './svg-utils';
+import { isCleanId, getNewUniqueId } from './svg-utils';
 import type { DisplayMessage } from '../components/aichat/types';
 
 /** uid of the signed-in, non-anonymous user, else null. */
@@ -404,7 +406,6 @@ export async function saveChatMessages(fileId: string, messages: DisplayMessage[
 export async function cloneDocument(sourceId: string): Promise<string | null> {
   const owner = uid();
   if (!owner) return null;
-  const { getNewUniqueId } = await import('./svg-utils');
   const srcSnap = await getDoc(doc(firebaseDb, 'files', sourceId));
   if (!srcSnap.exists()) return null;
   const text: string = srcSnap.data().text ?? '';

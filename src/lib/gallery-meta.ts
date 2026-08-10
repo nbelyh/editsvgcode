@@ -1,4 +1,5 @@
 import type { GalleryMeta } from './firebase';
+import { loadFirstUserPrompt } from './chat-history';
 
 /**
  * Heuristic prefill for the publish dialog — no AI involved. The best signal
@@ -6,8 +7,8 @@ import type { GalleryMeta } from './firebase';
  * files without a chat we fall back to the SVG <title> element, then the
  * uploaded file's name. The user reviews/edits the result before publishing.
  *
- * Runtime firebase/chat imports stay inside suggestGalleryMetaForFile (dynamic)
- * so the pure heuristic is unit-testable without firebase.ts side effects.
+ * suggestGalleryMeta itself is pure and unit-tested directly; only
+ * suggestGalleryMetaForFile reaches for the stored chat.
  */
 
 const TITLE_MAX_WORDS = 6;
@@ -87,7 +88,6 @@ export function suggestGalleryMeta(opts: { svg?: string; firstPrompt?: string; f
 export async function suggestGalleryMetaForFile(fileId: string, svg: string, fileName?: string): Promise<GalleryMeta> {
   let firstPrompt: string | undefined;
   try {
-    const { loadFirstUserPrompt } = await import('./chat-history');
     firstPrompt = (await loadFirstUserPrompt(fileId)) ?? undefined;
   } catch {
     // No chat or no access — cosmetic only, the fallbacks below still apply.
