@@ -11,9 +11,12 @@ import './App.css';
 
 declare const __APP_VERSION__: string;
 
+const BLOG_PATH = '/blog';
+
 const NAV_LINKS = [
   { to: '/features', label: 'Features' },
   { to: '/gallery', label: 'Gallery' },
+  { to: BLOG_PATH, label: 'Blog' },
   { to: '/support', label: 'Support' },
   { to: '/about', label: 'About' },
 ];
@@ -143,7 +146,7 @@ export default function App() {
       <AppShell.Footer className="app-chrome">
         <Group h="100%" px="xs" justify="space-between">
           <Group gap="xs">
-            <Text size="sm" c="dimmed">v{__APP_VERSION__}</Text>
+            <FooterLink href={BLOG_PATH} title="See what changed in this release">v{__APP_VERSION__}</FooterLink>
             <FooterLink href="https://unmanagedvisio.com" target="_blank" title="Visit UnmanagedVisio website">© UnmanagedVisio</FooterLink>
             <FooterLink href="/privacy" title="Read our privacy policy">Privacy Policy</FooterLink>
             <FooterLink href="/terms" title="Read the terms of service">Terms of Service</FooterLink>

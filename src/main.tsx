@@ -17,6 +17,7 @@ import { GalleryPage } from './pages/GalleryPage';
 import { PricingPage } from './pages/PricingPage';
 import { AboutPage } from './pages/AboutPage';
 import { FeaturesPage } from './pages/FeaturesPage';
+import { BlogPage } from './pages/BlogPage';
 import { SupportPage } from './pages/SupportPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -40,6 +41,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="files" element={<FilesPage />} />
             <Route path="gallery" element={<GalleryPage />} />
             <Route path="features" element={<FeaturesPage />} />
+            <Route path="blog" element={<BlogPage />} />
             <Route path="pricing" element={<PricingPage />} />
 
             <Route path="about" element={<AboutPage />} />

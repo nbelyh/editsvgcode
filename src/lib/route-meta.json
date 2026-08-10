@@ -12,6 +12,11 @@
       "title": "Features",
       "description": "Live preview, schema-aware autocomplete from the W3C SVG spec, hover documentation, click-to-select, AI chat editing, image generation with vectorization, and icon search."
     },
+    "/blog": {
+      "title": "What's New",
+      "description": "What changed in EditSvgCode: the new features, improvements, and fixes shipped in each update of the online SVG editor.",
+      "image": "/screenshots/17-gallery.png"
+    },
     "/pricing": {
       "title": "Pricing",
       "description": "Credit-based pricing for the AI assistant. Free monthly credits, pay-as-you-go top-ups, and a pro tier for the larger models."
