@@ -17,11 +17,14 @@ import data from './route-meta.json';
 export interface RouteMeta {
   title: string;
   description: string;
+  /** Root-relative path to the share-card picture. Falls back to DEFAULT_IMAGE. */
+  image?: string;
 }
 
 export const SITE_NAME: string = data.siteName;
 export const DEFAULT_TITLE: string = data.defaultTitle;
 export const DEFAULT_DESCRIPTION: string = data.defaultDescription;
+export const DEFAULT_IMAGE: string = data.defaultImage;
 
 const ROUTES: Record<string, RouteMeta> = data.routes;
 

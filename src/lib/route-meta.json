@@ -2,6 +2,7 @@
   "siteName": "EditSvgCode",
   "defaultTitle": "Online SVG Code Editor",
   "defaultDescription": "Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage. AI chat and image generation available as pro features.",
+  "defaultImage": "/screenshots/01-editor-full.png",
   "routes": {
     "/gallery": {
       "title": "SVG Gallery",

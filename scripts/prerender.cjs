@@ -54,8 +54,25 @@ function replaceOrFail(html, pattern, replacement, what, route) {
 
 const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
+// index.html keeps its own og:image, and has to: it is what a non-JS crawler
+// sees on `/` and on `/:fileId`, neither of which is prerendered. That makes it
+// a second copy of defaultImage, and two copies of one value drift. They cannot
+// be merged — one is an absolute URL in a static file, the other a path this
+// script resolves per environment — so assert they still name the same picture
+// instead. A share card pointing at a deleted screenshot is invisible until
+// somebody shares the page.
+const shellImage = shell.match(/<meta property="og:image" content="([^"]*)"/);
+if (!shellImage) {
+  throw new Error('og:image missing from the built shell — index.html changed shape.');
+}
+if (!shellImage[1].endsWith(meta.defaultImage)) {
+  throw new Error(`index.html's og:image (${shellImage[1]}) and defaultImage ` +
+    `(${meta.defaultImage}) in route-meta.json name different pictures. ` +
+    'Change both, or the home page and every other page share differently.');
+}
+
 let written = 0;
-for (const [route, { title, description }] of Object.entries(meta.routes)) {
+for (const [route, { title, description, image }] of Object.entries(meta.routes)) {
   const fullTitle = `${title} — ${meta.siteName}`;
   const url = `${SITE_URL}${route}`;
   let html = shell;
@@ -70,17 +87,38 @@ for (const [route, { title, description }] of Object.entries(meta.routes)) {
     `<meta property="og:description" content="${escapeAttr(description)}" />`, 'og:description', route);
 
   // Scrapers do not resolve a relative og:image, so it must be absolute.
-  // index.html already hard-codes the production URL, but check rather than
-  // assume: a relative path here silently costs every share card its picture.
-  const ogImage = html.match(/<meta property="og:image" content="([^"]*)"/);
+  //
+  // The picture comes from route-meta.json — the route's own if it names one,
+  // otherwise defaultImage — never from the shell. index.html hard-codes a
+  // production URL, and taking the fallback from there would mean two sources
+  // of truth for the same tag: editing defaultImage would move it at runtime
+  // and leave every prerendered page, which is what the crawlers this script
+  // exists for actually read, still pointing at the old picture.
+  const ogImage = html.match(/<meta property="og:image" content="[^"]*"\s*\/?>/);
   if (!ogImage) {
     throw new Error(`og:image missing from the built shell while prerendering ${route}.`);
   }
-  if (ogImage[1].startsWith('/')) {
-    html = html.replace(ogImage[0],
-      `<meta property="og:image" content="${SITE_URL}${ogImage[1]}"`);
-  } else if (!/^https?:\/\//.test(ogImage[1])) {
-    throw new Error(`og:image "${ogImage[1]}" is neither absolute nor root-relative — ` +
+  const src = image || meta.defaultImage;
+  if (!src) {
+    throw new Error('No og:image for ' + route + ' — add one to the route, or set ' +
+      'defaultImage in route-meta.json.');
+  }
+  if (src.startsWith('/')) {
+    // Root-relative: resolved against the origin being deployed to, and the
+    // file has to be in the build or the card points at a 404. Only checked
+    // here — an absolute URL names someone else's host, which is not ours to
+    // look for on disk.
+    if (!fs.existsSync(path.join(DIST, src.replace(/^\//, '')))) {
+      throw new Error(`og:image "${src}" for ${route} is not in ${DIST} — ` +
+        'the share card would point at a 404.');
+    }
+    html = html.replace(ogImage[0], () => `<meta property="og:image" content="${SITE_URL}${escapeAttr(src)}" />`);
+  } else if (/^https?:\/\//.test(src)) {
+    // A function, not a string: `$&` and friends in a replacement string are
+    // substitution patterns, and a URL is the one value here that can carry one.
+    html = html.replace(ogImage[0], () => `<meta property="og:image" content="${escapeAttr(src)}" />`);
+  } else {
+    throw new Error(`og:image "${src}" is neither absolute nor root-relative — ` +
       'scrapers will not resolve it.');
   }
 

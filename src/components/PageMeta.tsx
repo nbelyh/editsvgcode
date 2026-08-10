@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { DEFAULT_TITLE, DEFAULT_DESCRIPTION, SITE_NAME } from '../lib/route-meta';
+import { DEFAULT_TITLE, DEFAULT_DESCRIPTION, DEFAULT_IMAGE, SITE_NAME } from '../lib/route-meta';
 
 /**
  * Per-route <head> tags.
@@ -29,6 +29,10 @@ export interface PageMetaProps {
    *  bare product title it already ranks under. */
   title?: string;
   description?: string;
+  /** Root-relative path to the share-card picture. Pages that do not set one
+   *  get DEFAULT_IMAGE — always written, never left at the previous route's
+   *  choice, or a share of the editor would carry the blog's screenshot. */
+  image?: string;
   /** Keep the page out of the index: private/unlisted documents, the signed-in
    *  areas, and the not-found state that the :fileId route serves as a 200. */
   noindex?: boolean;
@@ -59,7 +63,7 @@ function setMeta(attr: 'name' | 'property', key: string, content: string): void 
  * so mobile crawlers saw no noindex on private documents. A hook cannot be
  * missed by a branch. Prefer it wherever the component has early returns.
  */
-export function usePageMeta({ title, description, noindex }: PageMetaProps): void {
+export function usePageMeta({ title, description, image, noindex }: PageMetaProps): void {
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -74,6 +78,12 @@ export function usePageMeta({ title, description, noindex }: PageMetaProps): voi
     setMeta('property', 'og:title', fullTitle);
     setMeta('property', 'og:description', desc);
     setMeta('property', 'og:url', url);
+    // Absolute: scrapers do not resolve a relative og:image. A picture already
+    // named by URL is left alone — prefixing the origin would make nonsense of
+    // it, and prerender.cjs makes the same distinction on the same values.
+    const picture = image || DEFAULT_IMAGE;
+    setMeta('property', 'og:image',
+      /^https?:\/\//.test(picture) ? picture : `${window.location.origin}${picture}`);
 
     const canonical = upsert('link[rel="canonical"]', () => {
       const l = document.createElement('link');
@@ -89,7 +99,7 @@ export function usePageMeta({ title, description, noindex }: PageMetaProps): voi
     } else {
       document.head.querySelector('meta[name="robots"]')?.remove();
     }
-  }, [title, description, noindex, pathname]);
+  }, [title, description, image, noindex, pathname]);
 }
 
 /** Component form, for the single-return pages. Renders nothing. */

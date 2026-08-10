@@ -21,7 +21,9 @@
     <meta property="og:description" content="Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage." />
     <!-- Absolute: scrapers do not resolve relative og:image URLs, so the card
          had no picture. Hard-coded to production on purpose — beta and
-         localhost are never scraped, and a card pointing at prod beats none. -->
+         localhost are never scraped, and a card pointing at prod beats none.
+         Must stay the same picture as defaultImage in route-meta.json, which
+         every other page uses; prerender.cjs fails the build if they diverge. -->
     <meta property="og:image" content="https://editsvgcode.com/screenshots/01-editor-full.png" />
     <base href="/" />
   </head>
