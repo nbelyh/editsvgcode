@@ -23,6 +23,13 @@ interface ChatComposerProps {
   isRunning: boolean;
   hasPending: boolean;
   selectedElement?: string;
+  /**
+   * The address the model will be given for this selection — the same string
+   * buildSvgContext puts in the context, so the badge and the request cannot
+   * disagree about which element is meant. Null when none could be derived
+   * (a document mid-edit does not parse), and then the open tag is shown.
+   */
+  selectedAddress?: string | null;
   model: string;
   onModelChange: (value: string) => void;
   imageModel: string;
@@ -38,7 +45,7 @@ interface ChatComposerProps {
 
 export function ChatComposer({
   input, onInputChange, onSend, onStop,
-  isRunning, hasPending, selectedElement,
+  isRunning, hasPending, selectedElement, selectedAddress,
   model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange,
   credits, isModelDisabled, history,
@@ -122,9 +129,15 @@ export function ChatComposer({
       )}
       {selectedElement && (
         <div style={{ marginBottom: 4 }}>
-          <Badge size="xs" variant="light" color="violet" style={{ maxWidth: '100%', textTransform: 'none' }}>
+          <Badge data-testid="selection-address" size="xs" variant="light" color="violet" style={{ maxWidth: '100%', textTransform: 'none' }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {(() => {
+                // The address, when there is one: it is what the request will
+                // actually be aimed at. The open tag was showing whichever
+                // attribute came first in source order, which on a traced
+                // drawing is the path data — so every selected <path> read
+                // "<path d="M0 0 C5 3 9 7 14 10 C14 10 …>" and told you nothing.
+                if (selectedAddress) return selectedAddress;
                 const maxLen = 60;
                 const openTag = selectedElement.match(/^<[^>]*?\/?>/)?.[0] ?? selectedElement;
                 if (openTag.length <= maxLen) return openTag;

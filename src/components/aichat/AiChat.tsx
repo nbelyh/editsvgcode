@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { notifications } from '@mantine/notifications';
 import { ActionIcon, Tooltip, Text } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
 import { friendlyError } from '../../lib/firebase';
+import { addressForLineRange } from '../../lib/svg-dom';
 import { DEFAULT_PRICING } from '../../lib/pricing';
 import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
@@ -58,7 +60,7 @@ function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
 }
 
-export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded, onAccessResolved, onStartFrom, cloning }: AiChatProps) {
+export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, visible = true, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded, onAccessResolved, onStartFrom, cloning }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -69,6 +71,27 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const [effortByModel, setEffortByModel] = useState<Record<string, ReasoningEffort>>(() => {
     try { return JSON.parse(localStorage.getItem('esvg-effort-by-model') || '{}'); } catch { return {}; }
   });
+  // The address the model will be handed for this selection. Derived the same
+  // way buildSvgContext derives it, so the badge names the element the request
+  // will actually land on rather than a second opinion about it.
+  //
+  // Debounced, and keyed on the line NUMBERS rather than the range object.
+  // Deriving an address parses the document, which is ~100 ms on a large traced
+  // drawing and cannot be made cheaper; typing re-creates both `svgCode` and a
+  // fresh `{start, end}` object on every keystroke, so an undebounced memo on
+  // the object identity ran that parse per character and froze the editor. The
+  // badge is a label, so it can lag the cursor by a moment; what it must never
+  // do is cost a frame. The model's own copy is derived at send time and is
+  // unaffected by this.
+  const [debouncedSvg] = useDebouncedValue(svgCode, 300);
+  const selStart = selectedLineRange?.start;
+  const selEnd = selectedLineRange?.end;
+  const selectedAddress = useMemo(
+    () => (visible && selectedElement && selStart !== undefined && selEnd !== undefined
+      ? addressForLineRange(debouncedSvg, { start: selStart, end: selEnd }, selectedElement)
+      : null),
+    [visible, debouncedSvg, selectedElement, selStart, selEnd],
+  );
   const currentModelDef = useMemo(() => EDIT_MODELS.find(m => m.value === model), [model]);
   const supportedEfforts = currentModelDef?.efforts;
   const effort: ReasoningEffort | undefined = supportedEfforts ? (effortByModel[model] ?? currentModelDef?.defaultEffort ?? 'high') : undefined;
@@ -712,6 +735,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             isRunning={isRunning}
             hasPending={hasPending}
             selectedElement={selectedElement}
+            selectedAddress={selectedAddress}
             model={model}
             onModelChange={handleModelChange}
             imageModel={imageModel}

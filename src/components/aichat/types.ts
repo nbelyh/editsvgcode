@@ -27,6 +27,15 @@ export interface AiChatProps {
   documentReady: boolean;
   selectedElement?: string;
   selectedLineRange?: { start: number; end: number };
+  /**
+   * Whether the panel is on screen. It is hidden with CSS rather than
+   * unmounted, so that the chat survives a trip to the Info tab — which means
+   * everything it computes keeps being computed behind a `display: none`.
+   * Deriving the selection's address parses the whole document, so it is worth
+   * knowing nobody is looking. Defaults to true: a layout that always shows the
+   * panel should not have to say so.
+   */
+  visible?: boolean;
   onPreviewSvg: (svg: string | null) => void;
   onAcceptSvg: (svg: string) => void;
   /** Roll the document back to this SVG (an accepted call's prevSvg). */

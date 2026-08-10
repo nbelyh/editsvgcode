@@ -263,11 +263,15 @@ export function EditorPage() {
     />
   );
 
-  const aiChatPanel = (
+  // A function rather than one shared element: the panel is CSS-hidden behind
+  // the Info tab rather than unmounted, so the layouts that always show it and
+  // the one that toggles it need to say different things about visibility.
+  const renderAiChat = (visible: boolean) => (
     <AiChat
       svgCode={svgCode}
       fileId={fileId}
       documentReady={!readOnly}
+      visible={visible}
       selectedElement={selectedElement}
       selectedLineRange={selectedLineRange}
       onPreviewSvg={handlePreviewSvg}
@@ -310,7 +314,7 @@ export function EditorPage() {
                 {previewPanel}
               </div>
               <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', borderTop: '1px solid var(--esvg-chrome-border)' }}>
-                {aiChatPanel}
+                {renderAiChat(true)}
               </div>
             </div>
             {adSlot}
@@ -354,7 +358,7 @@ export function EditorPage() {
               </div>
             </div>
             <div style={{ flex: '0 0 320px', minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
-              <div style={{ flex: 1, minHeight: 0 }}>{aiChatPanel}</div>
+              <div style={{ flex: 1, minHeight: 0 }}>{renderAiChat(true)}</div>
               {adSlot}
             </div>
           </div>
@@ -422,7 +426,9 @@ export function EditorPage() {
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
           <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>
               <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'ai' ? 'block' : 'none' }}>
-                {aiChatPanel}
+                {/* Hidden, not unmounted, so the chat survives a trip to Info —
+                    which is exactly why the panel has to be told. */}
+                {renderAiChat(showSidebar && sidebarTab === 'ai')}
               </div>
               <div style={{ flex: 1, minHeight: 0, display: sidebarTab === 'info' ? 'block' : 'none' }}>
                 <Sidebar
