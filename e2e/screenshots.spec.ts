@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { waitForEditor, setSvgContent } from './helpers';
+import { signInTestUser, useEmulatorSuite } from './emulator';
 
 const SCREENSHOT_DIR = 'public/screenshots';
 const __filename = fileURLToPath(import.meta.url);
@@ -392,5 +393,166 @@ test.describe('Feature screenshots', () => {
     await page.goto('/files');
     await page.waitForTimeout(1000);
     await page.screenshot({ path: `${SCREENSHOT_DIR}/14-files-page.png` });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. Structural editing
+//
+// The only shot in this file whose model is scripted. Every other screenshot
+// asks the live assistant and takes whatever comes back, which is fine when the
+// picture is of a panel; it is not fine here, where the picture IS the tool
+// calls. A live run would spend credits to produce a different transcript each
+// time, and the one thing this shot has to show — set_text and set_style_rule
+// named on the cards, addressing elements rather than lines — would be down to
+// which route the model happened to pick.
+//
+// Only /api/chat is faked. The addresses are resolved, the edits applied and
+// the cards rendered by the real client, so the document in the picture is one
+// the app genuinely produced from those calls.
+// ---------------------------------------------------------------------------
+
+/**
+ * An exported-diagram shape: rules in a <style> block, labels in <text>. The
+ * case the structural tools exist for — nothing here is addressable by line.
+ *
+ * Laid out as a four-stage loop with orthogonal connectors. The first version
+ * put three boxes in a zig-zag joined by cubic curves, and they read as wobbly
+ * rather than deliberate: an S-bend between two corners has no right angle to
+ * line up against, so every curve looked like a near miss. Straight runs on a
+ * grid have nothing to get wrong, and every arrow leaves and meets a box edge
+ * square-on with the same 4px of clearance.
+ */
+const DIAGRAM = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">',
+  '  <style type="text/css">',
+  '    .box  {fill:#94a3b8;stroke:#334155;stroke-width:1.5;}',
+  '    .label{font-family:sans-serif;font-size:13px;fill:#0f172a;text-anchor:middle;}',
+  '    .flow {stroke:#334155;stroke-width:1.5;fill:none;marker-end:url(#arrow);}',
+  '  </style>',
+  '  <defs>',
+  '    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">',
+  '      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>',
+  '    </marker>',
+  '  </defs>',
+  '  <rect id="draft"     class="box" x="20"  y="20"  width="110" height="48" rx="6"/>',
+  '  <rect id="review"    class="box" x="170" y="20"  width="110" height="48" rx="6"/>',
+  '  <rect id="published" class="box" x="170" y="132" width="110" height="48" rx="6"/>',
+  '  <rect id="archived"  class="box" x="20"  y="132" width="110" height="48" rx="6"/>',
+  '  <text class="label" x="75"  y="49">Draft</text>',
+  '  <text class="label" x="225" y="49">Review</text>',
+  '  <text class="label" x="225" y="161">Published</text>',
+  '  <text class="label" x="75"  y="161">Archived</text>',
+  '  <path class="flow" d="M134,44 H164"/>',
+  '  <path class="flow" d="M225,72 V128"/>',
+  '  <path class="flow" d="M166,156 H136"/>',
+  '</svg>',
+].join('\n');
+
+test.describe('Structural edit screenshot', () => {
+  useEmulatorSuite();
+
+  // Shorter than the other shots: this one is a wide strip of three panes with
+  // nothing below them, and 900px left a third of the picture empty.
+  test.use({
+    viewport: { width: 1400, height: 760 },
+    colorScheme: 'dark',
+  });
+
+  test.skip(({ browserName }) => browserName !== 'chromium', 'screenshots: chromium only');
+
+  test('23 — structural edit tools', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('cookie-consent', 'declined');
+      localStorage.setItem('esvg-teaching-bubble-dismissed', '1');
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+
+    // Two rounds, because that is what the loop looks like from outside: the
+    // first answer is a read, which the client runs locally and comes back
+    // with, and only the second carries edits. Scripting one round would show
+    // the assistant editing something it never looked at.
+    let round = 0;
+    const rounds = [
+      [
+        { type: 'function_call', name: 'query', call_id: 'q1', arguments: JSON.stringify({ selector: 'text', limit: null }) },
+      ],
+      [
+        {
+          type: 'function_call', name: 'set_text', call_id: 't1',
+          arguments: JSON.stringify({
+            edits: [
+              { selector: '/svg[1]/text[1]', text: 'Entwurf' },
+              { selector: '/svg[1]/text[2]', text: 'Prüfung' },
+              { selector: '/svg[1]/text[3]', text: 'Veröffentlicht' },
+              { selector: '/svg[1]/text[4]', text: 'Archiviert' },
+            ],
+            summary: 'Translate the four labels to German',
+          }),
+        },
+        {
+          type: 'function_call', name: 'set_style_rule', call_id: 's1',
+          arguments: JSON.stringify({
+            edits: [{ selector: '.box', property: 'fill', value: '#60a5fa' }],
+            summary: 'Recolour every box through the .box rule',
+          }),
+        },
+        {
+          type: 'message',
+          content: [{
+            type: 'output_text',
+            text: 'The four labels are German now, and the boxes are blue. The fill lives in the `.box` rule rather than on the rectangles, so one declaration covers all four.',
+          }],
+        },
+      ],
+    ];
+    await page.route('**/api/chat', async (route) => {
+      const output = rounds[Math.min(round, rounds.length - 1)];
+      round += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ output, credits: { remaining: 46, limit: 50, tier: 'free' } }),
+      });
+    });
+
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page, 'Sam');
+    await page.reload();
+    await waitForEditor(page);
+    await setSvgContent(page, DIAGRAM);
+    await page.waitForTimeout(400);
+
+    const composer = page.locator('textarea.aui-composer-input');
+    await expect(composer).toBeVisible({ timeout: 15000 });
+    await composer.fill('translate the labels to German and make the boxes blue');
+    await composer.press('Enter');
+
+    // Both proposals rendered and the turn finished — otherwise the shot can
+    // catch the spinner instead of the cards.
+    await expect(page.locator('.aui-proposal')).toHaveCount(2, { timeout: 30000 });
+    await expect(page.locator('.aui-status-indicator')).toBeHidden({ timeout: 30000 });
+
+    // Accept both, so the drawing in the picture is the one the words describe.
+    // Left pending, the preview showed the renamed labels on grey boxes while
+    // the request and the card above both said blue — a reader would read that
+    // as the recolour having failed.
+    const accept = page.locator('.aui-proposal').getByRole('button', { name: 'Accept' });
+    await expect.poll(async () => {
+      if (await accept.count() > 0) await accept.first().click({ timeout: 5000 }).catch(() => {});
+      return accept.count();
+    }, { timeout: 25000, intervals: [250] }).toBe(0);
+
+    // The drawing is small and the preview pane is not; at 100% it sat in the
+    // middle of an empty checkerboard.
+    await page.getByRole('button', { name: 'Fit to window' }).click();
+    // Park the pointer somewhere inert: left where it clicked, the button's
+    // tooltip stayed up and covered two of the header links.
+    await page.mouse.move(700, 700);
+    await expect(page.getByText('Fit to window')).toBeHidden({ timeout: 5000 });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/23-structural-edits.png` });
   });
 });

@@ -45,3 +45,9 @@
 ## 8. Models
 
 - `21-model-picker.png` — Model picker grouped into Free / Pro with per-request credit costs
+
+## 9. Structural Editing
+
+- `23-structural-edits.png` — A diagram translated and recoloured through query / set_text /
+  set_style_rule, both proposals accepted. The only shot taken against a scripted model
+  (`/api/chat` stubbed in `screenshots.spec.ts`), so the tool names in it are fixed.
