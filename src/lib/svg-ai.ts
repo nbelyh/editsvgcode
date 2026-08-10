@@ -1,5 +1,6 @@
 import {
   validateSvg, resolveSelector, isSelectorError, describeMatches, describeNoMatch,
+  addressForLineRange,
   planTextEdits, planAttributeEdits, planStyleRuleEdits, planElementInserts, planElementRemovals,
   type TextEdit, type AttributeEdit, type StyleRuleEdit, type TextEditOutcome,
   type ElementInsert, type ElementRemoval, type InsertPosition,
@@ -76,8 +77,45 @@ function truncateAtLine(text: string, limit: number): string {
 /** The warning that rides along whenever any shown line was clipped. */
 const CLIPPED_NOTE =
   ' Some lines are too long to show in full and are marked "more chars on this line, not shown" —'
-  + ' those lines are incomplete, so do NOT rewrite them with replace_lines; address them with'
-  + ' find_replace or search_svg instead.';
+  + ' those lines are incomplete, so do NOT rewrite them with replace_lines, which would discard'
+  + ' the part you cannot see. Address the ELEMENT instead — set_attribute, set_text,'
+  + ' remove_element and insert_element all edit in place and leave the rest of the line alone,'
+  + ' so a clipped line is no obstacle to them. What is withheld is the END of the line, which on'
+  + ' a traced <path> is where style="fill: ..." sits. read_svg_lines returns those lines in full'
+  + ' if you need to see it, but ask for a FEW lines at a time — these lines are enormous.';
+
+/**
+ * The heading above the quoted selection, carrying the element's ADDRESS when
+ * one can be derived.
+ *
+ * Line numbers alone are what the selection used to arrive as, and they are the
+ * one address form the structural tools do not take — so "make THIS one blue"
+ * left the model choosing between a lookup call it is told not to spend and a
+ * selector built from the element's own values, which matches every element
+ * that looks like it. The address is known here for free; saying it costs a few
+ * tokens and removes the choice. Stated next to the selection rather than only
+ * in the system prompt, because proximity is what decided the last routing bug.
+ *
+ * What it must NOT say is that the user means this element. The editor reports
+ * a selection on every cursor move, so a block appears whenever anyone has
+ * clicked in the document — it marks where the caret is, not what was asked
+ * for. Read as an instruction it would scope "make the whole thing darker" down
+ * to whichever path the caret last touched. The user's words decide; this only
+ * supplies the address for when they do point at something.
+ */
+function selectionHeading(svg: string, range?: { start: number; end: number }, markup?: string): string {
+  if (!range) return 'Selected element:';
+  const address = addressForLineRange(svg, range, markup);
+  const where = `Selected element (lines ${range.start}-${range.end})`;
+  return address
+    ? `${where} — address: ${address}. This is where the caret is, not a request about it:`
+      + ' the editor reports a selection on every cursor move. Let the WORDS decide.'
+      + ` If the user points at one thing — "this", "that one", "the selected …" — use`
+      + ` ${address} and change that element alone, and do NOT build a selector from its`
+      + ' values (fill, class, tag), which would match every element that looks like it.'
+      + ' If the request is about the drawing as a whole, ignore this block entirely.'
+    : `${where}:`;
+}
 
 /**
  * Build a token-budgeted SVG context string.
@@ -99,10 +137,8 @@ export function buildSvgContext(
   if (totalLines <= LINE_BUDGET && svg.length <= CHAR_BUDGET) {
     const numbered = numberLines(lines, 0);
     const parts = [`SVG document (${totalLines} lines, ${sizeKB} KB):\n\`\`\`\n${numbered}\n\`\`\``];
-    if (selectedElement && selectedLineRange) {
-      parts.push(`\nSelected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${selectedElement}\n\`\`\``);
-    } else if (selectedElement) {
-      parts.push(`\nSelected element:\n\`\`\`svg\n${selectedElement}\n\`\`\``);
+    if (selectedElement) {
+      parts.push(`\n${selectionHeading(svg, selectedLineRange, selectedElement)}\n\`\`\`svg\n${selectedElement}\n\`\`\``);
     }
     return parts.join('\n');
   }
@@ -153,9 +189,9 @@ export function buildSvgContext(
     ? selectedElement.split('\n').map(clipLine).join('\n')
     : undefined;
   const selectionBlock = !selection ? ''
-    : selectedLineRange
-      ? `\n\nSelected element (lines ${selectedLineRange.start}-${selectedLineRange.end}):\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``
-      : `\n\nSelected element:\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``;
+    // The RAW selection, not the clipped copy quoted below it: matching is
+    // exact, and a clipped element would never match its own source.
+    : `\n\n${selectionHeading(svg, selectedLineRange, selectedElement)}\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``;
 
   // Backstop. Head, tail and a padded selection window are each bounded, but
   // their sum is not, so the excerpt gets one last cut — taken BEFORE the fence

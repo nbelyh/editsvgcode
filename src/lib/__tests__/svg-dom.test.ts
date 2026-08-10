@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   validateSvg, parseSvg, resolveSelector, isSelectorError, resolveWithin,
   startTagRanges, elementSourceRanges, describeMatches, pathOf,
-  directText, textRangeOf, escapeText, planTextEdits, planAttributeEdits,
+  directText, textRangeOf, escapeText, planTextEdits, planAttributeEdits, lineOfOffset,
+  addressForLineRange,
 } from '../svg-dom';
 
 const DOC = [
@@ -733,5 +734,156 @@ describe('resolveWithin', () => {
       const viaRoot = resolveWithin(doc.documentElement, sel) as Element[];
       expect(viaRoot.map(pathOf)).toEqual(viaDoc.map(pathOf));
     }
+  });
+});
+
+/**
+ * The selection arrives from the editor as line numbers, which no structural
+ * tool accepts. Turning it into an address is what stops "make THIS one blue"
+ * from being answered with a value selector that repaints every blue element.
+ */
+describe('addressForLineRange — the selection gets an address it can be edited by', () => {
+  const SRC = [
+    '<svg xmlns="http://www.w3.org/2000/svg">',            // 1
+    '  <g id="layer">',                                     // 2
+    '    <rect fill="#ff0000" width="10"/>',                // 3
+    '    <rect fill="#ff0000" width="20"/>',                // 4
+    '  </g>',                                               // 5
+    '  <g>',                                                // 6
+    '    <path id="logo" d="M0 0z"/>',                      // 7
+    '  </g>',                                               // 8
+    '</svg>',                                               // 9
+  ].join('\n');
+
+  it('resolves a single-line element to an address naming only it', () => {
+    const address = addressForLineRange(SRC, { start: 4, end: 4 })!;
+    const found = resolveSelector(parseSvg(SRC)!, address) as Element[];
+    expect(found).toHaveLength(1);
+    expect(found[0].getAttribute('width')).toBe('20');
+  });
+
+  it('distinguishes two elements that are identical apart from position', () => {
+    const third = addressForLineRange(SRC, { start: 3, end: 3 });
+    const fourth = addressForLineRange(SRC, { start: 4, end: 4 });
+    expect(third).not.toBe(fourth);
+    // A selector built from the shared value would have matched both — the
+    // failure this whole thing exists to prevent.
+    const byValue = resolveSelector(parseSvg(SRC)!, 'rect[fill="#ff0000"]') as Element[];
+    expect(byValue).toHaveLength(2);
+  });
+
+  it('prefers a short id-anchored address over a positional path', () => {
+    expect(addressForLineRange(SRC, { start: 7, end: 7 })).toBe('#logo');
+  });
+
+  it('picks the outermost element when a range spans a whole subtree', () => {
+    const address = addressForLineRange(SRC, { start: 2, end: 5 })!;
+    const found = resolveSelector(parseSvg(SRC)!, address) as Element[];
+    expect(found).toHaveLength(1);
+    expect(found[0].tagName.toLowerCase()).toBe('g');
+    expect(found[0].getAttribute('id')).toBe('layer');
+  });
+
+  it('returns null rather than a wrong address when the document does not parse', () => {
+    expect(addressForLineRange('<svg><rect', { start: 1, end: 1 })).toBeNull();
+  });
+
+  it('returns null when no element starts on that line', () => {
+    expect(addressForLineRange(SRC, { start: 5, end: 5 })).toBeNull();
+  });
+
+  it('every address it produces resolves to exactly one element', () => {
+    const doc = parseSvg(SRC)!;
+    for (const line of [1, 2, 3, 4, 6, 7]) {
+      const address = addressForLineRange(SRC, { start: line, end: line });
+      if (!address) continue;
+      const found = resolveSelector(doc, address);
+      expect(isSelectorError(found)).toBe(false);
+      expect(found as Element[]).toHaveLength(1);
+    }
+  });
+});
+
+/**
+ * A line range cannot tell co-located elements apart, and the cases where it
+ * cannot are not exotic: a group written inline with its child, and any
+ * minified document, where the whole tree lives on line 1. Picking the widest
+ * candidate answered "the root" for every selection in a minified file — the
+ * model would have been told the entire document was the selected element.
+ */
+describe('addressForLineRange — co-located elements', () => {
+  const INLINE = '<svg xmlns="http://www.w3.org/2000/svg">\n<g id="wrap"><rect id="box"/></g>\n</svg>';
+  const MINIFIED = '<svg xmlns="http://www.w3.org/2000/svg"><g id="wrap"><rect id="box"/></g></svg>';
+
+  it('uses the selection markup to pick the child over its parent', () => {
+    expect(addressForLineRange(INLINE, { start: 2, end: 2 }, '<rect id="box"/>')).toBe('#box');
+  });
+
+  it('uses the selection markup to pick the parent over its child', () => {
+    expect(addressForLineRange(INLINE, { start: 2, end: 2 }, '<g id="wrap"><rect id="box"/></g>')).toBe('#wrap');
+  });
+
+  it('never answers with the whole document for a minified file', () => {
+    expect(addressForLineRange(MINIFIED, { start: 1, end: 1 }, '<rect id="box"/>')).toBe('#box');
+    // Even with no markup to go on, the tightest candidate beats the root.
+    expect(addressForLineRange(MINIFIED, { start: 1, end: 1 })).not.toBe('/svg[1]');
+  });
+
+  it('matches the editor by taking the tightest element when markup is absent', () => {
+    // findElementAtOffset takes the tightest enclosing element, so this is the
+    // one the cursor was actually in.
+    expect(addressForLineRange(INLINE, { start: 2, end: 2 })).toBe('#box');
+  });
+
+  it('ignores markup that matches nothing and falls back to the range', () => {
+    expect(addressForLineRange(INLINE, { start: 2, end: 2 }, '<circle id="gone"/>')).toBe('#box');
+  });
+
+  it('tolerates surrounding whitespace in the markup', () => {
+    expect(addressForLineRange(INLINE, { start: 2, end: 2 }, '  <g id="wrap"><rect id="box"/></g>\n')).toBe('#wrap');
+  });
+});
+
+/**
+ * The batched line lookup replaced a per-call scan from offset zero, which was
+ * quadratic over a listing and took 5.9s on a 2.2MB traced drawing. It must
+ * agree with the original for every offset, including the edges nobody thinks
+ * about: offset 0, the newline itself, and the byte past the end.
+ */
+describe('line numbering — the batched lookup agrees with the simple one', () => {
+  const sources = [
+    '<svg><rect/></svg>',                              // minified: everything is line 1
+    '<svg>\n  <rect/>\n</svg>',                        // ordinary
+    '<svg>\n\n\n  <rect/>\n</svg>',                    // blank lines between
+    '<svg>\r\n  <rect/>\r\n</svg>',                    // CRLF
+    '<svg><g><rect/></g>\n<circle/></svg>',            // mixed: some inline, some not
+    '\n<svg>\n<rect/>\n</svg>\n',                      // leading and trailing newline
+  ];
+
+  it('agrees with lineOfOffset on every element of every shape', () => {
+    for (const src of sources) {
+      const doc = parse(src);
+      const all = Array.from(doc.querySelectorAll('*'));
+      const ranges = elementSourceRanges(src, doc);
+      const batched = describeMatches(src, doc, all).map((m) => m.line);
+      const simple = all.map((el) => {
+        const t = ranges.get(el);
+        return t ? lineOfOffset(src, t.start) : undefined;
+      });
+      expect(batched, `source: ${JSON.stringify(src)}`).toEqual(simple);
+      // Guard against both sides being undefined and the check passing vacuously.
+      expect(batched.filter((l) => typeof l === 'number').length).toBe(all.length);
+    }
+  });
+
+  it('numbers every element of a real document identically', () => {
+    const src = ['<svg xmlns="http://www.w3.org/2000/svg">', '  <g id="a">', '    <rect id="b"/>', '  </g>', '</svg>'].join('\n');
+    const doc = parse(src);
+    const all = Array.from(doc.querySelectorAll('*'));
+    const batched = describeMatches(src, doc, all).map((m) => m.line);
+    const ranges = elementSourceRanges(src, doc);
+    const simple = all.map((el) => { const t = ranges.get(el); return t ? lineOfOffset(src, t.start) : undefined; });
+    expect(batched).toEqual(simple);
+    expect(batched).toEqual([1, 2, 3]);
   });
 });

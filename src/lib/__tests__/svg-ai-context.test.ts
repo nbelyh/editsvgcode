@@ -172,3 +172,51 @@ describe('buildSvgContext — well-formed output on every path', () => {
     });
   }
 });
+
+/**
+ * The selection block is where "change THIS one" is decided. Line numbers alone
+ * left the model choosing between a lookup call the prompt tells it not to
+ * spend and a value selector that matches every element like the selected one.
+ */
+describe('buildSvgContext — the selection carries an address, not just line numbers', () => {
+  const SVG = [
+    '<svg xmlns="http://www.w3.org/2000/svg">',
+    '  <rect fill="#ff0000" width="10"/>',
+    '  <rect fill="#ff0000" width="20"/>',
+    '</svg>',
+  ].join('\n');
+
+  it('states the address of the selected element', () => {
+    const ctx = buildSvgContext(SVG, '<rect fill="#ff0000" width="20"/>', { start: 3, end: 3 });
+    expect(ctx).toContain('address: /svg[1]/rect[2]');
+    expect(ctx).toContain('lines 3-3');
+  });
+
+  it('warns against the value selector that would match both rects', () => {
+    const ctx = buildSvgContext(SVG, '<rect fill="#ff0000" width="20"/>', { start: 3, end: 3 });
+    expect(ctx).toMatch(/do NOT build a selector from its values/i);
+  });
+
+  it('carries the address on the excerpted path too', () => {
+    // Oversized, so the context takes the head/tail branch — where the selection
+    // matters most, since most of the document is not shown at all.
+    const body = Array.from({ length: 400 }, (_, i) => `  <rect id="r${i}" d="${'x'.repeat(400)}"/>`);
+    const big = ['<svg xmlns="http://www.w3.org/2000/svg">', ...body, '</svg>'].join('\n');
+    expect(big.length).toBeGreaterThan(CHAR_BUDGET);
+    const ctx = buildSvgContext(big, '<rect id="r200"/>', { start: 202, end: 202 });
+    expect(ctx).toContain('address: #r200');
+  });
+
+  it('falls back to line numbers alone when the document does not parse', () => {
+    const broken = '<svg>\n  <rect fill="red"\n</svg>';
+    const ctx = buildSvgContext(broken, '<rect fill="red"', { start: 2, end: 2 });
+    expect(ctx).toContain('Selected element (lines 2-2):');
+    expect(ctx).not.toContain('address:');
+  });
+
+  it('says nothing about an address when there is no line range', () => {
+    const ctx = buildSvgContext(SVG, '<rect fill="#ff0000" width="20"/>');
+    expect(ctx).toContain('Selected element:');
+    expect(ctx).not.toContain('address:');
+  });
+});

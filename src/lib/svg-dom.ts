@@ -1380,6 +1380,33 @@ export function lineOfOffset(source: string, offset: number): number {
   return line;
 }
 
+/**
+ * Offsets where each line begins, so a BATCH of lookups costs one scan of the
+ * document instead of one scan per lookup.
+ *
+ * `lineOfOffset` walks from the start every time, which is fine once and
+ * quadratic in a loop over every element. On a 2.2 MB traced drawing — 3000
+ * paths, each looked up from offset zero — that was 5.9 seconds, on the main
+ * thread, for a job that is one pass over the text.
+ */
+function lineStarts(source: string): number[] {
+  const starts = [0];
+  for (let i = 0; i < source.length; i++) if (source[i] === '\n') starts.push(i + 1);
+  return starts;
+}
+
+/** 1-based line of an offset, against a table from `lineStarts`. */
+function lineAt(starts: number[], offset: number): number {
+  let lo = 0;
+  let hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (starts[mid] <= offset) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1;
+}
+
 export interface MatchInfo {
   path: string;
   /**
@@ -1493,8 +1520,83 @@ function shortAddressFor(doc: Document, el: Element): string | undefined {
   return undefined;
 }
 
+/**
+ * The address of the element the editor has selected, derived from the line
+ * range it reports for it.
+ *
+ * The selection reaches the model as markup plus line numbers, and a line number
+ * is the one thing the structural tools cannot take. Without an address, "change
+ * THIS one" leaves the model two bad options: spend a query call it is
+ * simultaneously told not to spend, or build a selector out of the element's own
+ * values — which names every element that currently looks like it, and quietly
+ * repaints the drawing. Handing over the address removes the choice, and costs
+ * nothing at the point of use.
+ *
+ * Null when the document does not parse or no element occupies exactly that
+ * range, which leaves the caller with the line numbers it already had.
+ */
+export function addressForLineRange(
+  source: string,
+  range: { start: number; end: number },
+  markup?: string,
+): string | null {
+  const doc = parseSvg(source);
+  if (!doc) return null;
+  const extents = elementExtents(source, doc);
+  if (extents.size === 0) return null;
+
+  // The selection's own source text settles it outright, and it is the only
+  // thing that can. A line range cannot tell co-located elements apart:
+  // `<g id="wrap"><rect id="box"/></g>` on one line gives every element the
+  // same range, and a MINIFIED document puts the entire tree on line 1 — where
+  // any line-based guess is a coin toss between one element and the root.
+  const wanted = markup?.trim();
+  if (wanted) {
+    for (const [el, ext] of extents) {
+      // Length first: an extent runs from "<" to the end of the close tag and
+      // carries no surrounding whitespace, so a trimmed selection that matches
+      // has exactly this length. Comparing it before slicing keeps this to one
+      // subtraction per element rather than a substring copy of the document.
+      if (ext.end - ext.start !== wanted.length) continue;
+      if (source.slice(ext.start, ext.end) === wanted) {
+        return shortAddressFor(doc, el) ?? pathOf(el);
+      }
+    }
+  }
+
+  // Without it, match the editor: findElementAtOffset takes the TIGHTEST
+  // enclosing element, so the narrowest candidate is the one the user is
+  // pointing at. Taking the widest instead handed back the outer group for a
+  // selected child, and `/svg[1]` — the whole document — for anything selected
+  // in a minified file.
+  let best: Element | null = null;
+  let bestSpan = Infinity;
+  let fallback: Element | null = null;
+  let fallbackSpan = Infinity;
+
+  const starts = lineStarts(source);
+  for (const [el, ext] of extents) {
+    if (lineAt(starts, ext.start) !== range.start) continue;
+    const span = ext.end - ext.start;
+    if (lineAt(starts, Math.max(ext.start, ext.end - 1)) === range.end) {
+      if (span < bestSpan) { bestSpan = span; best = el; }
+    } else if (span < fallbackSpan) {
+      // The editor's end line can disagree with ours over trailing whitespace.
+      // Starting on the right line is still a far better address than none.
+      fallbackSpan = span; fallback = el;
+    }
+  }
+
+  const chosen = best ?? fallback;
+  return chosen ? shortAddressFor(doc, chosen) ?? pathOf(chosen) : null;
+}
+
 export function describeMatches(source: string, doc: Document, elements: Element[]): MatchInfo[] {
   const ranges = elementSourceRanges(source, doc);
+  // One scan for the whole listing rather than one per match: query answers up
+  // to 200 elements, and a per-match walk from offset zero made the reply cost
+  // grow with document size times match count.
+  const starts = lineStarts(source);
   return elements.map((el) => {
     const tag = ranges.get(el);
     const info: MatchInfo = { path: pathOf(el), tag: el.tagName.toLowerCase() };
@@ -1502,7 +1604,7 @@ export function describeMatches(source: string, doc: Document, elements: Element
     if (address) info.address = address;
     if (el.getAttribute('id')) info.id = el.getAttribute('id')!;
     if (el.getAttribute('class')) info.className = el.getAttribute('class')!;
-    if (tag) info.line = lineOfOffset(source, tag.start);
+    if (tag) info.line = lineAt(starts, tag.start);
     const own = directText(el);
     // Report text only where set_text could actually change it. The two used
     // different tests: this reported any direct characters, while set_text needs
