@@ -26,7 +26,17 @@ const monacoCssPreload: Plugin = {
     // that the preload went unused. No separate preconnect either: it would sit
     // next to this tag in the same head, so the preload opens the connection
     // just as early on its own.
-    { tag: 'link', attrs: { rel: 'preload', as: 'style', href: monaco.cssUrl }, injectTo: 'head' },
+    //
+    // media mirrors EditorPage's isPhone query, inverted: the phone layout
+    // mounts no editor at all, deliberately, so that it never pays for Monaco.
+    // A preload is skipped outright when its media does not match, which keeps
+    // the most constrained client from paying the one part of it that a plain
+    // <link> in the shell would otherwise still fetch.
+    {
+      tag: 'link',
+      attrs: { rel: 'preload', as: 'style', href: monaco.cssUrl, media: '(min-width: 36em)' },
+      injectTo: 'head',
+    },
   ],
 };
 

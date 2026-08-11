@@ -54,8 +54,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
    * Called from both onMount and the effect below because either can be last:
    * a slow document lands after the editor, a slow editor mounts after the
    * document. Whichever it is, this runs at the first moment there is both a
-   * model and a loaded document, and the one-shot guard keeps it from ever
-   * running again — flushing later would throw away the reader's own history.
+   * model and a loaded document, and the guard keeps it from running again
+   * while that document is open — flushing mid-edit would throw away the
+   * reader's own history rather than the stand-in's. The guard reopens when
+   * readOnly returns, which is how useDocument announces a different document
+   * is on its way.
    */
   const settleHistory = useCallback(() => {
     if (historySettledRef.current || readOnlyRef.current) return;
@@ -155,6 +158,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
   // Runs after @monaco-editor/react's own effects, which belong to a child and
   // have already put the loaded text in the model by this point.
   useEffect(() => {
+    if (readOnly) {
+      // A document is loading — the one arriving next needs settling too.
+      historySettledRef.current = false;
+      return;
+    }
     settleHistory();
   }, [readOnly, value, settleHistory]);
 

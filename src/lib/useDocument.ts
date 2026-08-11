@@ -16,6 +16,12 @@ import DEFAULT_SVG from '../assets/default.svg?raw';
 // Re-exported for existing consumers; the strings live in visibility.ts.
 export { VISIBILITY_LABEL, VISIBILITY_MESSAGE } from './visibility';
 
+/**
+ * What the editor holds until the document arrives. Not a document, and no
+ * consumer should treat it as one — `documentReady` below is how they tell.
+ */
+const LOADING_PLACEHOLDER = 'Loading please wait...';
+
 export function useDocument(routeFileId: string | undefined) {
   const navigate = useNavigate();
 
@@ -25,7 +31,7 @@ export function useDocument(routeFileId: string | undefined) {
   // placeholder there the biggest thing was an advert, so LCP waited on it.
   // Must stay above the fileId state below, whose initialiser writes the id.
   const [svgCode, setSvgCode] = useState(() =>
-    !routeFileId && !localStorage.getItem('esvg-local-id') ? DEFAULT_SVG : 'Loading please wait...'
+    !routeFileId && !localStorage.getItem('esvg-local-id') ? DEFAULT_SVG : LOADING_PLACEHOLDER
   );
   const [readOnly, setReadOnly] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,6 +90,16 @@ export function useDocument(routeFileId: string | undefined) {
   // dialog. Each load captures the token and drops out once it no longer holds.
   const docLoadToken = useRef(0);
 
+  /**
+   * Which document the text on screen belongs to.
+   *
+   * Deliberately not "has a load run": dbinit fires again whenever auth
+   * settles differently — signing in on top of an anonymous session is the
+   * common one — and that re-enters the load for the document already open.
+   * Resetting on that would throw away whatever the reader had typed since.
+   */
+  const loadedDocRef = useRef<string | null>(null);
+
   // DB init / load
   useEffect(() => {
     const db = new EditSvgCodeDb();
@@ -103,6 +119,18 @@ export function useDocument(routeFileId: string | undefined) {
       setVisibility('private');
       setGalleryMeta({ title: '', description: '' });
       setIsOwner(false);
+
+      // The text belongs to a document too. Switching in place — a clone
+      // navigating to its new id, say — kept the previous drawing on screen
+      // until the new one arrived, and left it one Ctrl+Z beneath, which the
+      // autosave would then write over the document it does not belong to.
+      // Going back through the stand-in makes every load look the same to the
+      // editor and the preview, which is what they are built to expect.
+      if (loadedDocRef.current !== null && loadedDocRef.current !== currentFileId) {
+        setSvgCode(LOADING_PLACEHOLDER);
+        setReadOnly(true);
+      }
+      loadedDocRef.current = currentFileId;
 
       if (uniqueId) {
         try {
@@ -339,6 +367,12 @@ export function useDocument(routeFileId: string | undefined) {
 
   return {
     svgCode, setSvgCode,
+    // Whether svgCode is a document at all, rather than the stand-in. Not the
+    // same question as `readOnly`: a first visit with nothing stored holds
+    // DEFAULT_SVG from the very first render, and is ready to draw long before
+    // auth settles — gating the preview on the load instead left the sample
+    // drawing off screen until then, and for good if auth never arrived.
+    documentReady: svgCode !== LOADING_PLACEHOLDER,
     readOnly,
     saving,
     visibility,

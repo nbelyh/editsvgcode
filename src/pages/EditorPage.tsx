@@ -26,7 +26,7 @@ export function EditorPage() {
   const { fileId: routeFileId } = useParams<{ fileId?: string }>();
 
   const {
-    svgCode, setSvgCode,
+    svgCode, setSvgCode, documentReady,
     readOnly, saving, visibility, isAnonymous, isOwner, fileId, proposedSvg,
     downloadName, galleryMeta, publishDialogOpen, openPublishDialog, closePublishDialog,
     handlePublish, handleEditGalleryMeta,
@@ -288,7 +288,7 @@ export function EditorPage() {
   const previewPanel = (
     <Preview
       svgCode={proposedSvg ?? svgCode}
-      documentReady={documentLoaded}
+      documentReady={documentReady}
       onElementSelect={handleElementSelect}
       selectedXPath={selectedXPath}
       onDeleteElement={selectedLineRange ? handleDeleteElement : undefined}
@@ -432,7 +432,7 @@ export function EditorPage() {
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%" visible={showPreview}>
-          <Preview svgCode={proposedSvg ?? svgCode} documentReady={documentLoaded} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
+          <Preview svgCode={proposedSvg ?? svgCode} documentReady={documentReady} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
           <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>
