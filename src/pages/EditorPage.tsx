@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Group, ActionIcon, Text, Tooltip, useComputedColorScheme } from '@mantine/core';
+import { Group, ActionIcon, Text, Tooltip, VisuallyHidden, useComputedColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconSparkles, IconInfoCircle } from '@tabler/icons-react';
 import { useParams } from 'react-router-dom';
@@ -369,6 +369,13 @@ export function EditorPage() {
 
   return (
     <>
+      {/* The editor fills the viewport, so there is nowhere to put a visible
+          heading without pushing the tool below the fold — which is the whole
+          reason people pick this over the competition. Hidden visually, not
+          from assistive tech: the page had no <h1> at all, which left screen
+          readers with an unlabelled document and crawlers with nothing but the
+          nav and the sample file's XML to judge the page on. */}
+      <VisuallyHidden component="h1">Online SVG editor — edit SVG code with live preview</VisuallyHidden>
       <input
         ref={fileInputRef}
         type="file"
