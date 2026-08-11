@@ -18,4 +18,21 @@ declare global {
   }
 }
 
-export const config: AppConfig = window.__CONFIG__;
+export const config: AppConfig = typeof window !== 'undefined'
+  ? window.__CONFIG__
+  // No runtime config outside a browser — it arrives from /config.js, and a
+  // build-time render has no page to have loaded it. Throwing on read rather
+  // than handing back an empty object: api-client and image-gen capture
+  // API_URL at module scope, so a server-rendered page that pulled either in
+  // would bake `undefined` into a request URL and say nothing about it. This
+  // way the build is where that gets found, which is the whole point of doing
+  // the render at build time.
+  : new Proxy({} as AppConfig, {
+      get(_target, key) {
+        throw new Error(
+          `config.${String(key)} was read outside a browser. Runtime config comes ` +
+          'from /config.js, which only exists in a page; a module rendered at ' +
+          'build time must not depend on it.',
+        );
+      },
+    });

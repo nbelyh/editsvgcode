@@ -7,14 +7,18 @@
  * this site is not a rounding error: gemini.google.com sends more traffic than
  * Bing, and it is the only source still growing.
  *
- * Only the page is rendered, not <App>: the layout pulls in Firebase and the
- * runtime config, and `config.ts` reads `window.__CONFIG__` at module scope, so
- * importing it here would throw before anything rendered. The nav that <App>
- * draws is worth nothing to a crawler anyway — sitemap.xml lists those URLs.
+ * Only the page is rendered, not <App>: the layout initializes Firebase at module
+ * scope, reading window.location and navigator on the way, so importing it here
+ * would throw before anything rendered. The nav that <App> draws is worth nothing
+ * to a crawler anyway — sitemap.xml lists those URLs.
  *
- * Pages that reach for Firebase or the runtime config are left out for the same
- * reason: /pricing (config, firebase/auth) and /gallery (firebase) still ship an
- * empty body. Adding them means giving those modules a server-side shim.
+ * A page belongs here only if it can be rendered without a browser. What decides
+ * that is the import graph rather than what the page does: /pricing reaches
+ * Firebase solely by importing the sign-in modal, which nothing signs into during
+ * a build, so loading that on demand is enough to make the page renderable.
+ *
+ * /gallery is genuinely different — it reads its documents from Firestore — and
+ * is left out. Not worth solving: the public gallery is ten drawings.
  */
 import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router';
@@ -27,6 +31,7 @@ import { ImprintPage } from './pages/ImprintPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { RefundPolicyPage } from './pages/RefundPolicyPage';
 import { SupportPage } from './pages/SupportPage';
+import { PricingPage } from './pages/PricingPage';
 import { TermsPage } from './pages/TermsPage';
 
 /** Route path -> the component <Routes> mounts for it in main.tsx. Keep the two
@@ -37,6 +42,7 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   '/blog': BlogPage,
   '/features': FeaturesPage,
   '/imprint': ImprintPage,
+  '/pricing': PricingPage,
   '/privacy': PrivacyPolicyPage,
   '/refund-policy': RefundPolicyPage,
   '/support': SupportPage,

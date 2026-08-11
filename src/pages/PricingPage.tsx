@@ -8,7 +8,6 @@ import { DEFAULT_PRICING } from '../lib/pricing';
 import { buildCheckoutUrl, PPG_PRODUCT_IDS } from '../lib/ppg-checkout';
 import { setPendingCheckout, takePendingCheckout, clearPendingCheckout, hasPendingCheckout } from '../lib/pending-checkout';
 import { waitForAccount, settleProfile } from '../lib/wait-for-account';
-import { openSignInModal } from '../components/SignInModal';
 import { PageMeta } from '../components/PageMeta';
 import { metaFor } from '../lib/route-meta';
 
@@ -73,6 +72,28 @@ function PlanCard({
   );
 }
 
+/** Loaded on demand so the module graph of this page never reaches lib/firebase:
+ *  nobody signs in during a build-time render, and importing the sign-in path is
+ *  what makes this page unrenderable on the server. */
+function openSignInModal(message?: string, opts?: { onClose?: () => void }): void {
+  import('../components/SignInModal')
+    .then((m) => m.openSignInModal(message, opts))
+    .catch((err) => {
+      // No modal is going to open, so onClose will never run to clear a parked
+      // purchase — and it would then hold the buttons on the next load for a
+      // sign-in that never started. Undo it here instead.
+      clearPendingCheckout();
+      // console rather than logError: that lives in lib/firebase, and importing
+      // it statically is the very thing that made this page unrenderable.
+      console.error('[sign-in] modal failed to load', err);
+    });
+}
+
+/** Whether this is running in a page at all. The build renders these components
+ *  in Node to produce HTML for crawlers, and a few decisions here are only
+ *  answerable in a browser. */
+const IS_BROWSER = typeof window !== 'undefined';
+
 type Product = Parameters<typeof buildCheckoutUrl>[0];
 
 /** A parked purchase comes back out of storage as a bare string; an unknown name
@@ -86,7 +107,9 @@ export function PricingPage() {
   /** undefined until auth reports. "Nobody is signed in" and "we do not know yet"
    *  read the same otherwise, and parking a purchase for somebody who is already
    *  signed in sends them through an entire OAuth round trip for nothing. */
-  const [user, setUser] = useState<User | null | undefined>(() => getAuth().currentUser ?? undefined);
+  const [user, setUser] = useState<User | null | undefined>(
+    () => (IS_BROWSER ? getAuth().currentUser ?? undefined : undefined),
+  );
   /** A purchase was parked before this load, so a redirect to checkout is coming.
    *  Known on the first render, so the buttons are not live for the moment before
    *  the buyer is taken away from them. */
@@ -169,7 +192,8 @@ export function PricingPage() {
     window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
   }
 
-  const isBeta = config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost';
+  const isBeta = IS_BROWSER
+    && (config.FIREBASE_PROJECT_ID === 'editsvgcode-beta' || config.FIREBASE_AUTH_DOMAIN === 'localhost');
 
   return (
     <Stack align="center" gap="xl" pb="xl" pt="md" px="md" className="page-scroll">
@@ -194,7 +218,7 @@ export function PricingPage() {
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         <PlanCard
-          ctasDisabled={resuming || authPending}
+          ctasDisabled={resuming || (IS_BROWSER && authPending)}
           title="Free"
           credits={`${pricing.freeMonthlyCredits} credits / month`}
           features={[
@@ -214,7 +238,7 @@ export function PricingPage() {
         />
 
         <PlanCard
-          ctasDisabled={resuming || authPending}
+          ctasDisabled={resuming || (IS_BROWSER && authPending)}
           title="Pro"
           badge="Most popular"
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
@@ -233,7 +257,7 @@ export function PricingPage() {
         />
 
         <PlanCard
-          ctasDisabled={resuming || authPending}
+          ctasDisabled={resuming || (IS_BROWSER && authPending)}
           title="Credit Packs"
           credits="One-time, never expire"
           features={[
