@@ -25,7 +25,7 @@ if (!fs.existsSync(SSR_BUNDLE)) {
   process.exit(1);
 }
 
-const { SSR_ROUTES, renderRoute } = await import(pathToFileURL(SSR_BUNDLE).href);
+const { SSR_ROUTES, renderRoute, APP_SHELL_HEADER_HEIGHT } = await import(pathToFileURL(SSR_BUNDLE).href);
 
 // An empty #root, exactly as the shell ships it. Matching the empty form rather
 // than anything greedier is what makes a second run a no-op instead of nesting
@@ -53,7 +53,24 @@ for (const route of SSR_ROUTES) {
   if (!body) {
     throw new Error(`${route} is in SSR_ROUTES but renderRoute returned nothing.`);
   }
-  fs.writeFileSync(file, html.replace(EMPTY_ROOT, `<div id="root">${body}</div>`));
+  // Wrapped so the page is usable before the bundle lands, which is the point of
+  // rendering it at all — otherwise a slow connection shows nothing.
+  //
+  // The padding is the header <App> would have drawn: this markup does not
+  // include it, so the content would sit that much too high and jump when the
+  // real header mounted. The height and scrolling are because #root is
+  // `height:100dvh; overflow:hidden` (App.css) — inside it an auto-height wrapper
+  // is simply clipped to one viewport with no way to scroll, and the padding
+  // would push another header's worth out of sight. Matching the root's height
+  // and taking the scrolling itself gives the whole page back; border-box keeps
+  // the padding inside that height rather than adding to it.
+  const shell = `<div style="height:100dvh;overflow-y:auto;box-sizing:border-box;`
+    + `padding-top:${APP_SHELL_HEADER_HEIGHT}px">${body}</div>`;
+  // A replacer function, not a string: `$&`, "$'" and friends in page copy are
+  // substitution patterns to String.replace, and would splice the surrounding
+  // markup into the middle of the text. prerender.cjs guards its og:image the
+  // same way, for the same reason.
+  fs.writeFileSync(file, html.replace(EMPTY_ROOT, () => `<div id="root">${shell}</div>`));
   const words = body.replace(/<[^>]+>/g, ' ').trim().split(/\s+/).length;
   console.log(`  ${route} -> ${words} words`);
   filled++;

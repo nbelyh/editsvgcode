@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { APP_SHELL_HEADER_HEIGHT } from './lib/app-shell';
 import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme, Burger, Drawer, Stack, Divider, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconBrandGithub, IconSun, IconMoon, IconBug, IconSparkles } from '@tabler/icons-react';
@@ -41,7 +42,7 @@ export default function App() {
 
   return (
     <AppShell
-      header={{ height: 50 }}
+      header={{ height: APP_SHELL_HEADER_HEIGHT }}
       footer={{ height: 26 }}
       padding={0}
     >

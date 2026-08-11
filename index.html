@@ -26,6 +26,30 @@
          every other page uses; prerender.cjs fails the build if they diverge. -->
     <meta property="og:image" content="https://editsvgcode.com/screenshots/01-editor-full.png" />
     <base href="/" />
+    <!--
+      Pick the colour scheme before anything paints. MantineProvider applies it
+      when it mounts, which is after the stylesheet has already drawn the page in
+      light — so every load flashed white at anyone using dark mode, and any
+      markup present before the bundle ran was themed wrongly. Inline and
+      blocking on purpose: a deferred script is too late to matter.
+
+      Same key and attribute Mantine itself uses, so the provider agrees with it
+      rather than fighting it. "auto" and anything unrecognised fall through to
+      the OS preference, which is what defaultColorScheme="auto" means.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('mantine-color-scheme-value');
+          var scheme = stored === 'dark' || stored === 'light'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-mantine-color-scheme', scheme);
+        } catch (e) {
+          /* Private mode, or no matchMedia: the provider still sorts it out on mount. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -51,6 +51,10 @@ const PAGES: Record<string, () => React.JSX.Element> = {
 
 export const SSR_ROUTES = Object.keys(PAGES);
 
+/** Re-exported so the prerender script reads the same number <App> lays out with,
+ *  rather than keeping its own copy of it. */
+export { APP_SHELL_HEADER_HEIGHT } from './lib/app-shell';
+
 /** Render one route's markup, or null if that route is not server-rendered. */
 export function renderRoute(route: string): string | null {
   const Page = PAGES[route];
