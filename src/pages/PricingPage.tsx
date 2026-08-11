@@ -1,11 +1,13 @@
-import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table, Alert } from '@mantine/core';
+import { Title, Text, Button, Stack, Group, Badge, List, ThemeIcon, Divider, Box, Anchor, Container, Table, Alert, Loader } from '@mantine/core';
 import { IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { config } from '../lib/config';
 import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
-import { buildCheckoutUrl } from '../lib/ppg-checkout';
+import { buildCheckoutUrl, PPG_PRODUCT_IDS } from '../lib/ppg-checkout';
+import { setPendingCheckout, takePendingCheckout, clearPendingCheckout, hasPendingCheckout } from '../lib/pending-checkout';
+import { waitForAccount, settleProfile } from '../lib/wait-for-account';
 import { openSignInModal } from '../components/SignInModal';
 import { PageMeta } from '../components/PageMeta';
 import { metaFor } from '../lib/route-meta';
@@ -17,7 +19,7 @@ interface PlanCta {
 }
 
 function PlanCard({
-  title, badge, credits, features, ctas, highlight
+  title, badge, credits, features, ctas, highlight, ctasDisabled
 }: {
   title: string;
   badge?: string;
@@ -25,6 +27,8 @@ function PlanCard({
   features: string[];
   ctas: PlanCta[];
   highlight?: boolean;
+  /** Held while a parked purchase is on its way to checkout. */
+  ctasDisabled?: boolean;
 }) {
   return (
     <Box
@@ -59,7 +63,7 @@ function PlanCard({
         </List>
         <Stack gap="xs" mt="auto">
           {ctas.map(({ label, onClick, variant }) => (
-            <Button key={label} variant={variant ?? 'default'} onClick={onClick} fullWidth>
+            <Button key={label} variant={variant ?? 'default'} onClick={onClick} disabled={ctasDisabled} fullWidth>
               {label}
             </Button>
           ))}
@@ -69,30 +73,99 @@ function PlanCard({
   );
 }
 
+type Product = Parameters<typeof buildCheckoutUrl>[0];
+
+/** A parked purchase comes back out of storage as a bare string; an unknown name
+ *  would build a checkout URL for a product that does not exist. hasOwnProperty
+ *  rather than `in`, so "toString" is not mistaken for something we sell. */
+function isProduct(value: string): value is Product {
+  return Object.prototype.hasOwnProperty.call(PPG_PRODUCT_IDS, value);
+}
+
 export function PricingPage() {
-  const [user, setUser] = useState<User | null>(null);
+  /** undefined until auth reports. "Nobody is signed in" and "we do not know yet"
+   *  read the same otherwise, and parking a purchase for somebody who is already
+   *  signed in sends them through an entire OAuth round trip for nothing. */
+  const [user, setUser] = useState<User | null | undefined>(() => getAuth().currentUser ?? undefined);
+  /** A purchase was parked before this load, so a redirect to checkout is coming.
+   *  Known on the first render, so the buttons are not live for the moment before
+   *  the buyer is taken away from them. */
+  const [resuming, setResuming] = useState(hasPendingCheckout);
+  /** The parked purchase, claimed once for this mounted page. StrictMode runs
+   *  mount effects twice in development, and taking it inside the effect body
+   *  would let the first pass consume it and the second find nothing — the
+   *  resume would work in a production build and never once under npm run dev. */
+  const claimed = useRef<string | null | undefined>(undefined);
   const pricing = DEFAULT_PRICING;
 
   useEffect(() => {
     trackViewPricing();
   }, []);
 
+  useEffect(() => onAuthStateChanged(getAuth(), setUser), []);
+
+  // Resume the purchase the sign-in gate interrupted. Without this the gate
+  // ended the attempt: the buyer came back signed in and nothing happened.
+  //
+  // The account is waited for rather than read once. Coming back from the
+  // provider the user is still anonymous for a moment — the credential is
+  // attached before the in-memory user reflects it — so reading auth at any
+  // single instant answers "a guest" and throws the purchase away.
   useEffect(() => {
-    const auth = getAuth();
-    setUser(auth.currentUser);
-    return onAuthStateChanged(auth, setUser);
+    let cancelled = false;
+    if (claimed.current === undefined) claimed.current = takePendingCheckout();
+    const parked = claimed.current;
+    if (!parked || !isProduct(parked)) {
+      setResuming(false);
+      return;
+    }
+    (async () => {
+      const found = await waitForAccount();
+      if (cancelled) return;
+      // The product, never the URL: that carries billing-email, license-email
+      // and x-uid, and a console is a thing people screenshot and screen-share.
+      console.info('[checkout] resume', { parked, signedIn: !!found });
+      if (!found) {
+        setResuming(false);
+        return;
+      }
+      // Navigating the instant the account appears cuts off the profile write
+      // that is still landing, losing the name for good and leaving checkout
+      // with nothing to prefill. Brief, bounded, and skipped when there is
+      // already a name.
+      const account = await settleProfile(found);
+      if (cancelled) return;
+      // Counted here because checkout() returned at the gate without counting:
+      // this is the one and only begin_checkout for a buyer who had to sign in,
+      // which is most of them.
+      trackBeginCheckout(parked);
+      window.location.href = buildCheckoutUrl(parked, {
+        uid: account.uid, email: account.email, displayName: account.displayName,
+      });
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const isAnonymous = !user || user.isAnonymous;
+  const authPending = user === undefined;
+  const isAnonymous = !user || user.isAnonymous; // Only meaningful once auth reports.
   const isPro = false; // TODO: read from credits context once available
 
-  function checkout(product: Parameters<typeof buildCheckoutUrl>[0]) {
+  function checkout(product: Product) {
+    if (authPending) return; // Buttons are held meanwhile; this is a backstop.
     // Require a real (non-anonymous) account before purchase. An anonymous UID
     // is tied to browser storage — a purchase made while anonymous is lost the
     // moment the user clears cookies, and the backend gates Pro models on the
     // sign-in provider, so anonymous Pro buyers can't use what they paid for.
     if (isAnonymous) {
-      openSignInModal();
+      // Parked in sessionStorage rather than held in memory: sign-in is a
+      // redirect, so the page leaves for the provider and comes back a new
+      // document with nothing of this one left to resume from.
+      setPendingCheckout(product);
+      openSignInModal(undefined, {
+        // Dismissal only — picking a provider navigates away before this fires,
+        // so reaching here means they abandoned it and the purchase goes too.
+        onClose: clearPendingCheckout,
+      });
       return;
     }
     trackBeginCheckout(product);
@@ -109,6 +182,11 @@ export function PricingPage() {
           <strong>Beta:</strong> payments are disabled — upgrade buttons are for preview only.
         </Alert>
       )}
+      {resuming && (
+        <Alert icon={<Loader size={16} />} color="blue" variant="light" style={{ maxWidth: 700, width: '100%', flexShrink: 0 }}>
+          <Text size="sm">Taking you to checkout — one moment.</Text>
+        </Alert>
+      )}
       <Stack align="center" gap="xs">
         <Title order={2}>AI assistant pricing</Title>
         <Text c="dimmed" size="md" ta="center">
@@ -119,6 +197,7 @@ export function PricingPage() {
 
       <Group align="stretch" gap="lg" style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
         <PlanCard
+          ctasDisabled={resuming || authPending}
           title="Free"
           credits={`${pricing.freeMonthlyCredits} credits / month`}
           features={[
@@ -138,6 +217,7 @@ export function PricingPage() {
         />
 
         <PlanCard
+          ctasDisabled={resuming || authPending}
           title="Pro"
           badge="Most popular"
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
@@ -156,6 +236,7 @@ export function PricingPage() {
         />
 
         <PlanCard
+          ctasDisabled={resuming || authPending}
           title="Credit Packs"
           credits="One-time, never expire"
           features={[
