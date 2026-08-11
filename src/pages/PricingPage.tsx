@@ -237,10 +237,39 @@ export function PricingPage() {
           }
         />
 
+        {/* Packs before Pro, and carrying the emphasis. People arrive here with a
+            drawing to fix rather than a habit to fund: most of them spend a few
+            credits in a month and never come back to spend more, and of the
+            handful who have subscribed, half cancelled after one cycle while the
+            most engaged bought a pack on top. Asking for a subscription second
+            makes the first thing we ask for the largest commitment we sell. */}
+        <PlanCard
+          ctasDisabled={resuming || (IS_BROWSER && authPending)}
+          title="Credit Packs"
+          badge="Best for one-off jobs"
+          credits="One-time, never expire"
+          features={[
+            'No subscription needed',
+            // Says it plainly, because the card beside this one lists models a
+            // pack does not buy: credits are volume, and the API refuses a Pro
+            // model on a free account however many of them you hold. Somebody
+            // discovering that after paying is a refund, not a customer.
+            'Same models as your current plan',
+            'Top up any time',
+            'Spent before your monthly credits',
+            'Kept if a subscription ends',
+          ]}
+          highlight
+          ctas={[
+            { label: `100 credits — $5`, variant: 'filled', onClick: () => checkout('credits-100') },
+            { label: `300 credits — $10`, onClick: () => checkout('credits-300') },
+            { label: `1,000 credits — $15`, onClick: () => checkout('credits-1000') },
+          ]}
+        />
+
         <PlanCard
           ctasDisabled={resuming || (IS_BROWSER && authPending)}
           title="Pro"
-          badge="Most popular"
           credits={`${pricing.proMonthlyCredits.toLocaleString()} credits / month`}
           features={[
             'Everything in Free',
@@ -249,26 +278,9 @@ export function PricingPage() {
             'Full AI image-gen models',
             'Priority support',
           ]}
-          highlight
           ctas={isPro ? [{ label: 'Current plan' }] : [
-            { label: `Monthly — $10/mo`, variant: 'filled', onClick: () => checkout('pro-monthly') },
+            { label: `Monthly — $10/mo`, variant: 'light', onClick: () => checkout('pro-monthly') },
             { label: `Annual — $8/mo ($96/yr)`, variant: 'light', onClick: () => checkout('pro-annual') },
-          ]}
-        />
-
-        <PlanCard
-          ctasDisabled={resuming || (IS_BROWSER && authPending)}
-          title="Credit Packs"
-          credits="One-time, never expire"
-          features={[
-            'No subscription needed',
-            'Works with any plan',
-            'Top up any time',
-          ]}
-          ctas={[
-            { label: `100 credits — $5`, onClick: () => checkout('credits-100') },
-            { label: `300 credits — $10`, onClick: () => checkout('credits-300') },
-            { label: `1,000 credits — $15`, onClick: () => checkout('credits-1000') },
           ]}
         />
       </Group>
