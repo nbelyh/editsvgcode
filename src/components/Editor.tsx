@@ -1,4 +1,4 @@
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
 import { EditorPlaceholder } from './EditorPlaceholder';
@@ -27,6 +27,43 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
   const onCursorElementRef = useRef(onCursorElement);
   onCursorElementRef.current = onCursorElement;
+  const historySettledRef = useRef(false);
+  // Read inside settleHistory, which must not be re-created when readOnly moves
+  // — it is called from onMount, which only ever sees its first value.
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+
+  /**
+   * Make the loaded document the editor's first undoable state.
+   *
+   * The document arrives after the editor has already mounted holding the
+   * "Loading please wait..." stand-in, and @monaco-editor/react applies it with
+   * executeEdits plus an undo stop — its own options effect has already turned
+   * readOnly off by the time its value effect runs, so it takes the editable
+   * path rather than setValue. That left the stand-in one Ctrl+Z beneath the
+   * drawing: pressing undo once on a document that had just loaded, before
+   * touching anything, replaced it with the stand-in. The autosave below only
+   * checks readOnly, so it wrote that over the saved copy — and since the text
+   * has no <svg>, the next load rejected it and fell back to the sample. The
+   * drawing was gone.
+   *
+   * setValue is how the edit history is dropped: TextModel throws the command
+   * manager away whenever the buffer is replaced wholesale. The text is already
+   * correct whenever this runs, so re-seating it changes nothing on screen.
+   *
+   * Called from both onMount and the effect below because either can be last:
+   * a slow document lands after the editor, a slow editor mounts after the
+   * document. Whichever it is, this runs at the first moment there is both a
+   * model and a loaded document, and the one-shot guard keeps it from ever
+   * running again — flushing later would throw away the reader's own history.
+   */
+  const settleHistory = useCallback(() => {
+    if (historySettledRef.current || readOnlyRef.current) return;
+    const model = editorRef.current?.getModel();
+    if (!model) return;
+    historySettledRef.current = true;
+    model.setValue(model.getValue());
+  }, []);
 
   useImperativeHandle(ref, () => ({
     selectRange(startLine: number, startCol: number, endLine: number, endCol: number) {
@@ -64,6 +101,10 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
 
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+
+    // The document may already have loaded while Monaco was still downloading,
+    // in which case no later render arrives to trigger the effect below.
+    settleHistory();
 
     // Expose for E2E tests (stripped from production builds by Vite)
     if (import.meta.env.DEV) {
@@ -110,6 +151,12 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
   useEffect(() => {
     editorRef.current?.updateOptions({ readOnly });
   }, [readOnly]);
+
+  // Runs after @monaco-editor/react's own effects, which belong to a child and
+  // have already put the loaded text in the model by this point.
+  useEffect(() => {
+    settleHistory();
+  }, [readOnly, value, settleHistory]);
 
   // Resolved once: the placeholder has to default the same way the editor does,
   // or omitting the prop hands you a light stand-in followed by a dark editor —
