@@ -71,11 +71,38 @@ if (!shellImage[1].endsWith(meta.defaultImage)) {
     'Change both, or the home page and every other page share differently.');
 }
 
+// Beta serves the same pages from a different origin, which to a crawler is a
+// duplicate of production competing with it. noindex rather than a robots.txt
+// disallow: disallow stops the crawl, and a page that is never crawled is one
+// whose noindex is never read — the URL can still be indexed bare from a link
+// somewhere else. Letting it crawl and telling it not to index is the pair that
+// actually removes a staging site from search results.
+//
+// Written back to the shell as well as into each route: everything unlisted
+// falls through Firebase's "**" rewrite to dist/index.html, so the shell is
+// what a crawler gets for `/` and for every shared /:fileId link.
+//
+// Stripped unconditionally before it is re-added, so the tag can never survive
+// from an earlier run: a beta build followed by a production one over the same
+// dist/ would otherwise ship production marked noindex, which is the single
+// worst outcome this script could produce. Removing first also keeps repeated
+// beta builds from stacking the tag.
+const isProduction = SITE_URL === SITE_URLS['editsvgcode-db'];
+let shellHtml = shell.replace(/\s*<meta name="robots"[^>]*>/gi, '');
+if (!isProduction) {
+  shellHtml = shellHtml.replace('</head>',
+    '  <meta name="robots" content="noindex, nofollow" />\n  </head>');
+}
+fs.writeFileSync(shellPath, shellHtml);
+console.log(isProduction
+  ? 'Shell is indexable — production origin.'
+  : `Marked noindex — ${SITE_URL} is not the production origin.`);
+
 let written = 0;
 for (const [route, { title, description, image }] of Object.entries(meta.routes)) {
   const fullTitle = `${title} — ${meta.siteName}`;
   const url = `${SITE_URL}${route}`;
-  let html = shell;
+  let html = shellHtml;
 
   html = replaceOrFail(html, /<title>[\s\S]*?<\/title>/,
     `<title>${escapeAttr(fullTitle)}</title>`, '<title>', route);
@@ -135,3 +162,36 @@ for (const [route, { title, description, image }] of Object.entries(meta.routes)
   written++;
 }
 console.log(`Prerendered ${written} route(s) against ${SITE_URL}.`);
+
+// A sitemap is not how these pages get found: every one of them is linked from
+// the header, and Google renders the JS that draws it. It is here for the
+// crawlers that do not render — and to be the discovery mechanism the gallery
+// needs once it lists more documents than the nav can link to.
+//
+// No <lastmod>: stamping today's date on every URL at every deploy claims each
+// page just changed, and a lastmod that is always "now" is one search engines
+// learn to ignore. Better to omit it than to assert something untrue.
+//
+// Built on beta exactly as on production, listing beta's own URLs, so the thing
+// deployed there is the thing being tested — a sitemap only production produces
+// is a sitemap nobody sees fail. The noindex above is what keeps beta out of
+// search results; a sitemap does not override it, it only offers URLs to a
+// crawler that has already been told not to index them.
+const sitemapRoutes = ['/', ...Object.keys(meta.routes)];
+const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  sitemapRoutes.map((route) => `  <url><loc>${SITE_URL}${route}</loc></url>\n`).join('') +
+  '</urlset>\n';
+fs.writeFileSync(path.join(DIST, 'sitemap.xml'), sitemap);
+
+// robots.txt ships from public/ with no origin in it, because the origin
+// differs per environment. Any Sitemap line from a previous run is dropped
+// first, so repeated builds cannot stack them and a beta build cannot inherit
+// production's address.
+const robotsPath = path.join(DIST, 'robots.txt');
+if (!fs.existsSync(robotsPath)) {
+  throw new Error(`${robotsPath} not found — public/robots.txt is expected in the build.`);
+}
+const robots = fs.readFileSync(robotsPath, 'utf8').replace(/^sitemap:.*$/gim, '').trimEnd();
+fs.writeFileSync(robotsPath, `${robots}\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+console.log(`Wrote sitemap.xml with ${sitemapRoutes.length} URL(s), and pointed robots.txt at it.`);
