@@ -15,7 +15,8 @@
     ],
     "predeploy": [
       "node scripts/stamp-config.cjs",
-      "node scripts/prerender.cjs"
+      "node scripts/prerender.cjs",
+      "node scripts/prerender-content.mjs"
     ],
     "trailingSlash": false,
     "headers": [

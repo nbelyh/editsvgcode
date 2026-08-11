@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-ssr
 .vscode
 svg.xsd
 .vs
