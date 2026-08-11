@@ -104,6 +104,15 @@ for (const [route, { title, description, image }] of Object.entries(meta.routes)
   const url = `${SITE_URL}${route}`;
   let html = shellHtml;
 
+  // Monaco's stylesheet preload belongs to the editor shell alone. None of
+  // these routes ever mounts an editor, and preloading ~300 KB of editor CSS
+  // on them spends bandwidth against their own LCP at the highest priority the
+  // browser has — on exactly the pages this script exists to make fast — and
+  // earns a "preloaded but not used" warning for it. Removed rather than never
+  // injected because the shell is also what serves the editor, which needs it.
+  html = replaceOrFail(html, /[ \t]*<link rel="preload" as="style" href="[^"]*\/monaco-editor@[^"]*"[^>]*>\r?\n?/,
+    '', 'Monaco stylesheet preload', route);
+
   html = replaceOrFail(html, /<title>[\s\S]*?<\/title>/,
     `<title>${escapeAttr(fullTitle)}</title>`, '<title>', route);
   html = replaceOrFail(html, /<meta name="description" content="[^"]*"\s*\/>/,

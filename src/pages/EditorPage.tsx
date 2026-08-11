@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { Allotment } from 'allotment';
 import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from '../components/Editor';
+import { MONACO_HOST_CLASS } from '../lib/monaco';
 import { EditorToolbar } from '../components/EditorToolbar';
 import { Preview } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
@@ -287,6 +288,7 @@ export function EditorPage() {
   const previewPanel = (
     <Preview
       svgCode={proposedSvg ?? svgCode}
+      documentReady={documentLoaded}
       onElementSelect={handleElementSelect}
       selectedXPath={selectedXPath}
       onDeleteElement={selectedLineRange ? handleDeleteElement : undefined}
@@ -349,6 +351,7 @@ export function EditorPage() {
                         theme={monacoTheme}
                         options={{ readOnly: true, renderSideBySide: false }}
                         onMount={handleDiffMount}
+                        className={MONACO_HOST_CLASS}
                       />
                     </div>
                   </>
@@ -417,6 +420,7 @@ export function EditorPage() {
                       theme={monacoTheme}
                       options={{ readOnly: true, renderSideBySide: false }}
                       onMount={handleDiffMount}
+                      className={MONACO_HOST_CLASS}
                     />
                   </div>
                 </div>
@@ -428,7 +432,7 @@ export function EditorPage() {
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%" visible={showPreview}>
-          <Preview svgCode={proposedSvg ?? svgCode} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
+          <Preview svgCode={proposedSvg ?? svgCode} documentReady={documentLoaded} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
         </Allotment.Pane>
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
           <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>

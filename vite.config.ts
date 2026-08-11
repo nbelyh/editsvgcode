@@ -1,14 +1,41 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
 import { getBuildVersion } from './scripts/version.mjs';
+import { getMonacoCdn } from './scripts/monaco.mjs';
+
+const monaco = getMonacoCdn();
+
+/**
+ * Monaco does not request its stylesheet until its own JavaScript has parsed,
+ * and renders without waiting for it — see getMonacoCdn. Starting the fetch
+ * from the document head instead means the file is cached by then.
+ *
+ * This lands in the one shell, which serves the editor routes (`/` and
+ * `/:fileId`) through Firebase's "**" rewrite. scripts/prerender.cjs strips it
+ * back out of the static pages it writes for the content routes, none of which
+ * ever mounts an editor.
+ */
+const monacoCssPreload: Plugin = {
+  name: 'monaco-css-preload',
+  transformIndexHtml: () => [
+    // No crossorigin: Monaco appends a plain <link rel="stylesheet">, which is
+    // a no-cors fetch, and a preload whose request mode differs is never
+    // matched against it — the browser would fetch the ~300 KB twice and warn
+    // that the preload went unused. No separate preconnect either: it would sit
+    // next to this tag in the same head, so the preload opens the connection
+    // just as early on its own.
+    { tag: 'link', attrs: { rel: 'preload', as: 'style', href: monaco.cssUrl }, injectTo: 'head' },
+  ],
+};
 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(getBuildVersion()),
+    __MONACO_VS_PATH__: JSON.stringify(monaco.vsPath),
   },
-  plugins: [react(), wasm()],
+  plugins: [react(), wasm(), monacoCssPreload],
   build: {
     target: 'es2022',
     outDir: 'dist',

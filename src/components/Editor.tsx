@@ -2,6 +2,7 @@ import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import MonacoEditor, { type OnMount } from '@monaco-editor/react';
 import type { editor as monacoEditor } from 'monaco-editor';
 import { EditorPlaceholder } from './EditorPlaceholder';
+import { MONACO_HOST_CLASS } from '../lib/monaco';
 import { registerSvgProviders } from '../lib/completion-provider';
 import { formatXml, findElementAtOffset } from '../lib/svg-utils';
 import { getElementBounds } from '../lib/svg-bounds';
@@ -123,6 +124,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       value={value}
       onChange={(v) => onChange(v ?? '')}
       onMount={handleMount}
+      className={MONACO_HOST_CLASS}
       // Replaces the default "Loading..." label — see EditorPlaceholder.
       loading={<EditorPlaceholder value={value} theme={resolvedTheme} />}
       options={{

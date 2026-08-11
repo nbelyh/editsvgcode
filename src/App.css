@@ -258,3 +258,28 @@
   text-align: center;
   text-transform: uppercase;
 }
+
+/* The element @monaco-editor/react hands to editor.create(). The library calls
+   create() while this element still carries its inline display:none — that flag
+   is only dropped by the state change the very same function makes afterwards —
+   so Monaco measures 0x0, clamps itself to a 5x5 box in the corner, and paints
+   there until a ResizeObserver a frame later grows it to the real size, jolting
+   every part of the editor down the page.
+
+   Keeping it laid out the whole time means create() measures the real box.
+   Absolute so the loading placeholder beside it still gets the full section to
+   itself, and !important because it is overruling an inline style. */
+.esvg-monaco-host {
+  display: block !important;
+  position: absolute;
+  inset: 0;
+}
+
+/* Empty means Monaco has not filled it yet, so EditorPlaceholder is what is on
+   screen — and being positioned, this box would otherwise sit on top of it and
+   eat every click and drag. The placeholder renders the document as selectable
+   text precisely for the case where Monaco is slow or never arrives, so it has
+   to keep receiving input. Stops matching the moment create() appends. */
+.esvg-monaco-host:empty {
+  pointer-events: none;
+}

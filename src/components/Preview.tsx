@@ -7,6 +7,12 @@ import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, con
 
 interface PreviewProps {
   svgCode: string;
+  /**
+   * False while the document is still being fetched. `svgCode` is a stand-in
+   * string until it lands, and painting that would put a small text box in the
+   * middle of the pane that jumps to the drawing's size the moment one arrives.
+   */
+  documentReady?: boolean;
   onElementSelect?: (tagName: string, index: number) => void;
   selectedXPath?: string;
   onDeleteElement?: () => void;
@@ -94,7 +100,7 @@ function ensureFilters(svg: SVGSVGElement) {
   defs.appendChild(buildFilter(HOVER_FILTER_ID, [0, 0.2, 1], 1));
 }
 
-export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
+export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview({ svgCode, documentReady = true, onElementSelect, selectedXPath, onDeleteElement, onUndo, onRedo }, ref) {
   const [debouncedSvg] = useDebouncedValue(svgCode, 300);
   const containerRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<ShadowRoot | null>(null);
@@ -274,6 +280,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     // Save scroll position before DOM replacement
     const el = scrollRef.current;
     if (el) savedScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
+    // Before the sanitize, not after: while the document is still loading there
+    // is nothing worth parsing, and painting the stand-in string costs a layout
+    // shift. Deliberately keyed on the load state rather than on "does this
+    // text contain an <svg>" — a document the user has genuinely broken still
+    // paints, which is how they find out it is broken.
+    if (!documentReady) {
+      shadow.innerHTML = '';
+      naturalSize.current = null;
+      return;
+    }
     shadow.innerHTML = sanitizeSvg(svgCode);
     const svg = shadow.querySelector('svg');
     if (!svg) { naturalSize.current = null; return; }
@@ -377,7 +393,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
         setZoomPct(size!.w > el.clientWidth || size!.h > el.clientHeight ? Math.max(1, fit) : 100);
       }
     }
-  }, [debouncedSvg]);
+  }, [debouncedSvg, documentReady]);
 
   // Sync external selection (from editor cursor) via xpath
   useEffect(() => {
