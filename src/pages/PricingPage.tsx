@@ -122,9 +122,6 @@ export function PricingPage() {
     (async () => {
       const found = await waitForAccount();
       if (cancelled) return;
-      // The product, never the URL: that carries billing-email, license-email
-      // and x-uid, and a console is a thing people screenshot and screen-share.
-      console.info('[checkout] resume', { parked, signedIn: !!found });
       if (!found) {
         setResuming(false);
         return;

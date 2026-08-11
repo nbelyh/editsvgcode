@@ -17,6 +17,12 @@ vi.mock('firebase/auth', () => ({
 
 const { waitForAccount, settleProfile } = await import('../wait-for-account');
 
+/** A real User carries twenty-odd fields; this module reads three. Cast rather
+ *  than stub the rest, which would assert things about Firebase that no test
+ *  here is checking. */
+const asUser = (u: { uid: string; isAnonymous: boolean; displayName?: string | null }) =>
+  u as unknown as import('firebase/auth').User;
+
 const guest = { uid: 'anon-1', isAnonymous: true };
 const account = { uid: 'real-1', isAnonymous: false };
 
@@ -109,7 +115,7 @@ describe('settleProfile', () => {
   it('returns at once when the name is already there', async () => {
     const named = { uid: 'real-1', isAnonymous: false, displayName: 'Ada' };
     currentUser = named;
-    await expect(settleProfile(named)).resolves.toBe(named);
+    await expect(settleProfile(asUser(named))).resolves.toBe(named);
     // Nothing scheduled: the common case must not cost a tick.
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -119,7 +125,7 @@ describe('settleProfile', () => {
     // and navigating away first loses it permanently.
     const nameless = { uid: 'real-1', isAnonymous: false, displayName: null };
     currentUser = nameless;
-    const pending = settleProfile(nameless, 1500);
+    const pending = settleProfile(asUser(nameless), 1500);
     const named = { uid: 'real-1', isAnonymous: false, displayName: 'Ada' };
     currentUser = named;
     await vi.advanceTimersByTimeAsync(200);
@@ -131,7 +137,7 @@ describe('settleProfile', () => {
     // waits forever for something that is not coming.
     const nameless = { uid: 'real-1', isAnonymous: false, displayName: null };
     currentUser = nameless;
-    const pending = settleProfile(nameless, 1500);
+    const pending = settleProfile(asUser(nameless), 1500);
     await vi.advanceTimersByTimeAsync(1501);
     await expect(pending).resolves.toBe(nameless);
     expect(vi.getTimerCount()).toBe(0);
