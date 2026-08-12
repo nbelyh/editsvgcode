@@ -1,0 +1,30 @@
+# EditSvgCode
+
+> An online SVG editor that works on the code and the picture at once: type SVG markup and see it render live, or ask the built-in AI assistant to draw and edit for you.
+
+The editor runs entirely in the browser and opens without an account. Signing in adds cloud storage and the AI features. Drawings can be kept private, shared by link, or published to a public gallery under the CC0 licence.
+
+What the editor does:
+
+- Live preview beside the markup, with zoom, fit-to-window and a choice of backgrounds for judging transparency.
+- Schema-aware autocomplete, hover documentation and a colour picker, so element and attribute names are offered as you type rather than remembered.
+- An AI assistant that edits the drawing by addressing elements — set text, change an attribute, rewrite a style rule, insert or remove a shape — rather than rewriting lines of markup.
+- Image generation for pictorial subjects: the image is generated, then traced into flat vector shapes you can edit like any other SVG.
+- A searchable library of over 200,000 open-source icons to insert directly.
+
+## Pages
+
+- [Editor](https://editsvgcode.com/): the editor itself, open with no account.
+- [Features](https://editsvgcode.com/features): what the editor can do, in detail.
+- [Gallery](https://editsvgcode.com/gallery): drawings published by users, free to open and build on.
+- [What's New](https://editsvgcode.com/blog): changes to the editor, newest first.
+- [Pricing](https://editsvgcode.com/pricing): the free tier, Pro, and one-off credit packs.
+- [Support](https://editsvgcode.com/support): how to get help and report a problem.
+- [About](https://editsvgcode.com/about): who makes it.
+
+## Policies
+
+- [Terms of Service](https://editsvgcode.com/terms)
+- [Privacy Policy](https://editsvgcode.com/privacy)
+- [Refund & Cancellation Policy](https://editsvgcode.com/refund-policy)
+- [Imprint](https://editsvgcode.com/imprint)
