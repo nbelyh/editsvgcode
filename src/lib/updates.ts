@@ -52,6 +52,26 @@ export interface Update {
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
   {
+    id: 'richer-generated-images',
+    date: '2026-08-12',
+    title: 'Generated pictures keep their detail',
+    summary:
+      'Some drawings the assistant writes as SVG itself; a picture of something — an animal, a scene, a logo — it generates as an image and then traces into shapes. On that second route, the instructions we send along with your words were working against you: they asked for the fewest possible colour regions and forbade fine detail, on the theory that simpler images trace more cleanly. They do — into something much plainer than you asked for. A fox curled asleep in ferns came back as a flat orange disc. Those instructions now ask for flat, cel-shaded colour instead of the least colour possible, and say nothing about how many colours to use, so a busy subject stays busy and a plain one stays plain.',
+    images: [
+      {
+        src: '/screenshots/24-richer-generated-images.png',
+        thumb: '/screenshots/thumbs/24-richer-generated-images.png',
+        alt: 'The same three prompts before and after the change: the fox gains fur tones and depth where it was one flat orange shape, the cottage gains wood and shingles where it was flat yellow, and the tile fills out into a proper repeating pattern.',
+      },
+    ],
+    changes: [
+      { kind: 'improved', text: 'Generated pictures keep the detail the subject calls for — scenes, ornament and painterly styles no longer flatten into a few large blocks of colour.' },
+      { kind: 'improved', text: 'Shading now comes through as a few flat tones per colour, so a drawing has depth without gaining the smooth blends that cannot be traced into shapes.' },
+      { kind: 'improved', text: 'Nothing assumes a colour scheme on your behalf any more, so asking for an icon gives you a full-colour one and asking for a monochrome icon gives you a single-colour silhouette you can recolour in one edit.' },
+      { kind: 'fixed', text: 'Two instructions that no image generator can act on have been dropped, freeing that space for describing the picture you actually want.' },
+    ],
+  },
+  {
     id: 'structural-ai-editing',
     date: '2026-08-10',
     version: '2.1',
