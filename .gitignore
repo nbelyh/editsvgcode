@@ -14,3 +14,5 @@ playwright-report
 .emulators
 firebase-export*
 gallery.json
+gallery-*.json
+test-output
