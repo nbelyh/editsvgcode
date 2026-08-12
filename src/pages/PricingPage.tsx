@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged, type User } from 'firebase/auth';
 import { useState, useEffect, useRef } from 'react';
 import { trackBeginCheckout, trackViewPricing } from '../lib/analytics';
 import { DEFAULT_PRICING } from '../lib/pricing';
-import { buildCheckoutUrl, PPG_PRODUCT_IDS } from '../lib/ppg-checkout';
+import { buildCheckoutUrl, PPG_PRODUCT_IDS, PPG_PRICE_LABELS, localCurrency } from '../lib/ppg-checkout';
 import { setPendingCheckout, takePendingCheckout, clearPendingCheckout, hasPendingCheckout } from '../lib/pending-checkout';
 import { waitForAccount, settleProfile } from '../lib/wait-for-account';
 import { PageMeta } from '../components/PageMeta';
@@ -94,6 +94,15 @@ function openSignInModal(message?: string, opts?: { onClose?: () => void }): voi
  *  answerable in a browser. */
 const IS_BROWSER = typeof window !== 'undefined';
 
+/** Read once, at import. The build has no browser and renders the base currency,
+ *  which is what a crawler should be quoted anyway. */
+const CURRENCY = IS_BROWSER ? localCurrency() : 'USD';
+const PRICE = PPG_PRICE_LABELS[CURRENCY];
+/** Passed to checkout only when it is not the base currency, so a buyer quoted
+ *  rupees is charged in them even from an address PayPro would read as somewhere
+ *  else. Undefined for everyone else, leaving PayPro to detect as it always has. */
+const QUOTED_CURRENCY = CURRENCY === 'USD' ? undefined : CURRENCY;
+
 type Product = Parameters<typeof buildCheckoutUrl>[0];
 
 /** A parked purchase comes back out of storage as a bare string; an unknown name
@@ -161,6 +170,7 @@ export function PricingPage() {
       trackBeginCheckout(parked);
       window.location.href = buildCheckoutUrl(parked, {
         uid: account.uid, email: account.email, displayName: account.displayName,
+        currency: QUOTED_CURRENCY,
       });
     })();
     return () => { cancelled = true; };
@@ -189,7 +199,10 @@ export function PricingPage() {
       return;
     }
     trackBeginCheckout(product);
-    window.open(buildCheckoutUrl(product, { uid: user?.uid, email: user?.email, displayName: user?.displayName }), '_blank');
+    window.open(buildCheckoutUrl(product, {
+      uid: user?.uid, email: user?.email, displayName: user?.displayName,
+      currency: QUOTED_CURRENCY,
+    }), '_blank');
   }
 
   const isBeta = IS_BROWSER
@@ -261,9 +274,9 @@ export function PricingPage() {
           ]}
           highlight
           ctas={[
-            { label: `100 credits — $5`, variant: 'filled', onClick: () => checkout('credits-100') },
-            { label: `300 credits — $10`, onClick: () => checkout('credits-300') },
-            { label: `1,000 credits — $15`, onClick: () => checkout('credits-1000') },
+            { label: PRICE['credits-100'], variant: 'filled', onClick: () => checkout('credits-100') },
+            { label: PRICE['credits-300'], onClick: () => checkout('credits-300') },
+            { label: PRICE['credits-1000'], onClick: () => checkout('credits-1000') },
           ]}
         />
 
@@ -279,11 +292,23 @@ export function PricingPage() {
             'Priority support',
           ]}
           ctas={isPro ? [{ label: 'Current plan' }] : [
-            { label: `Monthly — $10/mo`, variant: 'light', onClick: () => checkout('pro-monthly') },
-            { label: `Annual — $8/mo ($96/yr)`, variant: 'light', onClick: () => checkout('pro-annual') },
+            { label: PRICE['pro-monthly'], variant: 'light', onClick: () => checkout('pro-monthly') },
+            { label: PRICE['pro-annual'], variant: 'light', onClick: () => checkout('pro-annual') },
           ]}
         />
       </Group>
+
+      {/* Only when quoting dollars. PayPro bills in the currency of the country
+          the buyer connects from, so these numbers and the total on the payment
+          page can differ — better said beside the prices than discovered there.
+          Somebody already being quoted rupees is seeing what they will be
+          charged, and telling them the prices are in dollars would just be
+          wrong. */}
+      {CURRENCY === 'USD' && (
+        <Text size="xs" c="dimmed" ta="center">
+          Prices are shown in US dollars. Checkout is in your local currency where supported.
+        </Text>
+      )}
 
       <Container size="sm" py="xl">
         <Stack gap="xl">
