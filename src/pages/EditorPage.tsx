@@ -469,6 +469,7 @@ export function EditorPage() {
                   color={sidebarTab === 'info' && showSidebar ? 'blue' : 'gray'}
                   size="lg"
                   onClick={switchToInfo}
+                  aria-label="Info"
                 >
                   <IconInfoCircle size={20} />
                 </ActionIcon>
@@ -480,6 +481,7 @@ export function EditorPage() {
                     color={sidebarTab === 'ai' && showSidebar ? 'blue' : 'gray'}
                     size="lg"
                     onClick={switchToAi}
+                    aria-label="AI Chat"
                   >
                     <IconSparkles size={20} />
                   </ActionIcon>

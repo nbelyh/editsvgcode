@@ -60,7 +60,7 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
       </Group>
       {showPreviewToggle && (
         <Tooltip label={showPreview ? 'Hide preview' : 'Show preview'}>
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={onTogglePreview}>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={onTogglePreview} aria-label={showPreview ? 'Hide preview' : 'Show preview'}>
             {showPreview ? <IconEye size={14} /> : <IconEyeOff size={14} />}
           </ActionIcon>
         </Tooltip>

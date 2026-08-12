@@ -49,7 +49,7 @@ export function UserMenu() {
   return (
     <Menu shadow="md" width={220} position="bottom-end">
       <Menu.Target>
-        <ActionIcon variant="subtle" color="gray" size="lg" radius="xl">
+        <ActionIcon variant="subtle" color="gray" size="lg" radius="xl" aria-label="Account menu">
           {isAnonymous ? (
             <IconUser size={20} />
           ) : (

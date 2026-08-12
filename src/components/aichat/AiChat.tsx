@@ -678,7 +678,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         <Text size="xs" fw={600} c="dimmed" mr="auto">AI Chat</Text>
         {isViewer && <Text size="xs" c="dimmed">Read-only — shared by the author</Text>}
         <Tooltip label="Clear Chat">
-          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0 || isViewer}>
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleNewChat} disabled={isRunning || hasPending || messages.length === 0 || isViewer} aria-label="Clear chat">
             <IconEraser size={16} />
           </ActionIcon>
         </Tooltip>

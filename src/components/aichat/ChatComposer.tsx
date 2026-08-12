@@ -164,7 +164,17 @@ export function ChatComposer({
       <div className="aui-composer-footer">
         <Popover position="top-start" shadow="md">
           <Popover.Target>
-            <Text size="xs" c="dimmed" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {/* A real <button>: Popover.Target puts aria-haspopup and aria-expanded on
+                whatever it wraps, and a <p> supports neither — which axe reports as an
+                unsupported-ARIA failure. It also could not be reached by keyboard. */}
+            <Text
+              component="button"
+              type="button"
+              aria-label="Models in use — click to change"
+              size="xs"
+              c="dimmed"
+              style={{ cursor: 'pointer', whiteSpace: 'nowrap', background: 'none', border: 0, padding: 0 }}
+            >
               {shortModelName(model)}{effort ? ` · ${effort}` : ''} · {shortModelName(imageModel)}
             </Text>
           </Popover.Target>
@@ -228,6 +238,7 @@ export function ChatComposer({
               size="sm"
               onClick={isRunning ? onStop : onSend}
               disabled={!isRunning && (!input.trim() || hasPending)}
+              aria-label={isRunning ? 'Stop' : 'Send'}
             >
               {isRunning ? <IconPlayerStop size={16} /> : <IconArrowUp size={16} />}
             </ActionIcon>
