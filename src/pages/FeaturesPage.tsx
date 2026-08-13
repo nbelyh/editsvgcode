@@ -36,7 +36,7 @@ const AI_FEATURES: Feature[] = [
   },
   {
     title: 'Model Selector',
-    description: 'Switch between AI models (GPT-4o, Claude, o4-mini, etc.) from a dropdown. Each model has different strengths — faster responses vs. better reasoning. A "reasoning effort" slider lets you trade speed for quality on complex edits.',
+    description: 'Switch between AI models from a dropdown — the GPT-5 family, Claude, DeepSeek and Kimi, with more under "Show all". Each has different strengths, and cheaper models cost fewer credits per request. On the models that support it, a reasoning effort control lets you trade speed for care on complex edits.',
     image: '/screenshots/10-model-selector.png',
     thumb: '/screenshots/thumbs/10-model-selector.png',
     badge: 'Pro',

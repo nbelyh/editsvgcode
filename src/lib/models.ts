@@ -7,9 +7,10 @@ export interface ModelOption {
   pro: boolean;
   efforts?: ReasoningEffort[];
   defaultEffort?: ReasoningEffort;
-  /** Kept working but collapsed behind "Show all" in the picker. Set on models that
-   *  cost the user the same credits as a strictly newer sibling, so there is no
-   *  reason to pick them — see the one-per-price-point list below. */
+  /** Kept working but collapsed behind "Show all" in the picker. Set for two reasons:
+   *  a model that costs the same credits as a strictly newer sibling, so there is no
+   *  reason to pick it; or one of several from the same family, where showing them all
+   *  would crowd the list without telling anyone anything — see the notes below. */
   hidden?: boolean;
 }
 
@@ -46,13 +47,16 @@ export const EDIT_MODELS: ModelOption[] = [
   { label: 'gpt-5-mini', value: 'gpt-5-mini', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', credits: 3, pro: false, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
   { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false },
-  { label: 'claude-haiku-4-5', value: 'claude-haiku-4-5', credits: 5, pro: false },
   // --- Pro ---
+  // Sonnet 5 is the Claude the picker offers by default. Haiku and Opus are hidden
+  // rather than dropped: one Claude in the list is enough to say Claude is here, and
+  // anyone who wants the cheaper or the stronger one can still reach it.
+  { label: 'claude-haiku-4-5', value: 'claude-haiku-4-5', credits: 5, pro: true, hidden: true },
   { label: 'gpt-5.6-luna', value: 'gpt-5.6-luna', credits: 8, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
   { label: 'gpt-5.4', value: 'gpt-5.4', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.6-terra', value: 'gpt-5.6-terra', credits: 20, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
   { label: 'claude-sonnet-5', value: 'claude-sonnet-5', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
-  { label: 'claude-opus-5', value: 'claude-opus-5', credits: 30, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
+  { label: 'claude-opus-5', value: 'claude-opus-5', credits: 30, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.6-sol', value: 'gpt-5.6-sol', credits: 40, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
 ];
 

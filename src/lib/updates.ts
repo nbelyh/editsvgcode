@@ -56,9 +56,9 @@ export const UPDATES: Update[] = [
     date: '2026-08-13',
     title: 'Claude joins the model picker',
     summary:
-      'Three Claude models now sit alongside the others in the picker. Claude Haiku 4.5 is on the free tier at five credits; Claude Sonnet 5 and Claude Opus 5 are Pro, at twenty and thirty. Sonnet and Opus take the same thinking-effort setting the gpt-5 models do, so you can ask for a quick answer on a small change and a careful one on a drawing that needs thinking about.',
+      'Three Claude models are now available to Pro subscribers. Claude Sonnet 5 is the one the picker offers by default, at twenty credits; Claude Haiku 4.5 is quicker and cheaper at five, and Claude Opus 5 is the strongest at thirty, both under "Show all". Sonnet and Opus take the same thinking-effort setting the gpt-5 models do, so you can ask for a quick answer on a small change and a careful one on a drawing that needs thinking about.',
     changes: [
-      { kind: 'new', text: 'Claude Haiku 4.5 is available on the free tier, and Claude Sonnet 5 and Claude Opus 5 to Pro subscribers.' },
+      { kind: 'new', text: 'Claude Sonnet 5 joins the model picker for Pro subscribers at twenty credits, with Claude Haiku 4.5 at five and Claude Opus 5 at thirty under "Show all".' },
       { kind: 'new', text: 'Sonnet and Opus offer the low, medium, high and extra-high effort levels, with high as the starting point.' },
       { kind: 'improved', text: 'All three reuse the unchanging part of each request between messages, which is what keeps them at the credit prices shown rather than several times those.' },
     ],

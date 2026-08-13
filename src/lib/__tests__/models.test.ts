@@ -64,13 +64,25 @@ describe('visibleEditModels', () => {
       'gpt-5.4-nano',
       'gpt-5.4-mini',
       'Kimi-K2.6',
-      'claude-haiku-4-5',
       'gpt-5.6-luna',
       'gpt-5.6-terra',
       'claude-sonnet-5',
-      'claude-opus-5',
       'gpt-5.6-sol',
     ]);
+  });
+
+  it('shows one Claude by default, with the other two behind "Show all"', () => {
+    const shown = visibleEditModels(DEFAULT_EDIT_MODEL).map(m => m.value);
+    expect(shown.filter(v => v.startsWith('claude'))).toEqual(['claude-sonnet-5']);
+    // Hidden, not dropped — both still resolve and both are still chargeable.
+    expect(resolveEditModel('claude-haiku-4-5')).toBe('claude-haiku-4-5');
+    expect(resolveEditModel('claude-opus-5')).toBe('claude-opus-5');
+  });
+
+  it('every Claude model is Pro', () => {
+    for (const m of EDIT_MODELS.filter(m => m.value.startsWith('claude'))) {
+      expect(m.pro, m.value).toBe(true);
+    }
   });
 
   it('keeps a hidden model visible while it is the current selection', () => {
