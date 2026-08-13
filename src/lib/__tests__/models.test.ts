@@ -64,8 +64,11 @@ describe('visibleEditModels', () => {
       'gpt-5.4-nano',
       'gpt-5.4-mini',
       'Kimi-K2.6',
+      'claude-haiku-4-5',
       'gpt-5.6-luna',
       'gpt-5.6-terra',
+      'claude-sonnet-5',
+      'claude-opus-5',
       'gpt-5.6-sol',
     ]);
   });

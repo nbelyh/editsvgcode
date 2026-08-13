@@ -321,3 +321,44 @@ describe('lineEditsToRanges — line edits as source ranges', () => {
     expect(outcomes.map((o) => o.status)).toEqual(['applied', 'applied']);
   });
 });
+
+/**
+ * Line ranges arriving as strings.
+ *
+ * Every model reached over the OpenAI Responses API declares its tools with
+ * `strict: true`, which makes the schema binding: `start` and `end` are numbers by
+ * the time they get here. The Claude models are served over Anthropic's Messages
+ * API instead, which has no equivalent — the schema is a hint, and a field declared
+ * as a number can arrive as a string. That is not hypothetical: Claude has called
+ * `query` with `"limit": "null"`.
+ *
+ * It matters most here because this tool replaces whole lines. Arithmetic on a
+ * string would not throw, it would resolve to a different span and overwrite markup
+ * nobody asked to change.
+ */
+describe('loosely typed line ranges', () => {
+  it('accepts a numeric string, because Number() resolves it before any arithmetic', () => {
+    const { svg, outcomes } = applyLineEdits(doc, [
+      { start: '2', end: '2', content: 'B' } as unknown as LineEdit,
+    ]);
+    expect(outcomes[0].status).toBe('applied');
+    expect(svg).toBe('a\nB\nc\nd\ne');
+  });
+
+  it('refuses a range that is not a number at all, leaving the document alone', () => {
+    const { svg, outcomes } = applyLineEdits(doc, [
+      { start: 'null', end: 'null', content: 'X' } as unknown as LineEdit,
+    ]);
+    expect(outcomes[0].status).toBe('failed');
+    expect(outcomes[0].detail).toBe('not a valid line range');
+    expect(svg).toBe(doc);
+  });
+
+  it('refuses null, which coerces to a line number that does not exist', () => {
+    const { svg, outcomes } = applyLineEdits(doc, [
+      { start: null, end: null, content: 'X' } as unknown as LineEdit,
+    ]);
+    expect(outcomes[0].status).toBe('failed');
+    expect(svg).toBe(doc);
+  });
+});

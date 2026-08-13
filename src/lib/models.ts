@@ -30,9 +30,14 @@ const EFFORTS_LMHXM: ReasoningEffort[] = ['low', 'medium', 'high', 'xhigh', 'max
  *  deployment name). Models with no deployment were removed rather than hidden —
  *  offering them, even behind "Show all", only produces runtime errors.
  *
- *  Third-party models (DeepSeek, Kimi) go through the same Responses API and call
- *  SVG_TOOLS fine, but reject `reasoning.effort` with a 400 — hence no `efforts`
- *  here, and `reasoning: false` in the server's MODEL_CONFIG. */
+ *  DeepSeek and Kimi go through the same Responses API and call SVG_TOOLS fine, but
+ *  reject `reasoning.effort` with a 400 — hence no `efforts` here.
+ *
+ *  The Claude models are served over Foundry's Anthropic-native API instead, where the
+ *  effort levels are their own `output_config.effort`. Sonnet 5 and Opus 5 take it;
+ *  Haiku 4.5 predates it and rejects the parameter, so it has no `efforts`. They stop
+ *  at 'xhigh' because Foundry documents 'max' as producing the same result, and two
+ *  radio buttons doing one thing is worse than one. */
 export const EDIT_MODELS: ModelOption[] = [
   // --- Free tier ---
   { label: 'gpt-4.1-mini', value: 'gpt-4.1-mini', credits: 1, pro: false, hidden: true },
@@ -41,10 +46,13 @@ export const EDIT_MODELS: ModelOption[] = [
   { label: 'gpt-5-mini', value: 'gpt-5-mini', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', credits: 3, pro: false, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
   { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false },
+  { label: 'claude-haiku-4-5', value: 'claude-haiku-4-5', credits: 5, pro: false },
   // --- Pro ---
   { label: 'gpt-5.6-luna', value: 'gpt-5.6-luna', credits: 8, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
   { label: 'gpt-5.4', value: 'gpt-5.4', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.6-terra', value: 'gpt-5.6-terra', credits: 20, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
+  { label: 'claude-sonnet-5', value: 'claude-sonnet-5', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
+  { label: 'claude-opus-5', value: 'claude-opus-5', credits: 30, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
   { label: 'gpt-5.6-sol', value: 'gpt-5.6-sol', credits: 40, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
 ];
 
