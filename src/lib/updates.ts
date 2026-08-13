@@ -52,6 +52,18 @@ export interface Update {
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
   {
+    id: 'claude-models',
+    date: '2026-08-13',
+    title: 'Claude joins the model picker',
+    summary:
+      'Three Claude models now sit alongside the others in the picker. Claude Haiku 4.5 is on the free tier at five credits; Claude Sonnet 5 and Claude Opus 5 are Pro, at twenty and thirty. Sonnet and Opus take the same thinking-effort setting the gpt-5 models do, so you can ask for a quick answer on a small change and a careful one on a drawing that needs thinking about.',
+    changes: [
+      { kind: 'new', text: 'Claude Haiku 4.5 is available on the free tier, and Claude Sonnet 5 and Claude Opus 5 to Pro subscribers.' },
+      { kind: 'new', text: 'Sonnet and Opus offer the low, medium, high and extra-high effort levels, with high as the starting point.' },
+      { kind: 'improved', text: 'All three reuse the unchanging part of each request between messages, which is what keeps them at the credit prices shown rather than several times those.' },
+    ],
+  },
+  {
     id: 'richer-generated-images',
     date: '2026-08-12',
     title: 'Generated pictures keep their detail',
