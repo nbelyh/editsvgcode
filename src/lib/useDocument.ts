@@ -100,6 +100,44 @@ export function useDocument(routeFileId: string | undefined) {
    */
   const loadedDocRef = useRef<string | null>(null);
 
+  /**
+   * What the loader last put on screen, against what is on screen now.
+   *
+   * They differ only when the change came from somewhere else — an upload, a
+   * paste, a keystroke — which is the one case a load must not write over.
+   */
+  const loaderSvgRef = useRef(svgCode);
+  const svgCodeRef = useRef(svgCode);
+  useEffect(() => {
+    svgCodeRef.current = svgCode;
+  }, [svgCode]);
+
+  /** Put a document on screen, and record that the loader is what put it there. */
+  const showLoadedSvg = useCallback((next: string) => {
+    loaderSvgRef.current = next;
+    svgCodeRef.current = next;
+    setSvgCode(next);
+  }, []);
+
+  /**
+   * The starter drawing — but only over text the loader itself wrote.
+   *
+   * A load runs when auth settles, which on WebKit is about a second after the
+   * editor is usable and longer on a slow connection. Anything the reader does
+   * in that window is already in the editor by the time a load that found no
+   * document gets here, and this used to replace it with the starter drawing
+   * regardless: open the editor, drop a file in, and a second later the file
+   * was gone and the sample was back. Measured on WebKit at 5 of 5 uploads
+   * lost, against 5 of 5 kept once the load was allowed to settle first.
+   *
+   * `stale()` does not cover this. It asks whether a newer load superseded this
+   * one, not whether the document on screen is still the loader's to overwrite.
+   */
+  const showDefaultSvg = useCallback(() => {
+    if (svgCodeRef.current !== loaderSvgRef.current) return;
+    showLoadedSvg(DEFAULT_SVG);
+  }, [showLoadedSvg]);
+
   // DB init / load
   useEffect(() => {
     const db = new EditSvgCodeDb();
@@ -127,7 +165,7 @@ export function useDocument(routeFileId: string | undefined) {
       // Going back through the stand-in makes every load look the same to the
       // editor and the preview, which is what they are built to expect.
       if (loadedDocRef.current !== null && loadedDocRef.current !== currentFileId) {
-        setSvgCode(LOADING_PLACEHOLDER);
+        showLoadedSvg(LOADING_PLACEHOLDER);
         setReadOnly(true);
       }
       loadedDocRef.current = currentFileId;
@@ -147,18 +185,19 @@ export function useDocument(routeFileId: string | undefined) {
             if (result.text && result.text.includes('<svg')) {
               const formatted = formatXml(result.text);
               primeDraftSvg(uniqueId, formatted);
-              setSvgCode(formatted);
+              showLoadedSvg(formatted);
             } else {
               const savedSvg = await loadSvgCode(currentFileId);
               if (stale()) return;
-              setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
+              if (savedSvg && savedSvg.includes('<svg')) showLoadedSvg(formatXml(savedSvg));
+              else showDefaultSvg();
             }
           } else {
-            setSvgCode(DEFAULT_SVG);
+            showDefaultSvg();
           }
         } catch {
           if (stale()) return;
-          setSvgCode(DEFAULT_SVG);
+          showDefaultSvg();
           notifications.show({ title: 'Access denied', message: 'This file is private or does not exist.', color: 'red' });
         }
         setReadOnly(false);
@@ -179,11 +218,12 @@ export function useDocument(routeFileId: string | undefined) {
         if (serverText && serverText.includes('<svg')) {
           const formatted = formatXml(serverText);
           primeDraftSvg(currentFileId, formatted);
-          setSvgCode(formatted);
+          showLoadedSvg(formatted);
         } else {
           const savedSvg = await loadSvgCode(currentFileId);
           if (stale()) return;
-          setSvgCode(savedSvg && savedSvg.includes('<svg') ? formatXml(savedSvg) : DEFAULT_SVG);
+          if (savedSvg && savedSvg.includes('<svg')) showLoadedSvg(formatXml(savedSvg));
+          else showDefaultSvg();
         }
         setReadOnly(false);
       }
@@ -340,11 +380,13 @@ export function useDocument(routeFileId: string | undefined) {
     setFileId(id);
     setDownloadName(null);
     clearProposal();
-    setSvgCode(DEFAULT_SVG);
+    // Deliberate, so it goes through the loader's own setter rather than the
+    // guarded one: New means replace what is on screen.
+    showLoadedSvg(DEFAULT_SVG);
     // Back to the draft URL. When we were already there the load effect does not
     // re-run, which is why the state above is set directly rather than left to it.
     if (routeFileId) navigate('/', { replace: false });
-  }, [routeFileId, navigate, clearProposal]);
+  }, [routeFileId, navigate, clearProposal, showLoadedSvg]);
 
   const handlePreviewSvg = useCallback((svg: string | null) => {
     if (!svg) {
