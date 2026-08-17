@@ -174,6 +174,82 @@
   padding: 0;
 }
 
+/* The rest of what a model actually writes. Spacing stays tighter than a document's:
+   this is a side panel, and default margins waste most of its width. */
+
+.aui-markdown > :first-child {
+  margin-top: 0;
+}
+
+.aui-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.aui-markdown h1,
+.aui-markdown h2,
+.aui-markdown h3,
+.aui-markdown h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+
+.aui-markdown ul,
+.aui-markdown ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.aui-markdown li {
+  margin-bottom: 2px;
+}
+
+.aui-markdown li > ul,
+.aui-markdown li > ol {
+  margin: 2px 0;
+}
+
+.aui-markdown blockquote {
+  margin: 8px 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--mantine-color-default-border);
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-markdown hr {
+  border: none;
+  border-top: 1px solid var(--mantine-color-default-border);
+  margin: 10px 0;
+}
+
+.aui-markdown a {
+  color: var(--mantine-primary-color-filled);
+}
+
+.aui-table-scroll {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.aui-markdown table {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.aui-markdown th,
+.aui-markdown td {
+  border: 1px solid var(--mantine-color-default-border);
+  padding: 3px 6px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.aui-markdown th {
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  font-weight: 600;
+}
+
 /* Tool call display */
 .aui-tool-call {
   display: flex;

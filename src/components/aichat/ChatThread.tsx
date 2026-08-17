@@ -1,4 +1,6 @@
 import { useState, Fragment, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ActionIcon, Tooltip, Button, Group, Text } from '@mantine/core';
 import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
@@ -141,6 +143,35 @@ function EditMessageForm({ text, onChange, onSubmit, onCancel }: {
           </ActionIcon>
         </Tooltip>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Assistant text, rendered as markdown. Models emit it whether or not they are asked to,
+ * so answers were showing literal asterisks and pipe tables — the `aui-markdown` class
+ * has always been a promise this now keeps.
+ *
+ * Raw HTML stays off (react-markdown's default), so nothing a model writes can inject
+ * markup; links open in a new tab rather than replacing the editor.
+ */
+function Markdown({ children }: { children: string }) {
+  return (
+    <div className="aui-markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
+          // Wide tables scroll inside the message rather than stretching the panel.
+          table: ({ ...props }) => (
+            <div className="aui-table-scroll">
+              <table {...props} />
+            </div>
+          ),
+        }}
+      >
+        {children}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -334,11 +365,7 @@ export function ChatThread({
                 </div>
               </div>
             )}
-            {msg.content && (
-              <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
-                {msg.content}
-              </div>
-            )}
+            {msg.content && <Markdown>{msg.content}</Markdown>}
             {msg.outOfToolRounds && (
               <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>
                 {/* Not "the edit was never made": the response that ran out of
