@@ -41,6 +41,10 @@ export function EditorPlaceholder({ value, theme }: EditorPlaceholderProps) {
       aria-busy="true"
       style={{
         position: 'relative',
+        // Both dimensions: the library drops this into a centring flex row, so
+        // without a width it shrinks to fit the text and paints its background
+        // as a narrow band with the page showing through either side.
+        width: '100%',
         height: '100%',
         overflow: 'hidden',
         backgroundColor: c.bg,
