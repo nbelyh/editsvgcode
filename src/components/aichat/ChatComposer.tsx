@@ -162,7 +162,15 @@ export function ChatComposer({
         />
       </div>
       <div className="aui-composer-footer">
-        <Popover position="top-start" shadow="md">
+        {/* keepMounted for the same reason as the nav drawer in App.tsx: the
+            dropdown is a Radio and a Tooltip per model, and mounting all of
+            that cold inside the tap cost 136ms at 4x CPU throttling, almost
+            all of it in the animation frame Mantine renders the content on.
+            display-none rather than the default activity mode: activity
+            pre-renders but holds every effect back until the first open, and
+            with a Floating UI instance per Tooltip those effects were most of
+            what the tap still paid for. */}
+        <Popover position="top-start" shadow="md" keepMounted keepMountedMode="display-none">
           <Popover.Target>
             {/* A real <button>: Popover.Target puts aria-haspopup and aria-expanded on
                 whatever it wraps, and a <p> supports neither — which axe reports as an
