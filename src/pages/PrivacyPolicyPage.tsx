@@ -69,7 +69,7 @@ export function PrivacyPolicyPage() {
           proposed edit, a request ends in an error, or an edit cannot be applied, we keep a copy of that request —
           your prompt, the AI's response, the drawing and the conversation it was made in — stored in Firebase with
           your account ID, to find out what went wrong and fix it. On any plan, we also keep such a copy when you rate
-          a response as bad and choose to share it with us.
+          a response as bad and choose to share it with us. These copies are deleted automatically after 90 days.
         </Text>
 
         <Title order={2}>3. Cookies</Title>
@@ -114,6 +114,7 @@ export function PrivacyPolicyPage() {
           your personal data will be erased within 30 days, except where retention is required by law
           (e.g. transaction records for tax purposes).
           Analytics data is retained according to Google Analytics' standard retention policies.
+          Copies of failed AI requests (see section 2e) are deleted automatically after 90 days.
         </Text>
 
         <Title order={2}>7. Your Rights (GDPR)</Title>

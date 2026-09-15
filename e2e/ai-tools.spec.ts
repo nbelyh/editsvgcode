@@ -195,6 +195,10 @@ test.describe('Failed turns are kept to improve the assistant', () => {
     expect(record).toMatchObject({ kind: 'reject', tier: 'free', shared: false, prompt: 'rename Customer to Kunde', response: 'Renamed it.' });
     expect(record.svg).toContain('>Customer<');
     expect(record.proposedSvg).toContain('>Kunde<');
+    // Deleted by the TTL policy after the 90 days the privacy policy promises.
+    const daysKept = (Date.parse(String(record.expireAt)) - Date.now()) / 86_400_000;
+    expect(daysKept).toBeGreaterThan(89);
+    expect(daysKept).toBeLessThan(91);
   });
 
   test('a free user’s error reply is kept with the error', async ({ page }) => {

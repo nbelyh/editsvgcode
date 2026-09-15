@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('firebase/firestore', () => ({ addDoc: vi.fn(), collection: vi.fn(), serverTimestamp: vi.fn() }));
+vi.mock('firebase/firestore', () => ({ addDoc: vi.fn(), collection: vi.fn(), serverTimestamp: vi.fn(), Timestamp: { fromMillis: vi.fn() } }));
 vi.mock('firebase/auth', () => ({ getAuth: () => ({ currentUser: null }) }));
 vi.mock('../firebase-app', () => ({ firebaseDb: {} }));
 

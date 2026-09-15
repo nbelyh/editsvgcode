@@ -14,12 +14,16 @@
  *
  * Nothing here may break the chat. A record that cannot be written is logged and dropped.
  */
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseDb } from './firebase-app';
 import type { DisplayMessage } from '../components/aichat/types';
 
 export type FeedbackKind = 'reject' | 'error' | 'refused' | 'broken' | 'out_of_rounds' | 'thumbs_down';
+
+/** How long a record is kept, as the privacy policy states. Firestore's TTL policy on `expireAt`
+ *  (firestore.indexes.json) deletes a record once that date has passed, usually within a day. */
+export const FEEDBACK_RETENTION_DAYS = 90;
 
 /**
  * Firestore holds at most 1 MiB per document, and the drawing takes most of it. What does not
@@ -167,7 +171,11 @@ export function recordAiFeedback(input: FeedbackInput): boolean {
   if (!shouldRecordFeedback(input.tier, input.shared)) return false;
   const user = getAuth().currentUser;
   if (!user || user.isAnonymous) return false;
-  addDoc(collection(firebaseDb, 'ai_feedback'), { ...buildFeedbackRecord(input, user.uid), createdAt: serverTimestamp() })
+  addDoc(collection(firebaseDb, 'ai_feedback'), {
+    ...buildFeedbackRecord(input, user.uid),
+    createdAt: serverTimestamp(),
+    expireAt: Timestamp.fromMillis(Date.now() + FEEDBACK_RETENTION_DAYS * 86_400_000),
+  })
     .catch((err) => console.warn('[ai-feedback] not recorded', err));
   return true;
 }
