@@ -175,6 +175,22 @@ async function expectEditorHolds(page: Page, check: (svg: string) => boolean, ms
   }
 }
 
+test.describe('Composer', () => {
+  test('a sample prompt fills the composer and hands it the caret', async ({ page }) => {
+    // The click left focus on the sample's own button, so Enter did nothing and typing went
+    // nowhere until the composer was clicked as well.
+    await boot(page);
+    await page.getByRole('button', { name: 'Change color of all boxes to red' }).click();
+
+    const composer = page.locator('textarea.aui-composer-input');
+    await expect(composer).toHaveValue('Change color of all boxes to red');
+    await expect(composer).toBeFocused();
+    // The caret is at the end, so typing adds to the sample rather than landing in front of it.
+    await page.keyboard.type(' with blue borders');
+    await expect(composer).toHaveValue('Change color of all boxes to red with blue borders');
+  });
+});
+
 test.describe('Failed turns are kept to improve the assistant', () => {
   // What the privacy policy promises: a free-tier user's failed turn is copied — prompt,
   // drawing, proposal — and a Pro user's only when they share it. The emulator enforces

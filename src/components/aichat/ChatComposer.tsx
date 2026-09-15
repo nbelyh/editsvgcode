@@ -41,6 +41,8 @@ interface ChatComposerProps {
   isModelDisabled: (m: { pro: boolean }) => boolean;
   /** Past user messages for Up/Down history navigation. */
   history: string[];
+  /** Filled with the composer's textarea, so the panel can hand it the caret. */
+  inputRef?: { current: HTMLTextAreaElement | null };
 }
 
 export function ChatComposer({
@@ -48,9 +50,14 @@ export function ChatComposer({
   isRunning, hasPending, selectedElement, selectedAddress,
   model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange,
-  credits, isModelDisabled, history,
+  credits, isModelDisabled, history, inputRef,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // One element, two holders: this component sizes it, and the panel focuses it.
+  const setTextarea = useCallback((el: HTMLTextAreaElement | null) => {
+    textareaRef.current = el;
+    if (inputRef) inputRef.current = el;
+  }, [inputRef]);
   const [showAllModels, setShowAllModels] = useState(false);
   const editModels = useMemo(
     () => (showAllModels ? EDIT_MODELS : visibleEditModels(model)),
@@ -149,7 +156,7 @@ export function ChatComposer({
       )}
       <div className="aui-composer">
         <textarea
-          ref={textareaRef}
+          ref={setTextarea}
           className="aui-composer-input"
           placeholder="Ask AI to edit your SVG…"
           value={input}

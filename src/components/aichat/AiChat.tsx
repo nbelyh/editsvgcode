@@ -170,6 +170,20 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   useEffect(() => { onAccessResolved?.(isViewer); }, [isViewer, onAccessResolved]);
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  // A sample prompt fills the composer and hands it the caret, ready to send or change. The
+  // click leaves focus on the sample's own button, so Enter did nothing and typing went
+  // nowhere: the composer only took focus when the panel opened. A frame's wait lets the new
+  // value commit first, so the caret lands at its end.
+  const handleSamplePrompt = useCallback((text: string) => {
+    setInput(text);
+    requestAnimationFrame(() => {
+      const textarea = composerRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(text.length, text.length);
+    });
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
   const loadedRef = useRef(false);
   // Arms the deferred-send effect below (see its comment): set alongside
@@ -818,7 +832,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           imageConfirmSummary={imageConfirmSummary}
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
-          onSamplePrompt={setInput}
+          onSamplePrompt={handleSamplePrompt}
         />
         {accessPending ? null : isViewer ? (
           // Somebody else's document: the conversation is readable but not
@@ -849,6 +863,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             credits={credits}
             isModelDisabled={isModelDisabled}
             history={isAnonymous === false ? inputHistory : []}
+            inputRef={composerRef}
           />
         )}
       </div>
