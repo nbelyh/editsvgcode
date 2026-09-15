@@ -7,6 +7,7 @@ import { IconEraser } from '@tabler/icons-react';
 import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type ChatLiveUpdate } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { createLiveReplyStore } from '../../lib/live-reply';
+import { recordAiFeedback, failureOf, drawingShownFor, type FeedbackInput } from '../../lib/ai-feedback';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
 import { friendlyError } from '../../lib/firebase';
 import { addressForLineRange } from '../../lib/svg-dom';
@@ -117,6 +118,17 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     });
   }, [model]);
   const tier = credits?.tier ?? 'free';
+  // Unknown until the credits listener has answered: the default above reads a Pro account as
+  // free, and a failure must not be kept on that guess.
+  const feedbackTier = credits ? tier : null;
+  // One record per turn: a refused edit that is then rejected and rated down is one failure,
+  // not three copies of the drawing.
+  const recordedTurnsRef = useRef(new Set<string>());
+  const keepFailure = useCallback((input: FeedbackInput) => {
+    const id = input.message?.turn?.id;
+    if (id && recordedTurnsRef.current.has(id)) return;
+    if (recordAiFeedback(input) && id) recordedTurnsRef.current.add(id);
+  }, []);
   // null = auth not yet known (Firebase still restoring the session after page
   // load). Distinct from anonymous: a signed-in user must not be treated as a
   // guest during the restore window, so auth-gated paths wait for a real value.
@@ -343,6 +355,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setIsRunning(true);
     setProgressStatus('thinking');
     const turn = ++turnRef.current;
+    // Lower effort for image-generation prompts — reasoning doesn't help much there.
+    const sentEffort = supportedEfforts && looksLikeImageGen(text) ? 'low' : effort;
+    const turnInfo = { id: crypto.randomUUID(), model, effort: sentEffort };
     live.reset();
     // Sending asks to see the reply: follow it even from further up the thread.
     pinnedRef.current = true;
@@ -418,8 +433,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageModel,
         abort.signal,
         setProgressStatus,
-        // Lower effort for image-generation prompts — reasoning doesn't help much there
-        supportedEfforts && looksLikeImageGen(text) ? 'low' : effort,
+        sentEffort,
         handleIconPick,
         (tc) => collectedToolCalls.push(tc),
         handleImageConfirm,
@@ -450,6 +464,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         readToolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
         outOfToolRounds: response.outOfToolRounds ? true : undefined,
         reasoning: response.reasoning,
+        turn: turnInfo,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -460,6 +475,16 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       }
       const firstSvg = response.toolCalls?.find(tc => tc.arguments.svg)?.arguments.svg as string | undefined;
       if (firstSvg) onPreviewSvg(firstSvg);
+
+      // A turn that went wrong without the user having to say so: an edit refused, partly
+      // applied or breaking the drawing, or a turn that ran out of tool calls.
+      const failure = failureOf(assistantMsg);
+      if (failure) {
+        keepFailure({
+          kind: failure, fileId, prompt: text, response: assistantMsg.content, model, effort: sentEffort,
+          tier: feedbackTier, svg: svgCode, proposedSvg: firstSvg, message: assistantMsg, history: messages,
+        });
+      }
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
       const creditsErr = isCreditsError(err);
@@ -469,7 +494,15 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         role: 'assistant',
         content: creditsErr ? errMsg : `Error: ${errMsg}`,
         buyCredits: creditsErr || undefined,
+        turn: turnInfo,
       };
+      // Running out of credits is the paywall working, not the assistant failing.
+      if (!creditsErr) {
+        keepFailure({
+          kind: 'error', fileId, prompt: text, error: errMsg, model, effort: sentEffort, tier: feedbackTier,
+          svg: svgCode, message: assistantMsg, history: messages,
+        });
+      }
       setMessages(prev => [...prev, assistantMsg]);
     } finally {
       // A turn that Stop already ended, or that a newer send replaced, leaves the panel alone.
@@ -483,7 +516,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageConfirmResolveRef.current = null;
       }
     }
-  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live]);
+  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -656,11 +689,21 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   }, [messages, onPreviewSvg, onRestore]);
 
   const handleReject = useCallback((msgIndex: number, tcIndex: number) => {
-    const tc = messages[msgIndex]?.toolCalls?.[tcIndex];
+    const msg = messages[msgIndex];
+    const tc = msg?.toolCalls?.[tcIndex];
     const userMsg = messages[msgIndex - 1];
     const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
 
     trackAiReject({ model, effort: effort, tool: tc?.name ?? '', prompt_len: promptLen });
+    // The turn is removed from the chat just below, so this is the last chance to keep it.
+    if (msg) {
+      keepFailure({
+        kind: 'reject', fileId, prompt: userMsg?.role === 'user' ? userMsg.content : '', response: msg.content,
+        model: msg.turn?.model ?? model, effort: msg.turn ? msg.turn.effort : effort, tier: feedbackTier,
+        svg: drawingShownFor(msg, svgRef.current), proposedSvg: tc?.arguments.svg as string | undefined,
+        message: msg, history: messages.slice(0, Math.max(0, msgIndex - 1)),
+      });
+    }
 
     onPreviewSvg(null);
 
@@ -669,7 +712,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
     setMessages(prev => prev.filter((_, i) => i !== userMsgIndex && i !== msgIndex));
     setInput(restoredText);
-  }, [messages, onPreviewSvg, model, effort]);
+  }, [messages, onPreviewSvg, model, effort, fileId, feedbackTier, keepFailure]);
 
   const handleThumbsUp = useCallback((msgIndex: number) => {
     const userMsg = messages[msgIndex - 1];
@@ -678,10 +721,23 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   }, [messages, model, effort]);
 
   const handleThumbsDown = useCallback((msgIndex: number, prompt: string) => {
+    const msg = messages[msgIndex];
     const userMsg = messages[msgIndex - 1];
     const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
     trackAiThumbsDown({ model, effort, prompt_len: promptLen, shared: !!prompt });
-  }, [messages, model, effort]);
+    // The prompt asks "Share this chat and drawing…?", so only Share keeps anything — on any
+    // tier — and Skip keeps nothing, free tier included. It used to send analytics a yes/no
+    // and store nothing either way.
+    if (msg && prompt) {
+      keepFailure({
+        kind: 'thumbs_down', shared: true, fileId, prompt: userMsg?.role === 'user' ? userMsg.content : '',
+        response: msg.content, model: msg.turn?.model ?? model, effort: msg.turn ? msg.turn.effort : effort,
+        tier: feedbackTier, svg: drawingShownFor(msg, svgRef.current),
+        proposedSvg: msg.toolCalls?.find(tc => tc.arguments.svg)?.arguments.svg as string | undefined,
+        message: msg, history: messages.slice(0, Math.max(0, msgIndex - 1)),
+      });
+    }
+  }, [messages, model, effort, fileId, feedbackTier, keepFailure]);
 
   const handleModelChange = useCallback((v: string) => {
     setModel(v);

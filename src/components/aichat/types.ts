@@ -23,6 +23,11 @@ export interface DisplayMessage {
    * chat is readable by anyone with the link, and reasoning can restate the server's
    * instructions (see chat-history's toStored). */
   reasoning?: string;
+  /** The turn as it was sent, for failure records only and never saved: an id so a turn is
+   * recorded once however the user reacts to it, and the model and effort the request actually
+   * used — the picker may have moved since, and image-like prompts go out at low effort.
+   * Absent on messages loaded from storage. */
+  turn?: { id: string; model: string; effort?: string };
 }
 
 export interface AiChatProps {

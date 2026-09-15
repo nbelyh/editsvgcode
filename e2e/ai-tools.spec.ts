@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { waitForEditor, setSvgContent } from './helpers.js';
-import { signInTestUser, useEmulatorSuite } from './emulator.js';
+import { signInTestUser, useEmulatorSuite, FIRESTORE_DB, EMULATOR_AUTH } from './emulator.js';
 
 /**
  * The edit pipeline, driven end to end with the model replaced by a script.
@@ -69,14 +69,46 @@ async function stubChat(page: Page, rounds: OutputItem[][]) {
   });
 }
 
-async function boot(page: Page, svg = DOC) {
+/** Boot signed in with the AI panel open and `svg` in the editor. Returns the user's uid.
+ *  `pro` gives the account an active Pro subscription before the app reads it. */
+async function boot(page: Page, svg = DOC, opts: { pro?: boolean } = {}): Promise<string> {
   await page.goto('/');
   await waitForEditor(page);
-  await signInTestUser(page);
+  const uid = await signInTestUser(page);
+  if (opts.pro) await makePro(uid);
   await page.evaluate(() => localStorage.setItem('esvg-sidebar-tab', 'ai'));
   await page.reload();
   await waitForEditor(page);
   await setSvgContent(page, svg);
+  return uid;
+}
+
+/** An active Pro subscription on users/{uid}, written the way the payment webhook would. */
+async function makePro(uid: string): Promise<void> {
+  const res = await fetch(`${FIRESTORE_DB}/documents/users/${uid}`, {
+    method: 'PATCH',
+    headers: { ...EMULATOR_AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { tier: { stringValue: 'pro' }, subscriptionStatus: { stringValue: 'active' } } }),
+  });
+  if (!res.ok) throw new Error(`makePro failed: ${res.status} ${await res.text()}`);
+}
+
+/** The ai_feedback records a user has written, read past the rules with the emulator's owner
+ *  token — the app itself can never read them back. */
+async function feedbackFor(uid: string): Promise<Array<Record<string, unknown>>> {
+  const res = await fetch(`${FIRESTORE_DB}/documents:runQuery`, {
+    method: 'POST',
+    headers: { ...EMULATOR_AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'ai_feedback' }],
+        where: { fieldFilter: { field: { fieldPath: 'uid' }, op: 'EQUAL', value: { stringValue: uid } } },
+      },
+    }),
+  });
+  const rows = (await res.json()) as Array<{ document?: { fields: Record<string, Record<string, unknown>> } }>;
+  return rows.filter((row) => row.document).map((row) =>
+    Object.fromEntries(Object.entries(row.document!.fields).map(([key, value]) => [key, Object.values(value)[0]])));
 }
 
 async function send(page: Page, prompt = 'do the thing') {
@@ -142,6 +174,104 @@ async function expectEditorHolds(page: Page, check: (svg: string) => boolean, ms
     await page.waitForTimeout(250);
   }
 }
+
+test.describe('Failed turns are kept to improve the assistant', () => {
+  // What the privacy policy promises: a free-tier user's failed turn is copied — prompt,
+  // drawing, proposal — and a Pro user's only when they share it. The emulator enforces
+  // firestore.rules, so a record that appears here also passed them.
+  const rename = () => [
+    call('set_text', { edits: [{ selector: '#title', text: 'Kunde' }], summary: 'Rename' }),
+    say('Renamed it.'),
+  ];
+
+  test('a free user’s rejected edit is kept with its prompt, drawing and proposal', async ({ page }) => {
+    const uid = await boot(page);
+    await stubChat(page, [rename()]);
+    await send(page, 'rename Customer to Kunde');
+    await page.locator('.aui-proposal').getByRole('button', { name: 'Reject' }).click();
+
+    await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
+    const [record] = await feedbackFor(uid);
+    expect(record).toMatchObject({ kind: 'reject', tier: 'free', shared: false, prompt: 'rename Customer to Kunde', response: 'Renamed it.' });
+    expect(record.svg).toContain('>Customer<');
+    expect(record.proposedSvg).toContain('>Kunde<');
+  });
+
+  test('a free user’s error reply is kept with the error', async ({ page }) => {
+    const uid = await boot(page);
+    await page.route('**/api/chat', (route) => route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'The model service failed: overloaded' }),
+    }));
+    await send(page, 'rename Customer to Kunde');
+    await expect(page.getByText('Error: The model service failed: overloaded')).toBeVisible({ timeout: 15000 });
+
+    await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
+    const [record] = await feedbackFor(uid);
+    expect(record).toMatchObject({ kind: 'error', prompt: 'rename Customer to Kunde', error: 'The model service failed: overloaded' });
+    expect(record.svg).toContain('>Customer<');
+  });
+
+  test('a Pro user’s rejected edit is not kept', async ({ page }) => {
+    const uid = await boot(page, DOC, { pro: true });
+    await stubChat(page, [rename()]);
+    await send(page, 'rename Customer to Kunde');
+    await page.locator('.aui-proposal').getByRole('button', { name: 'Reject' }).click();
+    await expect(page.locator('textarea.aui-composer-input')).toHaveValue('rename Customer to Kunde');
+
+    // Nothing to wait for on success, so give a write every chance to land first.
+    await page.waitForTimeout(3000);
+    expect(await feedbackFor(uid)).toHaveLength(0);
+  });
+
+  test('skipping the share prompt keeps nothing, even on the free tier', async ({ page }) => {
+    // The prompt asks "Share this chat and drawing…?" — Skip has to mean no.
+    const uid = await boot(page);
+    await stubChat(page, [rename()]);
+    await send(page, 'rename Customer to Kunde');
+    await acceptAll(page);
+
+    await page.getByRole('button', { name: 'Bad response' }).click();
+    await page.getByRole('button', { name: 'Skip' }).click();
+
+    await page.waitForTimeout(3000);
+    expect(await feedbackFor(uid)).toHaveLength(0);
+  });
+
+  test('one failure is kept once, however the user reacts to it', async ({ page }) => {
+    // An edit addressed to nothing is recorded as refused when it arrives; sharing it from the
+    // thumbs-down afterwards must not write the drawing and chat a second time.
+    const uid = await boot(page);
+    await stubChat(page, [[
+      call('set_text', { edits: [{ selector: '#nope', text: 'Kunde' }], summary: 'Rename' }),
+      say('Tried to rename it.'),
+    ]]);
+    await send(page, 'rename Customer to Kunde');
+
+    await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
+    expect((await feedbackFor(uid))[0]).toMatchObject({ kind: 'refused' });
+
+    await page.getByRole('button', { name: 'Bad response' }).click();
+    await page.getByRole('button', { name: 'Share' }).click();
+    await page.waitForTimeout(3000);
+    expect(await feedbackFor(uid)).toHaveLength(1);
+  });
+
+  test('a Pro user’s turn is kept once they share it from the thumbs-down', async ({ page }) => {
+    const uid = await boot(page, DOC, { pro: true });
+    await stubChat(page, [rename()]);
+    await send(page, 'rename Customer to Kunde');
+    await acceptAll(page);
+
+    await page.getByRole('button', { name: 'Bad response' }).click();
+    await page.getByRole('button', { name: 'Share' }).click();
+
+    await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
+    const [record] = await feedbackFor(uid);
+    expect(record).toMatchObject({ kind: 'thumbs_down', tier: 'pro', shared: true, prompt: 'rename Customer to Kunde' });
+  });
+});
 
 test.describe('Restore, in the same session', () => {
   // The reload path is covered in cloud-chat.spec.ts. These accept an edit through the real

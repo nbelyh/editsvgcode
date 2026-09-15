@@ -9,7 +9,7 @@ export function PrivacyPolicyPage() {
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Privacy Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: April 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: September 2026</Text>
 
         <Text>
           Your privacy is important to us, and so is being transparent about how we collect, use, and share information about you.
@@ -60,10 +60,16 @@ export function PrivacyPolicyPage() {
         <Title order={3}>e) AI features</Title>
         <Text>
           When you use AI-powered features, the content you submit (SVG code, images, text prompts) is sent to
-          third-party AI model providers (e.g. OpenAI, Google) for processing. We do not store AI request or response data
-          beyond what is needed to deliver the result. If you are signed in, your AI chat conversations (including
-          generated images and document snapshots) are stored in Firebase with your account so you can continue them
-          later; deleting a document deletes its conversation.
+          third-party AI model providers (e.g. OpenAI, Google) for processing. If you are signed in, your AI chat
+          conversations (including generated images and document snapshots) are stored in Firebase with your account so
+          you can continue them later; deleting a document deletes its conversation.
+        </Text>
+        <Text>
+          On the free plan, you allow us to use AI requests that fail to improve the AI features. When you reject a
+          proposed edit, a request ends in an error, or an edit cannot be applied, we keep a copy of that request —
+          your prompt, the AI's response, the drawing and the conversation it was made in — stored in Firebase with
+          your account ID, to find out what went wrong and fix it. On any plan, we also keep such a copy when you rate
+          a response as bad and choose to share it with us.
         </Text>
 
         <Title order={2}>3. Cookies</Title>
@@ -86,6 +92,7 @@ export function PrivacyPolicyPage() {
           <List.Item>Manage your account and subscription</List.Item>
           <List.Item>Process payments via PayPro Global</List.Item>
           <List.Item>Improve the Service based on usage statistics</List.Item>
+          <List.Item>Improve the AI features using failed AI requests (free plan, or when you share them)</List.Item>
           <List.Item>Detect and prevent abuse or fraud</List.Item>
         </List>
 

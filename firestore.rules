@@ -81,6 +81,33 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // AI failures kept to improve the assistant (see src/lib/ai-feedback.ts): the prompt, the
+    // drawing and the conversation of a turn that went wrong. Created by the app for the
+    // signed-in user's own turns, and never readable, changeable or deletable from a client —
+    // they are read with admin tools. Sizes mirror FEEDBACK_LIMITS, so one record stays inside
+    // Firestore's 1 MiB document limit.
+    match /ai_feedback/{recordId} {
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly([
+                         'uid', 'fileId', 'kind', 'tier', 'shared', 'model', 'effort',
+                         'prompt', 'response', 'error', 'tools', 'notes', 'outOfToolRounds',
+                         'svg', 'svgChars', 'svgTruncated', 'proposedSvg', 'proposedSvgChars',
+                         'chat', 'createdAt'])
+                    && request.resource.data.kind in ['reject', 'error', 'refused', 'broken', 'out_of_rounds', 'thumbs_down']
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.fileId is string && request.resource.data.fileId.size() <= 128
+                    && strWithin(request.resource.data.get('prompt', null), 4000)
+                    && strWithin(request.resource.data.get('response', null), 4000)
+                    && strWithin(request.resource.data.get('error', null), 4000)
+                    && strWithin(request.resource.data.get('chat', null), 200000)
+                    && request.resource.data.get('tools', []).size() <= 100
+                    && request.resource.data.get('notes', []).size() <= 40
+                    && request.resource.data.get('svg', '').size() + request.resource.data.get('proposedSvg', '').size() <= 600000;
+      allow read, update, delete: if false;
+    }
+
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;
