@@ -246,7 +246,7 @@ test.describe('Failed turns are kept to improve the assistant', () => {
   });
 
   test('skipping the share prompt keeps nothing, even on the free tier', async ({ page }) => {
-    // The prompt asks "Share this chat and drawing…?" — Skip has to mean no.
+    // The prompt asks "Share chat and drawing?" — Skip has to mean no.
     const uid = await boot(page);
     await stubChat(page, [rename()]);
     await send(page, 'rename Customer to Kunde');

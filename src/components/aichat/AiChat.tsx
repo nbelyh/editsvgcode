@@ -739,7 +739,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const userMsg = messages[msgIndex - 1];
     const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
     trackAiThumbsDown({ model, effort, prompt_len: promptLen, shared: !!prompt });
-    // The prompt asks "Share this chat and drawing…?", so only Share keeps anything — on any
+    // The prompt asks "Share chat and drawing?", so only Share keeps anything — on any
     // tier — and Skip keeps nothing, free tier included. It used to send analytics a yes/no
     // and store nothing either way.
     if (msg && prompt) {

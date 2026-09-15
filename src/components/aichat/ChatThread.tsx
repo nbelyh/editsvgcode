@@ -377,7 +377,7 @@ export function ChatThread({
               <div className="aui-thumbs">
                 {sharePromptIdx === msgIdx ? (
                   <div className="aui-share-prompt">
-                    <span>Share this chat and drawing to help us improve?</span>
+                    <span>Share chat and drawing?</span>
                     <button className="aui-action-btn aui-action-btn-primary" onClick={() => {
                       const userMsg = messages[msgIdx - 1];
                       onThumbsDown(msgIdx, userMsg?.role === 'user' ? userMsg.content : '');
@@ -471,7 +471,7 @@ export function ChatThread({
               <div className="aui-thumbs">
                 {sharePromptIdx === msgIdx ? (
                   <div className="aui-share-prompt">
-                    <span>Share this chat and drawing to help us improve?</span>
+                    <span>Share chat and drawing?</span>
                     <button className="aui-action-btn aui-action-btn-primary" onClick={() => {
                       const userMsg = messages[msgIdx - 1];
                       onThumbsDown(msgIdx, userMsg?.role === 'user' ? userMsg.content : '');
