@@ -128,6 +128,96 @@ function editorValue(page: Page): Promise<string> {
 
 useEmulatorSuite();
 
+/**
+ * The editor still satisfies `check` for `ms` — nothing running in the background, a
+ * debounced save or a late document load, has written something else back over it. Restore
+ * was reported to fail only sometimes, which is what a race like that looks like: one
+ * assertion straight after the click passes, and the document changes a moment later.
+ */
+async function expectEditorHolds(page: Page, check: (svg: string) => boolean, ms = 3000) {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    const svg = await editorValue(page);
+    expect(check(svg), `the editor changed after the restore:\n${svg}`).toBe(true);
+    await page.waitForTimeout(250);
+  }
+}
+
+test.describe('Restore, in the same session', () => {
+  // The reload path is covered in cloud-chat.spec.ts. These accept an edit through the real
+  // proposal card and restore without reloading, so the undo snapshot is the one taken at
+  // accept time rather than one rebuilt from storage.
+  const restore = (page: Page) => page.getByRole('button', { name: 'Restore' });
+
+  test('restoring right after an accept puts the document back', async ({ page }) => {
+    await boot(page);
+    await stubChat(page, [[
+      call('set_text', { edits: [{ selector: '#title', text: 'Kunde' }], summary: 'Rename' }),
+      say('Renamed it.'),
+    ]]);
+    await send(page, 'rename Customer to Kunde');
+    await acceptAll(page);
+    await expect.poll(() => editorValue(page)).toContain('>Kunde<');
+
+    await restore(page).first().click();
+
+    await expect.poll(() => editorValue(page)).toBe(DOC);
+    await expect(page.getByText('Renamed it.')).not.toBeVisible();
+    // The prompt comes back to the composer, ready to be changed and sent again.
+    await expect(page.locator('textarea.aui-composer-input')).toHaveValue('rename Customer to Kunde');
+    await expectEditorHolds(page, (svg) => svg === DOC);
+  });
+
+  test('restoring a later turn keeps what the earlier one did', async ({ page }) => {
+    await boot(page);
+    await stubChat(page, [
+      [call('set_text', { edits: [{ selector: '#title', text: 'Kunde' }], summary: 'Rename' }), say('First.')],
+      [call('set_text', { edits: [{ selector: '#title', text: 'Klient' }], summary: 'Rename again' }), say('Second.')],
+    ]);
+    await send(page, 'rename to Kunde');
+    await acceptAll(page);
+    await expect.poll(() => editorValue(page)).toContain('>Kunde<');
+    await send(page, 'rename to Klient');
+    await acceptAll(page);
+    await expect.poll(() => editorValue(page)).toContain('>Klient<');
+
+    // One checkpoint above each prompt: the second undoes only the second turn.
+    await expect(restore(page)).toHaveCount(2);
+    await restore(page).nth(1).click();
+    await expect.poll(() => editorValue(page)).toContain('>Kunde<');
+    await expect(page.getByText('Second.')).not.toBeVisible();
+    await expectEditorHolds(page, (svg) => svg.includes('>Kunde<') && !svg.includes('Klient'));
+
+    await restore(page).first().click();
+    await expect.poll(() => editorValue(page)).toBe(DOC);
+    await expectEditorHolds(page, (svg) => svg === DOC);
+  });
+
+  test('restoring keeps a hand edit made between two accepts', async ({ page }) => {
+    // The snapshot restored is the document as it stood when the edit was accepted — hand
+    // edits included — not the result of the previous AI edit.
+    await boot(page);
+    await stubChat(page, [
+      [call('set_text', { edits: [{ selector: '#title', text: 'Kunde' }], summary: 'Rename' }), say('First.')],
+      [call('set_text', { edits: [{ selector: '#title', text: 'Klient' }], summary: 'Rename again' }), say('Second.')],
+    ]);
+    await send(page, 'rename to Kunde');
+    await acceptAll(page);
+    await expect.poll(() => editorValue(page)).toContain('>Kunde<');
+
+    const handEdited = (await editorValue(page)).replace('CustomerID', 'CustomerNo');
+    await setSvgContent(page, handEdited);
+
+    await send(page, 'rename to Klient');
+    await acceptAll(page);
+    await expect.poll(() => editorValue(page)).toContain('>Klient<');
+
+    await restore(page).nth(1).click();
+    await expect.poll(() => editorValue(page)).toBe(handEdited);
+    await expectEditorHolds(page, (svg) => svg === handEdited);
+  });
+});
+
 test.describe('AI edit tools, end to end', () => {
   test('set_text changes the label and keeps every coordinate', async ({ page }) => {
     // The failure that motivated the whole structural layer: a rename through
