@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { waitForEditor, setSvgContent } from './helpers.js';
 import { signInTestUser, useEmulatorSuite, FIRESTORE_DB, EMULATOR_AUTH } from './emulator.js';
+import { embeddedToken } from '../src/lib/embedded-data';
 
 /**
  * The edit pipeline, driven end to end with the model replaced by a script.
@@ -174,6 +175,82 @@ async function expectEditorHolds(page: Page, check: (svg: string) => boolean, ms
     await page.waitForTimeout(250);
   }
 }
+
+test.describe('Embedded images', () => {
+  // The model reads an embedded photo as a short token. An edit that copies the token must get the
+  // photo back when it is applied — otherwise accepting it would destroy the image.
+  const PHOTO = `data:image/png;base64,${'iVBORw0KGgoAAAANSUhEUg'.repeat(200)}`;
+  const DOC_WITH_PHOTO = [
+    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 100">',
+    `  <image id="photo" x="0" y="0" width="50" height="50" xlink:href="${PHOTO}"/>`,
+    '  <text id="title" x="8" y="80">Customer</text>',
+    '</svg>',
+  ].join('\n');
+
+  test('rewriting the line that holds a photo keeps the photo', async ({ page }) => {
+    await boot(page, DOC_WITH_PHOTO);
+    await stubChat(page, [[
+      call('replace_lines', {
+        edits: [{ start: 2, end: 2, content: `  <image id="photo" x="100" y="0" width="50" height="50" xlink:href="${embeddedToken(PHOTO)}"/>` }],
+      }),
+      say('Moved the photo.'),
+    ]]);
+    await send(page, 'move the photo to the right');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    expect(svg).toContain('x="100"');
+    expect(svg).toContain(PHOTO);
+    expect(svg).not.toContain('⟦embedded');
+  });
+
+  test('an edit naming data the document does not hold changes nothing', async ({ page }) => {
+    await boot(page, DOC_WITH_PHOTO);
+    await stubChat(page, [[
+      call('replace_svg', { svg: DOC_WITH_PHOTO.replace(PHOTO, '⟦embedded image/png 1 MB #deadbeef⟧') }),
+      say('Rewrote it.'),
+    ]]);
+    await send(page, 'tidy it up');
+    await expect(page.getByText('Rewrote it.')).toBeVisible({ timeout: 15000 });
+
+    await expect(page.locator('.aui-proposal').getByRole('button', { name: 'Accept' })).toHaveCount(0);
+    expect(await editorValue(page)).toBe(DOC_WITH_PHOTO);
+  });
+
+  test('a refused rewrite leaves the edits after it to be applied', async ({ page }) => {
+    // The refused replace_svg rewrote nothing, so the line numbers after it still hold. The edit
+    // after it used to be refused all the same, as if the document had been replaced.
+    await boot(page, DOC_WITH_PHOTO);
+    await stubChat(page, [[
+      call('replace_svg', { svg: DOC_WITH_PHOTO.replace(PHOTO, '⟦embedded image/png 1 MB #deadbeef⟧') }),
+      call('replace_lines', { edits: [{ start: 3, end: 3, content: '  <text id="title" x="8" y="80">Kunde</text>' }] }),
+      say('Renamed it.'),
+    ]]);
+    await send(page, 'rename the customer');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    expect(svg).toContain('>Kunde</text>');
+    expect(svg).toContain(PHOTO);
+  });
+});
+
+test.describe('Clipped lines', () => {
+  test('markup copied from a clipped line is not written', async ({ page }) => {
+    // Only the start of an enormous line is shown. Written back, the copy would drop the rest.
+    await boot(page, DOC);
+    const before = await editorValue(page);
+    await stubChat(page, [[
+      call('replace_lines', { edits: [{ start: 2, end: 2, content: '  <rect id="box" [... 4000 more chars on this line, not shown ...]' }] }),
+      say('Rewrote it.'),
+    ]]);
+    await send(page, 'tidy it up');
+    await expect(page.getByText('Rewrote it.')).toBeVisible({ timeout: 15000 });
+
+    await expect(page.locator('.aui-proposal').getByRole('button', { name: 'Accept' })).toHaveCount(0);
+    expect(await editorValue(page)).toBe(before);
+  });
+});
 
 test.describe('Composer', () => {
   test('a sample prompt fills the composer and hands it the caret', async ({ page }) => {

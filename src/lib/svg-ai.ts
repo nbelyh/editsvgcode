@@ -5,6 +5,7 @@ import {
   type TextEdit, type AttributeEdit, type StyleRuleEdit, type TextEditOutcome,
   type ElementInsert, type ElementRemoval, type InsertPosition,
 } from './svg-dom';
+import { elideEmbeddedData, EMBEDDED_NOTE } from './embedded-data';
 
 /**
  * Client-side AI utilities: context budgeting, read-tool execution, edit application.
@@ -28,6 +29,9 @@ const SELECTION_PADDING = 50;
 const CHAR_BUDGET = 100_000;
 const MAX_LINE_CHARS = 1200;
 
+/** The words that mark a clipped line. Markup holding them was copied from a clipped line. */
+export const CLIP_MARKER = 'more chars on this line, not shown';
+
 /** Normalize \r\n to \n — Monaco on Windows uses \r\n, models always output \n */
 function normalize(s: string): string {
   return s.replace(/\r\n/g, '\n');
@@ -44,7 +48,7 @@ function normalize(s: string): string {
 function clipLine(line: string): string {
   if (line.length <= MAX_LINE_CHARS) return line;
   const withheld = line.length - MAX_LINE_CHARS;
-  return `${line.slice(0, MAX_LINE_CHARS)} [... ${withheld} more chars on this line, not shown ...]`;
+  return `${line.slice(0, MAX_LINE_CHARS)} [... ${withheld} ${CLIP_MARKER} ...]`;
 }
 
 /**
@@ -68,7 +72,9 @@ function numberLines(lines: string[], startIndex: number, clip = false): string 
 function truncateAtLine(text: string, limit: number): string {
   if (text.length <= limit) return text;
   const note = '[... context truncated here — later lines are not shown; use read_svg_lines/search_svg for the rest ...]';
-  const cut = text.lastIndexOf('\n', limit);
+  // The note counts against the limit too: appended past it, the result overshot
+  // by the note's own length.
+  const cut = text.lastIndexOf('\n', limit - note.length - 1);
   // Every line on this path is already clipped to MAX_LINE_CHARS, so a boundary
   // exists well inside any sane limit; keeping nothing beats keeping half a line.
   return cut < 0 ? note : `${text.slice(0, cut)}\n${note}`;
@@ -82,7 +88,25 @@ const CLIPPED_NOTE =
   + ' remove_element and insert_element all edit in place and leave the rest of the line alone,'
   + ' so a clipped line is no obstacle to them. What is withheld is the END of the line, which on'
   + ' a traced <path> is where style="fill: ..." sits. read_svg_lines returns those lines in full'
-  + ' if you need to see it, but ask for a FEW lines at a time — these lines are enormous.';
+  + ' while its result stays under about 60,000 characters, so ask for a FEW lines at a time —'
+  + ' these lines are enormous.';
+
+/**
+ * Ceiling on one read tool's result. A result once carried a whole embedded photo back — megabytes
+ * on one line — and overflowed the model's context window on the next round. Embedded data is
+ * tokenized now, but a traced drawing can still put tens of kilobytes of path data on one line,
+ * so an overlong result is clipped line by line and cut on a line boundary, and says so.
+ */
+const TOOL_RESULT_BUDGET = 60_000;
+
+function capToolResult(text: string): string {
+  if (text.length <= TOOL_RESULT_BUDGET) return text;
+  const clipped = text.split('\n').map(clipLine).join('\n');
+  if (clipped === text) return truncateAtLine(text, TOOL_RESULT_BUDGET);
+  // A line shown clipped is only safe to read, so the result says so, as the context does.
+  const note = CLIPPED_NOTE.trim();
+  return `${truncateAtLine(clipped, TOOL_RESULT_BUDGET - note.length - 1)}\n${note}`;
+}
 
 /**
  * The heading above the quoted selection, carrying the element's ADDRESS when
@@ -127,18 +151,24 @@ export function buildSvgContext(
   selectedElement?: string,
   selectedLineRange?: { start: number; end: number }
 ): string {
-  const svg = normalize(currentSvg);
+  const source = normalize(currentSvg);
+  // Embedded images and fonts are read as tokens (see embedded-data.ts): megabytes of base64 tell
+  // the model nothing and crowd out everything else. The selection gets the same treatment, so
+  // the two still match when its address is worked out.
+  const svg = elideEmbeddedData(source);
+  const selected = selectedElement === undefined ? undefined : elideEmbeddedData(selectedElement);
+  const embeddedNote = svg === source ? '' : EMBEDDED_NOTE;
   const lines = svg.split('\n');
   const totalLines = lines.length;
-  const sizeKB = Math.round(svg.length / 1024);
+  const sizeKB = Math.round(source.length / 1024);
   const clipped = lines.some((l) => l.length > MAX_LINE_CHARS);
 
   // Small file — include everything
   if (totalLines <= LINE_BUDGET && svg.length <= CHAR_BUDGET) {
     const numbered = numberLines(lines, 0);
-    const parts = [`SVG document (${totalLines} lines, ${sizeKB} KB):\n\`\`\`\n${numbered}\n\`\`\``];
-    if (selectedElement) {
-      parts.push(`\n${selectionHeading(svg, selectedLineRange, selectedElement)}\n\`\`\`svg\n${selectedElement}\n\`\`\``);
+    const parts = [`SVG document (${totalLines} lines, ${sizeKB} KB):${embeddedNote}\n\`\`\`\n${numbered}\n\`\`\``];
+    if (selected) {
+      parts.push(`\n${selectionHeading(svg, selectedLineRange, selected)}\n\`\`\`svg\n${selected}\n\`\`\``);
     }
     return parts.join('\n');
   }
@@ -158,7 +188,7 @@ export function buildSvgContext(
   }
 
   const sections: string[] = [];
-  sections.push(`SVG document (${totalLines} lines, ${sizeKB} KB — showing excerpts, use read_svg_lines/search_svg for full content).${clipped ? CLIPPED_NOTE : ''}\n\`\`\``);
+  sections.push(`SVG document (${totalLines} lines, ${sizeKB} KB — showing excerpts, use read_svg_lines/search_svg for full content).${clipped ? CLIPPED_NOTE : ''}${embeddedNote}\n\`\`\``);
 
   // Head
   sections.push(numberLines(lines.slice(0, headEnd), 0, true));
@@ -185,21 +215,22 @@ export function buildSvgContext(
 
   // The selection is quoted from the same oversized document, so it gets the
   // same treatment — one selected <path> can carry the whole file's geometry.
-  const selection = selectedElement
-    ? selectedElement.split('\n').map(clipLine).join('\n')
+  const selection = selected
+    ? selected.split('\n').map(clipLine).join('\n')
     : undefined;
   const selectionBlock = !selection ? ''
-    // The RAW selection, not the clipped copy quoted below it: matching is
-    // exact, and a clipped element would never match its own source.
-    : `\n\n${selectionHeading(svg, selectedLineRange, selectedElement)}\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``;
+    // The unclipped selection, not the clipped copy quoted below it: matching
+    // is exact, and a clipped element would never match its own source.
+    : `\n\n${selectionHeading(svg, selectedLineRange, selected)}\n\`\`\`svg\n${truncateAtLine(selection, CHAR_BUDGET / 2)}\n\`\`\``;
 
   // Backstop. Head, tail and a padded selection window are each bounded, but
   // their sum is not, so the excerpt gets one last cut — taken BEFORE the fence
   // is closed and always on a line boundary, so an overflow can never leave a
   // numbered line half-written or a code block unterminated. The selection is
   // budgeted out first: it is the part the user is actually pointing at.
-  const room = CHAR_BUDGET - selectionBlock.length;
-  return `${truncateAtLine(sections.join('\n'), room)}\n\`\`\`${selectionBlock}`;
+  const closingFence = '\n```';
+  const room = CHAR_BUDGET - selectionBlock.length - closingFence.length;
+  return `${truncateAtLine(sections.join('\n'), room)}${closingFence}${selectionBlock}`;
 }
 
 /**
@@ -211,14 +242,16 @@ export function executeReadTool(
   args: Record<string, unknown>,
   currentSvg: string
 ): string | null {
-  const lines = normalize(currentSvg).split('\n');
+  // The text tools read the document as buildSvgContext shows it, embedded data as tokens: a line
+  // holding a photo is megabytes of base64, and a search for almost anything matches inside it.
+  const lines = elideEmbeddedData(normalize(currentSvg)).split('\n');
 
   if (toolName === 'read_svg_lines') {
     const start = Math.max(1, args.start as number);
     const end = Math.min(lines.length, args.end as number);
     if (start > lines.length) return `No content — SVG has only ${lines.length} lines.`;
     const slice = lines.slice(start - 1, end);
-    return numberLines(slice, start - 1);
+    return capToolResult(numberLines(slice, start - 1));
   }
 
   if (toolName === 'query') {
@@ -275,6 +308,8 @@ export function executeReadTool(
     const matches: string[] = [];
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].toLowerCase().includes(query)) {
+        // Whole, like read_svg_lines: a match can be copied into replace_lines. Only a result
+        // too large for the model is clipped, by capToolResult, and then it says so.
         matches.push(`${i + 1}: ${lines[i]}`);
         if (matches.length >= 100) {
           matches.push(`... (${lines.filter(l => l.toLowerCase().includes(query)).length} total matches, showing first 100)`);
@@ -282,7 +317,7 @@ export function executeReadTool(
         }
       }
     }
-    return matches.length > 0 ? matches.join('\n') : `No matches found for "${args.query}".`;
+    return matches.length > 0 ? capToolResult(matches.join('\n')) : `No matches found for "${args.query}".`;
   }
 
   return null;

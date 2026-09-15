@@ -1,7 +1,7 @@
 import { getAuth } from 'firebase/auth';
 import {
   buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned,
-  planStructuralEdits, isStructuralEditTool, summarizeEdits, validityRegression,
+  planStructuralEdits, isStructuralEditTool, summarizeEdits, validityRegression, CLIP_MARKER,
   type LineEdit, type LineEditOutcome, type PlannedEdit,
 } from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
@@ -10,6 +10,7 @@ import { getElementBounds } from './svg-bounds';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
 import { readChatStream, withoutReasoningSummaries, type ChatStreamUpdate } from './chat-stream';
+import { restoreEmbeddedArgs, restoreEmbeddedData, unknownEmbeddedRefusal } from './embedded-data';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -261,17 +262,39 @@ function planResponseEdits(
     // execution loop refuses them only if a replacement actually happened.
     // Re-planning them later against a document the earlier calls had already
     // mutated reintroduced exactly the cross-call drift this planner removes.
-    if (item.name === 'replace_svg') break;
     const structural = isStructuralEditTool(item.name ?? '');
-    if (item.name !== 'replace_lines' && !structural) continue;
+    if (item.name !== 'replace_svg' && item.name !== 'replace_lines' && !structural) continue;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
     try {
       parsed = JSON.parse(item.arguments ?? '{}');
     } catch {
-      continue; // truncated arguments are reported by the normal tool path
+      // Truncated arguments are reported by the normal tool path. A truncated replace_svg still
+      // ends the run: whether it was meant to rewrite everything is all that is known of it.
+      if (item.name === 'replace_svg') break;
+      continue;
     }
+
+    // Markup copied from a clipped line lacks the rest of that line; applied, it would discard
+    // what was never shown.
+    if (JSON.stringify(parsed).includes(CLIP_MARKER)) {
+      refusals.set(item.call_id!, `Not executed: it contains "${CLIP_MARKER}", copied from a line that was clipped, so writing it would discard the rest of that line. Address the element with set_attribute, set_text, insert_element or remove_element instead, or read the line in full with read_svg_lines first.`);
+      continue;
+    }
+
+    // The model read embedded images as tokens (embedded-data.ts); what it copied back goes back
+    // to the data before anything is planned. A token the document does not hold refuses the
+    // call: applied, it would write a label where an image was.
+    const restored = restoreEmbeddedArgs(parsed, snapshot);
+    if (restored.unknown.length > 0) {
+      refusals.set(item.call_id!, unknownEmbeddedRefusal(restored.unknown));
+      continue;
+    }
+    // A refused replace_svg rewrites nothing, so the calls after it still describe the snapshot
+    // and are planned as usual; only one that will be applied ends the run.
+    if (item.name === 'replace_svg') break;
+    parsed = restored.args;
 
     if (structural) {
       const { planned, available, reason } = planStructuralEdits(snapshot, item.name!, parsed);
@@ -600,15 +623,27 @@ export async function sendChatRequest(
           runningSvg = planned.svg;
         }
       } else if (item.name === 'replace_svg') {
-        // The largest blast radius of any tool: the model hand-writes the whole
-        // document, and until now nothing looked at what came back.
-        const broke = validityRegression(runningSvg, String(args.svg ?? ''));
-        if (broke) {
-          args.documentBroken = broke;
-          toolOutput = `WARNING: ${broke}`;
+        // Tokens for embedded images go back to their data first. One the document does not
+        // hold would replace an image with a label, so the whole rewrite is refused instead.
+        const refusal = editRefusals.get(item.call_id!);
+        const restored = restoreEmbeddedData(String(args.svg ?? ''), normalizedSvg);
+        if (refusal || restored.unknown.length > 0) {
+          toolOutput = refusal ?? unknownEmbeddedRefusal(restored.unknown);
+          args.notExecuted = true;
+          args.failedOperations = [toolOutput];
+          delete args.svg;
+        } else {
+          args.svg = restored.text;
+          // The largest blast radius of any tool: the model hand-writes the whole
+          // document, and until now nothing looked at what came back.
+          const broke = validityRegression(runningSvg, args.svg);
+          if (broke) {
+            args.documentBroken = broke;
+            toolOutput = `WARNING: ${broke}`;
+          }
+          runningSvg = args.svg;
+          documentReplaced = true;
         }
-        runningSvg = args.svg;
-        documentReplaced = true;
       } else if (item.name === 'generate_image') {
         onProgress?.('generating-image');
         let result;
