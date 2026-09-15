@@ -18,6 +18,11 @@ export interface DisplayMessage {
    * notice and the Continue button, since the tool calls alone are indistinguishable
    * from a turn that found nothing to do. */
   outOfToolRounds?: true;
+  /** What the model reasoned during this turn, as it streamed in — so the finished message
+   * can show how it arrived at the answer. Session only, never saved: a shared document's
+   * chat is readable by anyone with the link, and reasoning can restate the server's
+   * instructions (see chat-history's toStored). */
+  reasoning?: string;
 }
 
 export interface AiChatProps {

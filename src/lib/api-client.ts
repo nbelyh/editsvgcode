@@ -9,6 +9,7 @@ import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
+import { readChatStream, withoutReasoningSummaries, type ChatStreamUpdate } from './chat-stream';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -43,6 +44,9 @@ export interface ChatResponse {
    * look identical to a turn that simply had nothing to change — so the caller
    * has to say what happened and offer to carry on. */
   outOfToolRounds?: boolean;
+  /** What the model reasoned across the turn, as it streamed. For the finished message in
+   * this session only — it is never saved (see chat-history's toStored). */
+  reasoning?: string;
 }
 
 export interface ChatErrorResponse {
@@ -90,6 +94,7 @@ async function callServer(
   body: { input: unknown[]; model?: string; effort?: string; skipCredits?: boolean },
   idToken: string,
   signal?: AbortSignal,
+  onUpdate?: (update: ChatStreamUpdate) => void,
   _retried?: boolean,
 ): Promise<ServerResponse> {
   const res = await fetch(`${API_URL}/api/chat`, {
@@ -98,7 +103,9 @@ async function callServer(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify(body),
+    // Ask for the streamed reply. An API that predates streaming ignores the flag and
+    // answers with JSON, which the path below still reads — the two repos deploy separately.
+    body: JSON.stringify({ ...body, stream: true }),
     signal,
   });
 
@@ -107,8 +114,14 @@ async function callServer(
     const user = getAuth().currentUser;
     if (user) {
       const freshToken = await user.getIdToken(true);
-      return callServer(body, freshToken, signal, true);
+      return callServer(body, freshToken, signal, onUpdate, true);
     }
+  }
+
+  // Refusals (credits, size, auth) still come back as JSON statuses; only a call that is
+  // actually running arrives as a stream.
+  if (res.ok && res.body && res.headers.get('Content-Type')?.includes('text/event-stream')) {
+    return readChatStream<ServerResponse>(res.body, onUpdate);
   }
 
   const data = await res.json();
@@ -136,6 +149,10 @@ export type ProgressStatus =
   | { tool: string; round: number };
 
 export type { IconResult };
+
+/** A turn's live progress: answer text and reasoning as they stream in, and `start` when a
+ *  new call to the model begins, whose output replaces what the previous call showed. */
+export type ChatLiveUpdate = { kind: 'start' } | Exclude<ChatStreamUpdate, { kind: 'tool' }>;
 
 /**
  * A tool call surfaced in the UI's tool list. Named for its original use
@@ -291,6 +308,7 @@ export async function sendChatRequest(
   onToolCall?: (tc: ReadToolCall) => void,
   onImageConfirm?: (summary: string, isModify: boolean) => Promise<boolean>,
   lastPngDataUrl?: string,
+  onLiveUpdate?: (update: ChatLiveUpdate) => void,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -299,6 +317,27 @@ export async function sendChatRequest(
   }
 
   const idToken = await user.getIdToken();
+
+  // Every call to the model goes through here. Each one starts a fresh stretch of live
+  // text, and a tool call the model begins writing is shown by name: once the reasoning is
+  // done, composing a large edit is most of what is left of the turn. The reasoning is also
+  // gathered across the calls for the finished message, here rather than by the caller, so
+  // it belongs to this turn and no other.
+  let calls = 0;
+  let reasoning = '';
+  const callModel = (body: { input: unknown[]; skipCredits?: boolean }) => {
+    const call = ++calls;
+    if (reasoning.trim()) reasoning += '\n\n';
+    onLiveUpdate?.({ kind: 'start' });
+    return callServer({ ...body, model, effort }, idToken, signal, (update) => {
+      if (update.kind === 'tool') {
+        onProgress?.({ tool: update.name, round: call });
+        return;
+      }
+      if (update.kind === 'reasoning') reasoning += update.delta;
+      onLiveUpdate?.(update);
+    });
+  };
 
   // Normalize line endings — Monaco on Windows uses \r\n, models always output \n
   const normalizedSvg = currentSvg.replace(/\r\n/g, '\n');
@@ -323,7 +362,7 @@ export async function sendChatRequest(
 
   // First call
   onProgress?.('thinking');
-  let response = await callServer({ input, model, effort }, idToken, signal);
+  let response = await callModel({ input });
 
   // Collect all raw output items across agentic rounds for the caller to store
   const allRawOutput: unknown[] = [];
@@ -354,7 +393,7 @@ export async function sendChatRequest(
         imageApproved = await onImageConfirm(genArgs.summary || genArgs.prompt, genImageCall.name === 'modify_image');
         if (!imageApproved) {
           // User declined — send rejection back and ask model to use SVG tools
-          allRawOutput.push(...response.output);
+          allRawOutput.push(...withoutReasoningSummaries(response.output));
           const rejectionMsg = genImageCall.name === 'modify_image'
             ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (replace_lines or replace_svg) instead.'
             : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
@@ -378,7 +417,7 @@ export async function sendChatRequest(
           }
           onProgress?.('thinking');
           const continuationInput = [...input, ...allRawOutput];
-          response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
+          response = await callModel({ input: continuationInput, skipCredits: true });
           continue;
         }
       }
@@ -398,7 +437,7 @@ export async function sendChatRequest(
     }
 
     // Accumulate intermediate output + tool results into input for next round
-    allRawOutput.push(...response.output);
+    allRawOutput.push(...withoutReasoningSummaries(response.output));
     const toolResults: unknown[] = [];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
@@ -456,11 +495,11 @@ export async function sendChatRequest(
     // Send continuation: full input so far + intermediate outputs + tool results
     onProgress?.('thinking');
     const continuationInput = [...input, ...allRawOutput];
-    response = await callServer({ input: continuationInput, model, effort, skipCredits: true }, idToken, signal);
+    response = await callModel({ input: continuationInput, skipCredits: true });
   }
 
   // Final output
-  allRawOutput.push(...response.output);
+  allRawOutput.push(...withoutReasoningSummaries(response.output));
 
   // Extract message + tool calls from final response
   let message = '';
@@ -638,6 +677,7 @@ export async function sendChatRequest(
     credits: latestCredits,
     rawOutput: allRawOutput,
     outOfToolRounds: outOfToolRounds || undefined,
+    reasoning: reasoning.trim() || undefined,
   };
 }
 

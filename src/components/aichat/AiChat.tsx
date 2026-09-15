@@ -4,8 +4,9 @@ import { notifications } from '@mantine/notifications';
 import { ActionIcon, Tooltip, Text } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type ChatLiveUpdate } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
+import { createLiveReplyStore } from '../../lib/live-reply';
 import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatAccess, migrateLegacyChat } from '../../lib/chat-history';
 import { friendlyError } from '../../lib/firebase';
 import { addressForLineRange } from '../../lib/svg-dom';
@@ -65,6 +66,19 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const [input, setInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
+  // What the model is writing and thinking while a call runs, streamed. Kept out of React
+  // state so a delta re-renders only the live bubble (see lib/live-reply); only the call in
+  // progress is shown, and the finished answer replaces it as a message.
+  const [live] = useState(createLiveReplyStore);
+  // Which turn is current. A stopped turn can still be finishing work that ignores the abort
+  // signal — vectorizing an image — and must not reset the live view or the run state of a
+  // turn sent after it.
+  const turnRef = useRef(0);
+  const handleLiveUpdate = useCallback((update: ChatLiveUpdate) => {
+    if (update.kind === 'start') live.reset();
+    else if (update.kind === 'text') live.appendText(update.delta);
+    else live.appendReasoning(update.delta);
+  }, [live]);
   const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => resolveEditModel(localStorage.getItem('esvg-model')));
   const [imageModel, setImageModel] = useState(() => resolveImageModel(localStorage.getItem('esvg-image-model')));
@@ -269,7 +283,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     }
   }, [messages, fileId, canWrite]);
 
-  // Auto-scroll to bottom when messages change.
+  // Keep the end of the thread in view — while the reader is at it. A reply streams in
+  // many times a second, and pulling the view down on each delta made everything further up
+  // unreadable until the call ended. A reader who scrolls up now stays where they put
+  // themselves; sending a message follows the thread again (see handleSend). The jump is
+  // instant rather than smooth: a smooth scroll restarted on every frame never arrives.
   //
   // Scroll the thread's own container rather than endRef.scrollIntoView():
   // scrollIntoView walks every scrollable ancestor, and the phone layout wraps
@@ -277,10 +295,21 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // of the chat therefore scrolled that outer container too, dragging the ad
   // into view on open — the effect runs on mount, before there are any messages
   // to scroll to. Setting scrollTop here cannot move anything but the thread.
+  const pinnedRef = useRef(true);
   useEffect(() => {
     const viewport = viewportRef.current;
-    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-  }, [messages, isRunning]);
+    if (!viewport) return;
+    const onScroll = () => {
+      pinnedRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48;
+    };
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, []);
+  const followBottom = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (viewport && pinnedRef.current) viewport.scrollTop = viewport.scrollHeight;
+  }, []);
+  useEffect(followBottom, [messages, isRunning, followBottom]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -313,6 +342,10 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setInput('');
     setIsRunning(true);
     setProgressStatus('thinking');
+    const turn = ++turnRef.current;
+    live.reset();
+    // Sending asks to see the reply: follow it even from further up the thread.
+    pinnedRef.current = true;
 
     // Push to global input history
     setInputHistory(prev => {
@@ -391,6 +424,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         (tc) => collectedToolCalls.push(tc),
         handleImageConfirm,
         lastPngDataUrl,
+        (update) => {
+          if (turnRef.current === turn) handleLiveUpdate(update);
+        },
       );
 
       const assistantMsg: DisplayMessage = {
@@ -413,6 +449,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         selectedIcon: selectedIcon ?? undefined,
         readToolCalls: collectedToolCalls.length > 0 ? collectedToolCalls : undefined,
         outOfToolRounds: response.outOfToolRounds ? true : undefined,
+        reasoning: response.reasoning,
       };
 
       setMessages(prev => [...prev, assistantMsg]);
@@ -435,14 +472,18 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       };
       setMessages(prev => [...prev, assistantMsg]);
     } finally {
-      setIsRunning(false);
-      abortRef.current = null;
-      setIconPickIcons(null);
-      setSelectedIcon(null);
-      setImageConfirmSummary(null);
-      imageConfirmResolveRef.current = null;
+      // A turn that Stop already ended, or that a newer send replaced, leaves the panel alone.
+      if (turnRef.current === turn) {
+        setIsRunning(false);
+        live.reset();
+        abortRef.current = null;
+        setIconPickIcons(null);
+        setSelectedIcon(null);
+        setImageConfirmSummary(null);
+        imageConfirmResolveRef.current = null;
+      }
     }
-  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort]);
+  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -451,13 +492,17 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // hits the aborted fetch and unwinds with AbortError.
     iconPickResolveRef.current?.('none');
     imageConfirmResolveRef.current?.(false);
+    // The stopped turn is no longer current: whatever it is still finishing must not touch
+    // the panel, least of all a turn sent after this.
+    turnRef.current++;
     setIsRunning(false);
+    live.reset();
     setIconPickIcons(null);
     setSelectedIcon(null);
     setImageConfirmSummary(null);
     iconPickResolveRef.current = null;
     imageConfirmResolveRef.current = null;
-  }, []);
+  }, [live]);
 
   const handleNewChat = useCallback(() => {
     setMessages([]);
@@ -688,6 +733,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           messages={messages}
           isRunning={isRunning}
           progressStatus={progressStatus}
+          live={live}
+          onLiveGrow={followBottom}
           canUndo={canUndo}
           isAnonymous={isAnonymous === true}
           isViewer={isViewer}

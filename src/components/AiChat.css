@@ -290,6 +290,47 @@
   font-style: italic;
 }
 
+/* Reasoning, live or finished, reads as an aside rather than as the answer: smaller,
+   dimmed and italic, with a quiet rule down its left edge instead of a box, and no bold
+   headings competing with the reply. */
+.aui-thought {
+  font-size: 12px;
+  line-height: 1.45;
+  font-style: italic;
+  border-left: 2px solid var(--mantine-color-default-border);
+  padding-left: 8px;
+}
+
+.aui-thought .aui-markdown {
+  color: var(--mantine-color-dimmed);
+}
+
+.aui-thought .aui-markdown p:not(:last-child) {
+  margin-bottom: 4px;
+}
+
+.aui-thought .aui-markdown strong,
+.aui-thought .aui-markdown h1,
+.aui-thought .aui-markdown h2,
+.aui-thought .aui-markdown h3,
+.aui-thought .aui-markdown h4 {
+  font-size: inherit;
+  font-weight: 500;
+  margin-top: 0;
+}
+
+/* While the model thinks: about three lines, pinned to the bottom so the newest text
+   stays in view and older lines drop off the top — clipping from the bottom hid exactly
+   the part the model was on. */
+.aui-live-reasoning {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  max-height: 4.4em;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
 @keyframes aui-spin {
   to { transform: rotate(360deg); }
 }
@@ -442,6 +483,14 @@
 
 .aui-read-tools-toggle:hover {
   background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+/* A finished turn's reasoning, once expanded (styled by .aui-thought): scrolled rather
+   than stretched when the model thought at length. */
+.aui-reasoning {
+  margin: 6px 0 0 6px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .aui-read-tools-details {

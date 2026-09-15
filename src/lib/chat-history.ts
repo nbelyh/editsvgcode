@@ -18,6 +18,7 @@ import { getAuth } from 'firebase/auth';
 import { firebaseDb, firebaseStorage } from './firebase-app';
 import { loadLegacyChatMessages, clearLegacyChatMessages } from './chat-storage';
 import { isCleanId, getNewUniqueId } from './svg-utils';
+import { withoutReasoningSummaries } from './chat-stream';
 import type { DisplayMessage } from '../components/aichat/types';
 
 /** uid of the signed-in, non-anonymous user, else null. */
@@ -81,12 +82,14 @@ interface StoredMessage {
   seq: number;
   role: 'user' | 'assistant';
   content: string;       // kept top-level (readable for review)
-  payload: string;       // JSON of { toolCalls?, rawItems?, selectedIcon?, readToolCalls? }, png externalized
+  payload: string;       // JSON of { toolCalls?, rawItems?, selectedIcon?, readToolCalls?, outOfToolRounds? }, png externalized
 }
 
 const seqId = (seq: number) => String(seq).padStart(6, '0');
 
-async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage> {
+/** Exported for tests: the payload names its fields, so a new message field that is not
+ *  added here is silently dropped on save. */
+export async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage> {
   let toolCalls = msg.toolCalls as Array<Record<string, unknown>> | undefined;
   if (toolCalls) {
     toolCalls = await Promise.all(toolCalls.map(async (tc) => {
@@ -107,9 +110,13 @@ async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage
     }));
   }
   // JSON.stringify drops `undefined` fields, so the payload is always valid.
+  //
+  // What the model reasoned is left out on purpose — the message's `reasoning`, and the
+  // summary text inside the replay items. A shared document's chat is readable by anyone
+  // with the link, and reasoning can restate the server's instructions.
   const payload = JSON.stringify({
     toolCalls,
-    rawItems: msg.rawItems,
+    rawItems: msg.rawItems && withoutReasoningSummaries(msg.rawItems),
     selectedIcon: msg.selectedIcon,
     readToolCalls: msg.readToolCalls,
     outOfToolRounds: msg.outOfToolRounds,
@@ -117,7 +124,7 @@ async function toStored(msg: DisplayMessage, seq: number): Promise<StoredMessage
   return { seq, role: msg.role, content: msg.content, payload };
 }
 
-async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
+export async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
   const parsed = JSON.parse(s.payload) as {
     toolCalls?: Array<Record<string, unknown>>;
     rawItems?: unknown[];

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { waitForEditor, setSvgContent } from './helpers.js';
 import { shortModelName } from '../src/lib/models';
+import { readChatStream } from '../src/lib/chat-stream';
 import { signInTestUser, useEmulatorSuite } from './emulator.js';
 
 /**
@@ -60,12 +61,25 @@ function recordToolCalls(page: Page): string[] {
   page.on('response', async (res) => {
     if (!res.url().includes('/api/chat') || !res.ok()) return;
     try {
-      for (const item of (await res.json()).output ?? []) {
+      for (const item of (await outputOf(await res.text())) ?? []) {
         if (item.type === 'function_call' && item.name) names.push(item.name);
       }
-    } catch { /* a non-JSON body is not a tool call */ }
+    } catch { /* a body without a result is not a tool call */ }
   });
   return names;
+}
+
+/**
+ * The output items of one /api/chat reply. The app asks for a stream, and its
+ * `response.completed` event carries the body a JSON reply would, so it is read with the
+ * app's own tested stream reader. A hand-written parser here once read the stream as JSON,
+ * failed silently, and left every routing assertion looking at no tool calls. An API that
+ * predates streaming still answers with the JSON itself.
+ */
+async function outputOf(body: string): Promise<Array<{ type?: string; name?: string }> | undefined> {
+  if (body.trimStart().startsWith('{')) return JSON.parse(body).output;
+  const reply = await readChatStream<{ output?: Array<{ type?: string; name?: string }> }>(new Response(body).body!);
+  return reply.output;
 }
 
 async function boot(page: Page) {
@@ -106,14 +120,34 @@ async function boot(page: Page) {
   await setSvgContent(page, DOC);
 }
 
-/** Send a prompt and wait for the turn to finish, however many rounds it takes. */
-async function ask(page: Page, prompt: string) {
+type Stopped = 'done' | 'icon-picker' | 'image-confirm';
+
+/**
+ * Send a prompt, wait for the turn to stop however many rounds it takes, and say how it
+ * stopped: finished, or held open waiting for the user to pick an icon or confirm an image.
+ *
+ * Waits on the composer's own run state — its button reads Stop while a turn runs and Send
+ * once it is over. Status text is not evidence: streaming relabels "Thinking…" as
+ * "Calling query… (round 1)" as soon as the model starts a tool call, so waiting for the
+ * thinking label to go returned mid-turn, and everything after it asserted on half a turn.
+ */
+async function ask(page: Page, prompt: string): Promise<Stopped> {
   const composer = page.locator('textarea.aui-composer-input');
   await expect(composer).toBeVisible({ timeout: 20000 });
   await composer.fill(prompt);
   await composer.press('Enter');
-  // The composer clears on send and the thinking indicator goes when it is done.
-  await expect(page.getByText(/Thinking|Working|Reading|Searching/)).toHaveCount(0, { timeout: 180000 });
+  const stop = page.getByRole('button', { name: 'Stop' });
+  await expect(stop).toBeVisible({ timeout: 20000 });
+  const seen: { state: Stopped | 'running' } = { state: 'running' };
+  await expect.poll(async () => {
+    // A picker or a confirmation holds the turn open with Stop still showing, so they are
+    // looked for first.
+    if (await page.locator('.aui-icon-picker:not(.aui-icon-picker-collapsed)').count()) seen.state = 'icon-picker';
+    else if (await page.locator('.aui-image-confirm').count()) seen.state = 'image-confirm';
+    else if (await stop.count() === 0) seen.state = 'done';
+    return seen.state;
+  }, { timeout: 180000, intervals: [500] }).not.toBe('running');
+  return seen.state as Stopped;
 }
 
 async function acceptAll(page: Page) {
@@ -193,6 +227,29 @@ test.describe('AI edit tools, against the real model', () => {
     // Everything else in the rule survives untouched.
     expect(svg).toContain('stroke:#000000;stroke-width:0.24;');
     expect(svg).not.toContain('fill:#cdcdcd');
+    expect(await parses(page, svg)).toBe(true);
+  });
+
+  test('scattered decoration is drawn, not fetched from the icon library', async ({ page }) => {
+    // "can you draw some random stars here" opened the icon picker: intent #2 listed star
+    // as a library icon, and the model's own reasoning quoted it. The library places one
+    // icon at a time behind a picker, so it cannot scatter anything — and a star is one
+    // <polygon>. Measured on the real prompt before the fix: picker on 4 runs of 6.
+    const tools = recordToolCalls(page);
+    await boot(page);
+    const stopped = await ask(page, 'can you draw some random stars here');
+    // The recorder hears a reply only once its body is read, a moment after the panel shows
+    // it — and an empty list must not pass for "never searched the icon library".
+    await expect.poll(() => tools.length, { timeout: 10000 }).toBeGreaterThan(0);
+    // Logged before the assertions, so the run that fails is the one that says its route.
+    console.log('stars →', stopped, tools.join(', '));
+    expect(stopped).toBe('done');
+    expect(tools).not.toContain('search_icons');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    expect(svg.length).toBeGreaterThan(DOC.length);   // something was drawn
+    expect(svg).toContain('CustomerID');              // and nothing was taken away
     expect(await parses(page, svg)).toBe(true);
   });
 
