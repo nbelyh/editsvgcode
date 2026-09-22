@@ -39,8 +39,16 @@ export async function signInTestUser(page: Page, displayName?: string): Promise<
   const { uid, anonUid } = await page.evaluate(async (name) => {
     const m = window.__test.firebaseAuth;
     const auth = m.getAuth();
-    // The app boots with an auto-created anonymous session — record it so the
-    // afterEach purge removes it along with the test user.
+    // The app boots by signing in anonymously whenever nobody is signed in. Signing in over
+    // that while it was still in flight let it land last and replace the test user, so the
+    // test went on as a guest: sends met the sign-in dialog, writes were refused. WebKit starts
+    // slowly enough to hit this on a different dozen specs every run. Wait for the session the
+    // app is making before replacing it.
+    await auth.authStateReady();
+    for (const until = Date.now() + 15000; !auth.currentUser && Date.now() < until;) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    // Recorded so the afterEach purge removes it along with the test user.
     const anonUid = auth.currentUser?.isAnonymous ? (auth.currentUser.uid as string) : null;
     const sub = 'e2e' + Math.random().toString(36).slice(2);
     const claims: Record<string, unknown> = { sub, email: `${sub}@example.com`, email_verified: true };
@@ -48,6 +56,10 @@ export async function signInTestUser(page: Page, displayName?: string): Promise<
     const cred = m.GoogleAuthProvider.credential(JSON.stringify(claims));
     const res = await m.signInWithCredential(auth, cred);
     if (name && !res.user.displayName) await m.updateProfile(res.user, { displayName: name });
+    // Said here rather than twenty seconds later as a missing button.
+    if (auth.currentUser?.uid !== res.user.uid) {
+      throw new Error(`signed in as ${res.user.uid}, but the session is now ${auth.currentUser?.uid ?? 'nobody'}`);
+    }
     return { uid: res.user.uid as string, anonUid };
   }, displayName ?? null);
   createdUids.push(uid);
