@@ -19,7 +19,8 @@ import { openSignInModal } from '../SignInModal';
 import { ForeignDocNotice } from '../ForeignDocNotice';
 import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
-import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen } from '../../lib/analytics';
+import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg } from '../../lib/analytics';
+import { pastedSvgDocument } from '../../lib/pasted-svg';
 import '../AiChat.css';
 
 const HISTORY_KEY = 'esvg-input-history';
@@ -343,6 +344,28 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // paths are already blocked by the composer's disabled state.
     if (!text || isRunning || hasPending) return;
 
+    // A message that is nothing but an SVG document is opened in the editor, with no model call:
+    // the person wants to see it, not have it changed. Restore above the message puts the
+    // drawing back, like after any accepted edit.
+    const pasted = pastedSvgDocument(text);
+    if (pasted) {
+      const prevSvg = svgRef.current;
+      onPreviewSvg(null);
+      onAcceptSvg(pasted);
+      trackPastedSvg();
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: text },
+        {
+          role: 'assistant',
+          content: 'Opened your SVG in the editor. Ask me to change anything in it, or press Restore above your message to get back the drawing you had.',
+          toolCalls: [{ name: 'replace_svg', arguments: { svg: pasted, summary: 'Opened the pasted SVG' }, status: 'accepted', prevSvg }],
+        },
+      ]);
+      setInput('');
+      return;
+    }
+
     // AI requires a real account — guests get the sign-in modal instead of an
     // AI call (the server enforces this too; this is just the friendly path).
     // Stash the draft first: sign-in redirects away, and the restore path in
@@ -530,7 +553,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageConfirmResolveRef.current = null;
       }
     }
-  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure]);
+  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();

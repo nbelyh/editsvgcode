@@ -252,6 +252,34 @@ test.describe('Clipped lines', () => {
   });
 });
 
+test.describe('Pasted SVG', () => {
+  // People paste SVG from another assistant to see it. It opens in the editor with no model call
+  // and no credit, and Restore takes it back like any accepted edit.
+  const PASTED = '<svg xmlns="http://w3.org" viewBox="0 0 40 40"><circle id="sun" cx="20" cy="20" r="10" fill="gold"/></svg>';
+
+  test('a message that is only a document opens it, without asking the model', async ({ page }) => {
+    await boot(page);
+    let calls = 0;
+    await page.route('**/api/chat', (route) => { calls++; return route.abort(); });
+    await send(page, PASTED);
+
+    await expect(page.getByText('Opened your SVG in the editor.')).toBeVisible({ timeout: 15000 });
+    await expect.poll(() => editorValue(page)).toBe(PASTED.replace('http://w3.org', 'http://www.w3.org/2000/svg'));
+    expect(calls).toBe(0);
+
+    await page.getByRole('button', { name: 'Restore' }).click();
+    await expect.poll(() => editorValue(page)).toBe(DOC);
+  });
+
+  test('a document with an instruction still goes to the model', async ({ page }) => {
+    await boot(page);
+    await stubChat(page, [[say('Made it red.')]]);
+    await send(page, `make it red ${PASTED}`);
+    await expect(page.getByText('Made it red.')).toBeVisible({ timeout: 15000 });
+    expect(await editorValue(page)).toBe(DOC);
+  });
+});
+
 test.describe('Composer', () => {
   test('a sample prompt fills the composer and hands it the caret', async ({ page }) => {
     // The click left focus on the sample's own button, so Enter did nothing and typing went

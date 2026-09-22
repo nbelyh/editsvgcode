@@ -23,6 +23,12 @@ export function trackAiChat(model: string): void {
   if (a) logEvent(a, 'ai_chat', { model });
 }
 
+/** User pasted a whole SVG document into the chat, and it was opened without a model call. */
+export function trackPastedSvg(): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'ai_pasted_svg');
+}
+
 /** User accepted an AI SVG edit. */
 export function trackAiAccept(): void {
   const a = getAnalyticsInstance();
