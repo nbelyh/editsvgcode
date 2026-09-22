@@ -297,6 +297,17 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           advice="The markup changed but the picture did not, usually because a style rule overrides the value that was set. Ask for the style rule to be changed instead."
         />
       )}
+      {'editNotes' in tc.arguments && (
+        // How an edit that worked was applied — every match removed, lines kept. Not a warning,
+        // so not under the heading above, which used to catch these too.
+        <ProposalNotes
+          items={tc.arguments.editNotes}
+          total={Array.isArray(tc.arguments.edits) ? tc.arguments.edits.length : undefined}
+          tone="var(--esvg-note-missed)"
+          summary="Applied, with notes"
+          advice="The preview shows the result. These say how the change was applied."
+        />
+      )}
       {'documentBroken' in tc.arguments && (
         // Red, and worded as damage. This shares nothing but a colour with the
         // note above: there the markup changed and the picture did not, here the

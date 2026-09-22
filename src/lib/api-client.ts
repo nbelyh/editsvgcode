@@ -606,7 +606,13 @@ export async function sendChatRequest(
           // the case where the markup changed and the drawing did not, and the
           // user is the one who will otherwise wonder why nothing happened.
           const notes = planned.outcomes.filter((o) => o.status === 'applied' && o.detail);
-          if (notes.length) args.warnings = notes.map((o) => `${o.label}: ${o.detail}`);
+          // Only an edit the drawing will not show is a warning. The other notes say how an edit
+          // was applied — every match removed, lines kept — and were shown under the same "no
+          // visible effect" heading over changes that had plainly worked.
+          const ineffective = notes.filter((o) => o.ineffective);
+          const informative = notes.filter((o) => !o.ineffective);
+          if (ineffective.length) args.warnings = ineffective.map((o) => `${o.label}: ${o.detail}`);
+          if (informative.length) args.editNotes = informative.map((o) => `${o.label}: ${o.detail}`);
           toolOutput = summarizeEdits(planned.outcomes, emptyCallHint(item.name!));
 
           // Compared against the document as of the PREVIOUS call, so a break is

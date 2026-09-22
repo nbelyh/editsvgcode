@@ -121,6 +121,7 @@ function notesOf(message: DisplayMessage | undefined): string[] {
     for (const note of [
       ...(Array.isArray(args.failedOperations) ? args.failedOperations : []),
       ...(Array.isArray(args.warnings) ? args.warnings : []),
+      ...(Array.isArray(args.editNotes) ? args.editNotes : []),
       ...(args.documentBroken ? [args.documentBroken] : []),
     ]) {
       notes.push(`${tc.name}: ${String(note)}`);

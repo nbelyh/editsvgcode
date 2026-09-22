@@ -683,6 +683,20 @@ test.describe('AI edit tools, end to end', () => {
     await expect(page.getByText(/set_style_rule/)).toBeVisible();
   });
 
+  test('an edit that worked is not called ineffective for saying how it was applied', async ({ page }) => {
+    // Removing every match of a selector notes how many went. That note was shown under
+    // "no visible effect", over two labels that had plainly gone from the drawing.
+    await boot(page);
+    await stubChat(page, [[
+      call('remove_element', { edits: [{ selector: '.st2' }], summary: 'Remove the labels' }),
+    ]]);
+    await send(page);
+    await expect(page.getByText('Applied, with notes')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/no visible effect/)).toHaveCount(0);
+    await acceptAll(page);
+    expect(await editorValue(page)).not.toContain('<text');
+  });
+
   test('an address that matches nothing is reported, and nothing changes', async ({ page }) => {
     await boot(page);
     await stubChat(page, [[

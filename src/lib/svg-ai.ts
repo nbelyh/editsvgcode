@@ -340,6 +340,8 @@ export interface LineEditOutcome {
   label: string;
   status: 'applied' | 'failed' | 'conflict';
   detail?: string;
+  /** See TextEditOutcome.ineffective. */
+  ineffective?: true;
 }
 
 /** A replacement of an exact span of the source. */
@@ -397,6 +399,8 @@ export interface PlannedEdit {
   label: string;
   status: 'applied' | 'failed';
   detail?: string;
+  /** See TextEditOutcome.ineffective. */
+  ineffective?: true;
   /** Every span this one operation touches — a selector may reach many. */
   ranges: SourceRange[];
 }
@@ -552,6 +556,7 @@ export function applyPlannedBatches(
         label: edit.label,
         status: 'applied',
         detail: [note, edit.detail].filter(Boolean).join('; ') || undefined,
+        ...(edit.ineffective ? { ineffective: true as const } : {}),
       });
     }
 
@@ -631,6 +636,7 @@ export function planStructuralEdits(
       label: `${edits[i]?.name || 'attribute'} on ${JSON.stringify(o.selector)}`,
       status: o.status,
       detail: o.detail,
+      ...(o.ineffective ? { ineffective: true as const } : {}),
       ranges: o.ranges,
     }));
     return { planned, available: true };
@@ -695,7 +701,7 @@ export function planStructuralEdits(
 
 /** These planners already label their own outcomes, so the label passes through. */
 function toPlanned(o: TextEditOutcome): PlannedEdit {
-  return { label: o.selector, status: o.status, detail: o.detail, ranges: o.ranges };
+  return { label: o.selector, status: o.status, detail: o.detail, ...(o.ineffective ? { ineffective: true as const } : {}), ranges: o.ranges };
 }
 
 /**

@@ -730,6 +730,7 @@ export function planAttributeEdits(
           // a class rule setting the same property wins and the edit has no visible
           // effect. Silently succeeding while nothing changes on screen is the
           // failure this whole approach exists to avoid, so say it.
+          ...(overridden.length > 0 ? { ineffective: true as const } : {}),
           detail: overridden.length > 0
             ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Change the rule instead, with set_style_rule.`
             : undefined,
@@ -948,6 +949,9 @@ export interface TextEditRange {
 export interface TextEditOutcome {
   selector: string;
   status: 'applied' | 'failed';
+  /** Applied, but the drawing will not change — the one note that is a warning. Every other
+   *  note on an applied edit says how it was applied. */
+  ineffective?: true;
   /** How many nodes this change reached. */
   matched: number;
   detail?: string;
