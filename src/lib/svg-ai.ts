@@ -6,6 +6,7 @@ import {
   type ElementInsert, type ElementRemoval, type InsertPosition,
 } from './svg-dom';
 import { elideEmbeddedData, EMBEDDED_NOTE } from './embedded-data';
+import { describePathParts, planPathSplits, type PathSplit } from './path-parts';
 
 /**
  * Client-side AI utilities: context budgeting, read-tool execution, edit application.
@@ -252,6 +253,10 @@ export function executeReadTool(
     if (start > lines.length) return `No content — SVG has only ${lines.length} lines.`;
     const slice = lines.slice(start - 1, end);
     return capToolResult(numberLines(slice, start - 1));
+  }
+
+  if (toolName === 'list_path_parts') {
+    return capToolResult(describePathParts(currentSvg, String(args.selector ?? '')));
   }
 
   if (toolName === 'query') {
@@ -568,7 +573,7 @@ export function applyPlannedBatches(
 
 /** Structural edit tools, and how their arguments are shaped. */
 export const STRUCTURAL_EDIT_TOOLS = [
-  'set_text', 'set_attribute', 'set_style_rule', 'insert_element', 'remove_element',
+  'set_text', 'set_attribute', 'set_style_rule', 'insert_element', 'remove_element', 'split_path',
 ] as const;
 
 /** Is this a tool whose targets are named structurally rather than by line? */
@@ -669,6 +674,18 @@ export function planStructuralEdits(
   if (toolName === 'remove_element') {
     const edits: ElementRemoval[] = raw.map((e: Record<string, unknown>) => ({ selector: String(e?.selector ?? '') }));
     const result = planElementRemovals(source, edits);
+    if (!result.available) return { planned: [], available: false, reason: result.reason };
+    return { planned: result.outcomes.map(toPlanned), available: true };
+  }
+
+  if (toolName === 'split_path') {
+    const edits: PathSplit[] = raw.map((e: Record<string, unknown>) => ({
+      selector: String(e?.selector ?? ''),
+      fills: Array.isArray(e?.fills)
+        ? e.fills.map((f: Record<string, unknown>) => ({ part: Number(f?.part), fill: String(f?.fill ?? '') }))
+        : [],
+    }));
+    const result = planPathSplits(source, edits);
     if (!result.available) return { planned: [], available: false, reason: result.reason };
     return { planned: result.outcomes.map(toPlanned), available: true };
   }

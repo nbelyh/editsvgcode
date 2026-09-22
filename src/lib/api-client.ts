@@ -228,6 +228,7 @@ function emptyCallHint(name: string): string {
   if (name === 'set_style_rule') return 'Each edit needs "selector", "property" and "value" inside the "edits" array.';
   if (name === 'insert_element') return 'Each edit needs "selector", "position" and "svg" inside the "edits" array.';
   if (name === 'remove_element') return 'Each edit needs a "selector" inside the "edits" array.';
+  if (name === 'split_path') return 'Each edit needs "selector" and "fills" inside the "edits" array.';
   return 'Each edit needs "start", "end" and "content" inside the "edits" array.';
 }
 
@@ -403,7 +404,7 @@ export async function sendChatRequest(
   let outOfToolRounds = false; // the loop ran out of rounds rather than finishing
   for (let round = 0; ; round++) {
     const readCalls = response.output.filter(
-      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds')
+      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds' || item.name === 'list_path_parts')
     );
 
     if (readCalls.length === 0) {

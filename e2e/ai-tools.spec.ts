@@ -280,6 +280,36 @@ test.describe('Pasted SVG', () => {
   });
 });
 
+test.describe('One path, several parts', () => {
+  // A tracer puts every region of one colour in one path; recolouring part of it means
+  // splitting it first, and the split must change nothing but the fills asked for.
+  const TREE = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60">',
+    '  <path d="M0 0 h30 v30 h-30 z M10 10 v10 h10 v-10 z M50 0 h10 v10 h-10 z" style="fill: #1C1817;"/>',
+    '</svg>',
+  ].join('\n');
+
+  test('splitting a path recolours only the part named', async ({ page }) => {
+    await boot(page, TREE);
+    await stubChat(page, [
+      [call('list_path_parts', { selector: 'path' })],
+      [call('split_path', { edits: [{ selector: '/svg[1]/path[1]', fills: [{ part: 2, fill: '#A97C50' }] }], summary: 'Coloured the small square' }), say('I took part 2, the small square on the right, for the leaves.')],
+    ]);
+    await send(page, 'colour the leaves brown');
+    await expect(page.locator('.aui-proposal').getByRole('button', { name: 'Accept' })).toBeVisible({ timeout: 20000 });
+    // The recolour worked, so the card must not call it ineffective.
+    await expect(page.getByText('Applied, but with no visible effect')).toHaveCount(0);
+    await acceptAll(page);
+
+    expect(await editorValue(page)).toBe([
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60">',
+      '  <path d="M0 0 h30 v30 h-30 z M10 10 v10 h10 v-10 z" style="fill: #1C1817;"/>',
+      '  <path d="M50 0 h10 v10 h-10 z" style="fill: #A97C50;"/>',
+      '</svg>',
+    ].join('\n'));
+  });
+});
+
 test.describe('Dropped connections', () => {
   test('a dropped request says the drawing is unchanged, and Retry sends it again', async ({ page }) => {
     await boot(page);

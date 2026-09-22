@@ -224,6 +224,7 @@ const EDIT_TOOL_LABELS: Record<string, string> = {
   set_style_rule: 'Edit style rule',
   insert_element: 'Insert element',
   remove_element: 'Remove element',
+  split_path: 'Split path',
 };
 
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {

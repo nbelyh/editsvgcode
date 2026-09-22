@@ -82,7 +82,22 @@ async function outputOf(body: string): Promise<Array<{ type?: string; name?: str
   return reply.output;
 }
 
-async function boot(page: Page) {
+/**
+ * A one-colour tree icon as a tracer writes it: every region of the colour in ONE path — a
+ * forked trunk and seven leaves — with the colour in a style attribute and a transform on it.
+ * Recolouring the leaves and not the trunk was impossible before split_path: the model
+ * recoloured the whole path, and the user rejected it and asked again.
+ */
+const TRUNK = 'M46 100 L46 62 C46 56 43 51 37 46 L40 43 C45 47 48 51 50 55 C52 51 55 47 60 43 L63 46 C57 51 54 56 54 62 L54 100 Z';
+const LEAVES = [[50, 10], [34, 16], [66, 16], [22, 28], [78, 28], [38, 32], [62, 32]]
+  .map(([cx, cy]) => `M${cx - 8} ${cy} a8 5 0 1 0 16 0 a8 5 0 1 0 -16 0 Z`);
+const TRACED_TREE = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 115">',
+  `  <path d="${[...LEAVES, TRUNK].join(' ')}" transform="translate(10,5)" style="fill: #1C1817;"/>`,
+  '</svg>',
+].join('\n');
+
+async function boot(page: Page, svg = DOC) {
   await page.goto('/');
   await waitForEditor(page);
   await signInTestUser(page);
@@ -117,7 +132,7 @@ async function boot(page: Page) {
     // Effort renders in the same label, and only for models that offer it.
     if (EFFORT) await expect(label).toContainText(`· ${EFFORT} ·`);
   }
-  await setSvgContent(page, DOC);
+  await setSvgContent(page, svg);
 }
 
 type Stopped = 'done' | 'icon-picker' | 'image-confirm';
@@ -304,6 +319,46 @@ test.describe('AI edit tools, against the real model', () => {
     expect(xOf('cols')).toBe(8);               // the one that merely looks like it did not
     expect(svg).toContain('CustomerID');
     expect(await parses(page, svg)).toBe(true);
+  });
+
+  test('part of a traced path is recoloured by splitting it, not by painting all of it', async ({ page }) => {
+    const tools = recordToolCalls(page);
+    await boot(page, TRACED_TREE);
+    await ask(page, 'make the leaves green and the trunk brown');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('parts →', tools.join(', '));
+    expect(tools).toContain('list_path_parts');
+    expect(tools).toContain('split_path');
+    for (const wrong of ['replace_svg', 'replace_lines', 'generate_image', 'modify_image']) expect(tools).not.toContain(wrong);
+    expect(await parses(page, svg)).toBe(true);
+
+    // Each path's data and colour, the colour as the browser reads it — "green" and #3a7d44 alike.
+    const paths = await page.evaluate((s) => {
+      const doc = new DOMParser().parseFromString(s, 'image/svg+xml');
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      return Array.from(doc.getElementsByTagName('path')).map((p) => {
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = /fill:\s*([^;]+)/.exec(p.getAttribute('style') ?? '')?.[1]?.trim() ?? p.getAttribute('fill') ?? '#000';
+        return { d: p.getAttribute('d') ?? '', transform: p.getAttribute('transform'), fill: String(ctx.fillStyle) };
+      });
+    }, svg);
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const holding = (shape: string) => paths.filter((p) => p.d.includes(shape));
+
+    // Nothing was lost or drawn twice: every shape of the tree is in exactly one path, and every
+    // part is where the tracer put it.
+    for (const shape of [...LEAVES, TRUNK]) expect(holding(shape), shape).toHaveLength(1);
+    for (const p of paths) expect(p.transform).toBe('translate(10,5)');
+
+    const [tr, tg, tb] = rgb(holding(TRUNK)[0].fill);
+    expect(tr > tg && tg >= tb && tr > 60, `trunk is ${holding(TRUNK)[0].fill}`).toBe(true);
+    for (const leaf of LEAVES) {
+      const fill = holding(leaf)[0].fill;
+      const [r, g, b] = rgb(fill);
+      expect(g > r && g > b, `a leaf is ${fill}`).toBe(true);
+    }
   });
 
   test('a question is answered without touching the document', async ({ page }) => {

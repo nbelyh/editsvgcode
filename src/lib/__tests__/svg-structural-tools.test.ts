@@ -332,6 +332,7 @@ describe('the validity guard', () => {
     ['set_style_rule', { edits: [{ selector: '.st1', property: 'fill', value: 'red' }] }],
     ['insert_element', { edits: [{ selector: '#a', position: 'after', svg: '<rect/>' }] }],
     ['remove_element', { edits: [{ selector: '#a' }] }],
+    ['split_path', { edits: [{ selector: '#a', fills: [] }] }],
   ];
 
   it('every structural tool refuses every malformed document', () => {
