@@ -18,9 +18,10 @@ export function trackPageView(path: string): void {
 }
 
 /** User sent an AI chat message. */
-export function trackAiChat(model: string): void {
+export function trackAiChat(model: string, effort?: string): void {
   const a = getAnalyticsInstance();
-  if (a) logEvent(a, 'ai_chat', { model });
+  // Effort as the request went out: image-like prompts are sent at low whatever the picker says.
+  if (a) logEvent(a, 'ai_chat', { model, ...(effort ? { effort } : {}) });
 }
 
 /** User pasted a whole SVG document into the chat, and it was opened without a model call. */

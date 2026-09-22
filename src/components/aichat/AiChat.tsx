@@ -507,7 +507,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
       setMessages(prev => [...prev, assistantMsg]);
 
-      trackAiChat(model);
+      trackAiChat(model, sentEffort);
       if (response.toolCalls?.some(tc => tc.name === 'generate_image' || tc.name === 'modify_image')) {
         trackImageGen(imageModel);
       }
