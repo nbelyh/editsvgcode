@@ -49,10 +49,16 @@ if (missing.length > 0) {
   process.exit(2);
 }
 
+// Each CLI run by node itself, not through npx and a shell: on Windows the shell re-read the
+// arguments, so a --grep "a|b" became a pipe into a command called b.
+const CLI = {
+  vitest: 'node_modules/vitest/vitest.mjs',
+  playwright: 'node_modules/@playwright/test/cli.js',
+};
+
 function run(title, command, commandArgs, env = process.env) {
   console.log(`\n=== ${title}\n`);
-  // shell on Windows so `npx` resolves to npx.cmd; no argument here carries spaces.
-  const result = spawnSync('npx', [command, ...commandArgs], { stdio: 'inherit', env, shell: process.platform === 'win32' });
+  const result = spawnSync(process.execPath, [CLI[command], ...commandArgs], { stdio: 'inherit', env });
   return result.status ?? 1;
 }
 
@@ -66,5 +72,4 @@ const env = { ...process.env };
 if (skipLive) delete env.LIVE_AI;
 else env.LIVE_AI = '1';
 console.log(skipLive ? '\nLive AI tests: skipped' : '\nLive AI tests: ON — this spends credits');
-const e2e = run('e2e, every browser', 'playwright', ['test', ...passthrough], env);
-process.exit(e2e);
+process.exit(run('e2e, every browser', 'playwright', ['test', ...passthrough], env));

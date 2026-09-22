@@ -77,11 +77,12 @@ if (effort) env.LIVE_AI_EFFORT = effort;
 console.log(`live e2e → model: ${model ?? '(app default)'}, effort: ${effort ?? '(app default)'}`);
 
 const result = spawnSync(
-  'npx',
-  ['playwright', 'test', 'e2e/ai-tools-live.spec.ts', ...passthrough],
-  // shell on Windows so `npx` resolves to npx.cmd; the arguments here never
-  // contain spaces, so shell quoting has nothing to mangle.
-  { stdio: 'inherit', env, shell: process.platform === 'win32' },
+  process.execPath,
+  ['node_modules/@playwright/test/cli.js', 'test', 'e2e/ai-tools-live.spec.ts', ...passthrough],
+  // Playwright's CLI run by node itself, not through npx and a shell. The shell re-read the
+  // arguments on Windows, so --grep "a|b" became a pipe into a command called b, and a
+  // pattern with a space split in two.
+  { stdio: 'inherit', env },
 );
 
 process.exit(result.status ?? 1);

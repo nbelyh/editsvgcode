@@ -55,16 +55,28 @@ const DOC = [
   '</svg>',
 ].join('\n');
 
-/** Every tool the model asked for, in order, across all rounds of one turn. */
+/**
+ * Every tool the model asked for, in order, across all rounds of one turn.
+ *
+ * Read by passing each /api/chat call through the test, not by listening to the page's
+ * responses: Chromium keeps no body for a streamed response, so `response.text()` failed with
+ * "No data found for resource" on most replies. That failure was swallowed, and the routing
+ * assertions saw some of the tool calls or none — "never searched the icon library" held over
+ * an empty list. Fetched here, every reply is read whole; the page then receives the same
+ * reply, all at once rather than streamed, which changes nothing about which tools are called.
+ */
 function recordToolCalls(page: Page): string[] {
   const names: string[] = [];
-  page.on('response', async (res) => {
-    if (!res.url().includes('/api/chat') || !res.ok()) return;
-    try {
-      for (const item of (await outputOf(await res.text())) ?? []) {
+  void page.route('**/api/chat', async (route) => {
+    // A turn's rounds can run for minutes; the default 30 s would cut a slow one off.
+    const response = await route.fetch({ timeout: 240000 });
+    const body = await response.text();
+    if (response.ok()) {
+      for (const item of (await outputOf(body).catch(() => undefined)) ?? []) {
         if (item.type === 'function_call' && item.name) names.push(item.name);
       }
-    } catch { /* a body without a result is not a tool call */ }
+    }
+    await route.fulfill({ response, body });
   });
   return names;
 }
@@ -253,8 +265,8 @@ test.describe('AI edit tools, against the real model', () => {
     const tools = recordToolCalls(page);
     await boot(page);
     const stopped = await ask(page, 'can you draw some random stars here');
-    // The recorder hears a reply only once its body is read, a moment after the panel shows
-    // it — and an empty list must not pass for "never searched the icon library".
+    // An empty list must not pass for "never searched the icon library": it is what a recorder
+    // that heard nothing looks like, which is how this used to pass.
     await expect.poll(() => tools.length, { timeout: 10000 }).toBeGreaterThan(0);
     // Logged before the assertions, so the run that fails is the one that says its route.
     console.log('stars →', stopped, tools.join(', '));
