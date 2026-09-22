@@ -116,6 +116,17 @@ describe('buildFeedbackRecord', () => {
     expect(record.notes).toEqual(['set_attribute: #nope: matched nothing', 'query → matched 0 elements']);
   });
 
+  it('keeps the line each proposal card showed, since the model seldom writes a reply with an edit', () => {
+    const record = buildFeedbackRecord(input({
+      message: assistant({
+        toolCalls: [{ name: 'set_attribute', arguments: { svg: '<svg/>', summary: `Coloured the trunk ${'x'.repeat(400)}` }, status: 'pending' }] as DisplayMessage['toolCalls'],
+      }),
+    }), 'u1');
+    const [tool] = record.tools as Array<{ summary: string }>;
+    expect(tool.summary.startsWith('Coloured the trunk')).toBe(true);
+    expect(tool.summary.length).toBeLessThanOrEqual(300);
+  });
+
   it('cuts a drawing too large to store, says so, and gives up the proposal before the drawing', () => {
     const huge = `<svg>${'x'.repeat(FEEDBACK_LIMITS.svg)}</svg>`;
     const record = buildFeedbackRecord(input({ svg: huge, proposedSvg: huge }), 'u1');

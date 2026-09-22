@@ -148,6 +148,9 @@ export function buildFeedbackRecord(input: FeedbackInput, uid: string): Record<s
       name: tc.name,
       status: tc.status,
       ...(tc.arguments.notExecuted ? { notExecuted: true } : {}),
+      // The one line the proposal card shows. Without it a rejected turn read as silent, since
+      // the model rarely writes a reply alongside an edit.
+      ...(typeof tc.arguments.summary === 'string' ? { summary: cap(tc.arguments.summary, 300) } : {}),
     })),
     notes: notesOf(input.message),
     outOfToolRounds: !!input.message?.outOfToolRounds,
