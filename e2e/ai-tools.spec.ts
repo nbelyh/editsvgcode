@@ -280,6 +280,26 @@ test.describe('Pasted SVG', () => {
   });
 });
 
+test.describe('Dropped connections', () => {
+  test('a dropped request says the drawing is unchanged, and Retry sends it again', async ({ page }) => {
+    await boot(page);
+    let calls = 0;
+    await page.route('**/api/chat', async (route) => {
+      calls++;
+      if (calls === 1) return route.abort('failed');
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ output: [say('Here it is.')], credits: CREDITS }) });
+    });
+    await send(page, 'hello');
+
+    await expect(page.getByText('The connection dropped before the reply arrived')).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect(page.getByText('Here it is.')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('The connection dropped before the reply arrived')).toHaveCount(0);
+    await expect(page.locator('.aui-msg-user')).toHaveCount(1);
+    expect(calls).toBe(2);
+  });
+});
+
 test.describe('Composer', () => {
   test('a sample prompt fills the composer and hands it the caret', async ({ page }) => {
     // The click left focus on the sample's own button, so Enter did nothing and typing went

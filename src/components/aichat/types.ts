@@ -8,6 +8,8 @@ export interface DisplayMessage {
   toolCalls?: StoredToolCall[];
   /** User ran out of credits — show the upgrade ladder ($5 pack / Pro). */
   buyCredits?: true;
+  /** The request failed in a way sending it again may fix — show Retry. */
+  retry?: true;
   /** Raw API input/output items for this turn — replayed on subsequent requests. */
   rawItems?: unknown[];
   /** Icon selected from the icon picker (search_icons tool). */

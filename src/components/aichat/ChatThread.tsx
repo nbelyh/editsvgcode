@@ -37,6 +37,8 @@ interface ChatThreadProps {
   onThumbsDown: (msgIndex: number, prompt: string) => void;
   /** Resume a turn that stopped on its tool-call limit. */
   onContinue: () => void;
+  /** Send the failed request at this message again. */
+  onRetry: (msgIndex: number) => void;
   /** A proposal is awaiting accept/reject, which blocks sending anything. */
   hasPending: boolean;
   editingIndex: number | null;
@@ -246,7 +248,7 @@ export function ChatThread({
   messages, isRunning, progressStatus, live, onLiveGrow, canUndo,
   viewportRef,
   onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
-  onThumbsUp, onThumbsDown, onContinue, hasPending,
+  onThumbsUp, onThumbsDown, onContinue, onRetry, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImageConfirm, onImageDecline,
@@ -440,6 +442,9 @@ export function ChatThread({
                 <Button size="xs" variant="default" mt="xs" disabled={isRunning || isViewer || hasPending} onClick={onContinue}>Continue</Button>
                 {hasPending && <Text size="xs" c="dimmed" mt={4}>Accept or reject the proposed edits first.</Text>}
               </div>
+            )}
+            {msg.retry && msgIdx === messages.length - 1 && !isViewer && (
+              <Button size="xs" variant="default" mt="xs" disabled={isRunning || hasPending} onClick={() => onRetry(msgIdx)}>Retry</Button>
             )}
             {msg.buyCredits && (
               <Group gap="xs" mt="xs">

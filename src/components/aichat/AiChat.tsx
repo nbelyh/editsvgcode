@@ -21,6 +21,7 @@ import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
 import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg } from '../../lib/analytics';
 import { pastedSvgDocument } from '../../lib/pasted-svg';
+import { describeChatError } from '../../lib/chat-errors';
 import '../AiChat.css';
 
 const HISTORY_KEY = 'esvg-input-history';
@@ -527,10 +528,12 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       const creditsErr = isCreditsError(err);
       if (creditsErr) trackCreditsExhausted();
       const errMsg = (err as Error).message;
+      const shown = creditsErr ? { text: errMsg, retry: false } : describeChatError(errMsg);
       const assistantMsg: DisplayMessage = {
         role: 'assistant',
-        content: creditsErr ? errMsg : `Error: ${errMsg}`,
+        content: shown.text,
         buyCredits: creditsErr || undefined,
+        retry: shown.retry || undefined,
         turn: turnInfo,
       };
       // Running out of credits is the paywall working, not the assistant failing.
@@ -648,6 +651,18 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // deferred send as edit-resubmit, so the guards (auth, isRunning, document
   // loaded) all still apply — and the stored rawItems mean the model gets back
   // everything it had already found rather than starting the search over.
+  // Send a failed request again: the failed turn goes, and its prompt goes back out through the
+  // deferred send, with every guard handleSend applies.
+  const handleRetry = useCallback((msgIdx: number) => {
+    const userMsg = messages[msgIdx - 1];
+    if (isRunning || hasPending || userMsg?.role !== 'user') return;
+    const kept = messages.slice(0, msgIdx - 1);
+    setMessages(kept);
+    scheduleSaveChatMessages(fileId, kept);
+    setInput(userMsg.content);
+    pendingSendRef.current = true;
+  }, [messages, isRunning, hasPending, fileId]);
+
   const handleContinue = useCallback(() => {
     if (isRunning || hasPending) return;
     setInput(CONTINUE_TEXT);
@@ -840,6 +855,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onThumbsUp={handleThumbsUp}
           onThumbsDown={handleThumbsDown}
           onContinue={handleContinue}
+          onRetry={handleRetry}
           hasPending={hasPending}
           editingIndex={editingIndex}
           editingText={editingText}

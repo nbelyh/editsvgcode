@@ -35,7 +35,7 @@ const baseProps = (): React.ComponentProps<typeof ChatThread> => ({
   canUndo: false,
   viewportRef: { current: null },
   onAccept: noop, onReject: noop, onUpdateToolCallSvg: noop, onUndoAccept: noop, onRestore: noop,
-  onThumbsUp: noop, onThumbsDown: noop, onContinue: noop,
+  onThumbsUp: noop, onThumbsDown: noop, onContinue: noop, onRetry: noop,
   hasPending: false,
   editingIndex: null, editingText: '', onEditStart: noop, onEditChange: noop, onEditSubmit: noop, onEditCancel: noop,
   iconPickIcons: null, iconPickSelected: null, onIconSelect: noop, onIconMore: noop, onIconNone: noop,
