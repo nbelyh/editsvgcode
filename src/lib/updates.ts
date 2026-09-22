@@ -52,6 +52,58 @@ export interface Update {
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
   {
+    id: 'recolour-part-of-a-drawing',
+    date: '2026-09-22',
+    title: 'Recolour one part of a traced drawing',
+    summary:
+      'A traced drawing keeps every region of one colour in a single shape, so a tree\'s trunk and its leaves can be one path. Asked to colour the trunk, the assistant could only recolour that whole path, painting the leaves with it — and asked again, it did the same thing again. It can now see the separate parts inside a path, tell a trunk from a leaf by where each sits and how big it is, and give each part its own path and colour, without moving anything else. This release also makes the chat friendlier around the edges: pasted SVG code opens straight away, a dropped connection says what happened, and the assistant tells you when it had to guess.',
+    images: [
+      {
+        src: '/screenshots/25-split-path.png',
+        thumb: '/screenshots/thumbs/25-split-path.png',
+        alt: 'A traced tree that was one black shape, after asking for green leaves and a brown trunk: the assistant looked inside the path, split it into its parts, and says which parts it took for the leaves and which for the trunk.',
+      },
+      {
+        src: '/screenshots/26-pasted-svg.png',
+        thumb: '/screenshots/thumbs/26-pasted-svg.png',
+        alt: 'SVG code pasted into the chat opens in the editor at once: a sunset badge appears in the preview, with no request sent to the assistant.',
+      },
+    ],
+    changes: [
+      { kind: 'new', text: 'The assistant can colour part of a traced drawing — the leaves but not the trunk, the small dots but not the outline — by splitting the path that holds them into one path per part.' },
+      { kind: 'new', text: 'It tells you which parts it took for what, since it cannot see the picture, so a wrong guess is easy to correct in the next message.' },
+      { kind: 'new', text: 'Pasting SVG code into the chat opens it in the editor straight away, with no credit spent and no sign-in needed, and Restore brings back the drawing you had.' },
+      { kind: 'improved', text: 'SVG pasted from other assistants with a mangled namespace, which browsers refuse to draw, is repaired as it opens.' },
+      { kind: 'improved', text: 'When the connection drops before a reply arrives — most often when the app is left in the background on a phone — the chat says your drawing is unchanged and offers Retry, instead of showing "network error".' },
+      { kind: 'improved', text: 'A request the AI provider\'s content filter blocks now comes with an explanation and a suggestion, instead of a raw error.' },
+      { kind: 'improved', text: 'When the assistant can only approximate what you asked, or has to guess which shapes you meant, it says so alongside the edit instead of sending it without a word.' },
+      { kind: 'fixed', text: '"Applied, but with no visible effect" now appears only when an edit really will not show on screen, and no longer on edits that removed or changed several shapes at once.' },
+    ],
+  },
+  {
+    id: 'streaming-replies',
+    date: '2026-09-15',
+    title: 'Replies stream in as they are written',
+    summary:
+      'A reply used to arrive all at once, after a wait with nothing to watch but "Thinking…" — long enough on a big drawing to wonder whether anything was happening. Replies now appear as they are written, the assistant\'s reasoning shows while it works, and each tool it calls is named as it starts.',
+    images: [
+      {
+        src: '/screenshots/27-streamed-reasoning.png',
+        thumb: '/screenshots/thumbs/27-streamed-reasoning.png',
+        alt: 'A finished reply with its reasoning opened: before recolouring the boxes, the assistant worked out that their fill lives in the .box rule, and chose a blue that keeps the labels readable.',
+      },
+    ],
+    changes: [
+      { kind: 'new', text: 'Replies stream into the chat as the assistant writes them, and the tool it is calling is shown while it works.' },
+      { kind: 'new', text: 'The assistant\'s reasoning is shown while it thinks, then folds away under a Reasoning toggle once the reply is done, for the rest of the session.' },
+      { kind: 'new', text: 'On the free plan, a turn that goes wrong — an edit you reject, or an error — is kept for 90 days so we can see what failed and fix it; the privacy policy says what is kept, and Pro users can choose to share one from the thumbs-down.' },
+      { kind: 'improved', text: 'Asking for scattered decoration, such as some random stars, draws them into the picture instead of opening the icon library.' },
+      { kind: 'improved', text: 'Choosing a sample prompt puts the cursor in the message box, ready to send or add to.' },
+      { kind: 'fixed', text: 'Drawings with an embedded photo no longer fail with "input exceeds the context window"; the assistant edits around the photo and keeps it intact.' },
+      { kind: 'fixed', text: 'A Pro subscription that stops renewing now stays active until the end of the period that was paid for.' },
+    ],
+  },
+  {
     id: 'claude-models',
     date: '2026-08-13',
     title: 'Claude joins the model picker',

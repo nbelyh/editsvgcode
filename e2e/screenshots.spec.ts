@@ -556,3 +556,171 @@ test.describe('Structural edit screenshot', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/23-structural-edits.png` });
   });
 });
+
+/**
+ * A traced tree as a tracer writes it: nine leaves and a forked trunk, all ONE black path. The
+ * leaves are tilted ovals, each drawn as two arcs between the ends of its long axis.
+ */
+const TRUNK = 'M46 100 L46 62 C46 56 43 51 37 46 L40 43 C45 47 48 51 50 55 C52 51 55 47 60 43 L63 46 C57 51 54 56 54 62 L54 100 Z';
+const LEAVES = ([[50, 10, 0], [34, 18, -30], [66, 18, 30], [20, 26, -40], [50, 25, 0], [80, 26, 40], [30, 34, -20], [50, 36, 0], [70, 34, 20]] as const)
+  .map(([cx, cy, deg]) => {
+    const dx = 8 * Math.cos((deg * Math.PI) / 180), dy = 8 * Math.sin((deg * Math.PI) / 180);
+    const f = (n: number) => Number(n.toFixed(2));
+    return `M${f(cx - dx)} ${f(cy - dy)} a8 5 ${deg} 1 0 ${f(2 * dx)} ${f(2 * dy)} a8 5 ${deg} 1 0 ${f(-2 * dx)} ${f(-2 * dy)} Z`;
+  });
+const TRACED_TREE = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 115">',
+  `  <path d="${[...LEAVES, TRUNK].join(' ')}" transform="translate(10,5)" style="fill: #1C1817;"/>`,
+  '</svg>',
+].join('\n');
+
+/** What someone pastes from another assistant — namespace mangled and all. */
+const PASTED_BADGE = [
+  '<svg xmlns="http://w3.org" viewBox="0 0 200 200">',
+  '  <defs>',
+  '    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">',
+  '      <stop offset="0" stop-color="#fb923c"/>',
+  '      <stop offset="1" stop-color="#f472b6"/>',
+  '    </linearGradient>',
+  '    <clipPath id="disc"><circle cx="100" cy="100" r="90"/></clipPath>',
+  '  </defs>',
+  '  <g clip-path="url(#disc)">',
+  '    <rect width="200" height="200" fill="url(#sky)"/>',
+  '    <circle cx="100" cy="118" r="36" fill="#fde68a"/>',
+  '    <path d="M0 132 Q50 108 100 132 T200 132 V200 H0 Z" fill="#1e3a8a"/>',
+  '    <path d="M0 152 Q50 132 100 152 T200 152 V200 H0 Z" fill="#172554"/>',
+  '  </g>',
+  '</svg>',
+].join('\n');
+
+test.describe('Release screenshots, September', () => {
+  useEmulatorSuite();
+
+  test.use({
+    viewport: { width: 1400, height: 760 },
+    colorScheme: 'dark',
+  });
+
+  test.skip(({ browserName }) => browserName !== 'chromium', 'screenshots: chromium only');
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('cookie-consent', 'declined');
+      localStorage.setItem('esvg-teaching-bubble-dismissed', '1');
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+  });
+
+  async function bootWith(page: Page, svg: string) {
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page, 'Sam');
+    await page.reload();
+    await waitForEditor(page);
+    await setSvgContent(page, svg);
+    await page.waitForTimeout(400);
+  }
+
+  async function acceptAll(page: Page) {
+    const accept = page.locator('.aui-proposal').getByRole('button', { name: 'Accept' });
+    await expect(accept.first()).toBeVisible({ timeout: 30000 });
+    await expect.poll(async () => {
+      if (await accept.count() > 0) await accept.first().click({ timeout: 5000 }).catch(() => {});
+      return accept.count();
+    }, { timeout: 25000, intervals: [250] }).toBe(0);
+  }
+
+  async function fitAndShoot(page: Page, file: string) {
+    // The drawings are small and the preview pane is not.
+    await page.getByRole('button', { name: 'Fit to window' }).click();
+    // Parked away from the toolbar, or its tooltip stays up in the picture.
+    await page.mouse.move(700, 700);
+    await expect(page.getByText('Fit to window')).toBeHidden({ timeout: 5000 });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/${file}` });
+  }
+
+  test('25 — recolouring part of a traced path', async ({ page }) => {
+    // The turn as the model takes it: look inside the path first, then split and recolour it.
+    const leaves = LEAVES.map((_, i) => ({ part: i + 1, fill: '#4d9a4f' }));
+    const rounds = [
+      [{ type: 'function_call', name: 'list_path_parts', call_id: 'l1', arguments: JSON.stringify({ selector: 'path' }) }],
+      [
+        {
+          type: 'function_call', name: 'split_path', call_id: 's1',
+          arguments: JSON.stringify({
+            edits: [{ selector: '/svg[1]/path[1]', fills: [...leaves, { part: LEAVES.length + 1, fill: '#8b5a2b' }] }],
+            summary: 'Split the tree into its parts: leaves green, trunk brown',
+          }),
+        },
+        {
+          type: 'message',
+          content: [{
+            type: 'output_text',
+            text: 'The whole tree was one path, so I split it into its ten parts. I took the nine small ovals around the top for the leaves and made them green, and the tall forked shape below them for the trunk, now brown. Nothing moved — each part is still exactly where it was.',
+          }],
+        },
+      ],
+    ];
+    let round = 0;
+    await page.route('**/api/chat', (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ output: rounds[Math.min(round++, rounds.length - 1)], credits: { remaining: 46, limit: 50, tier: 'free' } }),
+    }));
+
+    await bootWith(page, TRACED_TREE);
+    const composer = page.locator('textarea.aui-composer-input');
+    await composer.fill('make the leaves green and the trunk brown');
+    await composer.press('Enter');
+    await expect(page.locator('.aui-proposal')).toHaveCount(1, { timeout: 30000 });
+    await expect(page.locator('.aui-status-indicator')).toBeHidden({ timeout: 30000 });
+    await acceptAll(page);
+    await fitAndShoot(page, '25-split-path.png');
+  });
+
+  test('26 — pasted SVG opens without the model', async ({ page }) => {
+    let calls = 0;
+    await page.route('**/api/chat', (route) => { calls++; return route.abort(); });
+    await bootWith(page, DIAGRAM);
+    const composer = page.locator('textarea.aui-composer-input');
+    await composer.fill(PASTED_BADGE);
+    await composer.press('Enter');
+    await expect(page.getByText('Opened your SVG in the editor.')).toBeVisible({ timeout: 15000 });
+    expect(calls).toBe(0);
+    await fitAndShoot(page, '26-pasted-svg.png');
+  });
+
+  test('27 — a streamed reply keeps its reasoning', async ({ page }) => {
+    // Streamed the way the API streams, so the reasoning arrives as it does live and stays with
+    // the finished message.
+    const reasoning = [
+      '**Finding where the colour lives**\n\nThe four boxes share class="box", and the fill is set in the .box rule of the style block, not on the rectangles — so a fill attribute on each rect would be overridden and change nothing.',
+      '**Choosing the blue**\n\nThe outlines and arrows are slate (#334155), so a light, slightly muted blue keeps the contrast with the dark labels: #93c5fd.',
+    ];
+    const reply = 'The boxes are a softer blue now. The colour lives in the `.box` rule, so changing that one declaration recoloured all four boxes at once.';
+    const output = [
+      { type: 'function_call', name: 'set_style_rule', call_id: 'r1', arguments: JSON.stringify({ edits: [{ selector: '.box', property: 'fill', value: '#93c5fd' }], summary: 'Soften the fill in the .box rule' }) },
+      { type: 'message', content: [{ type: 'output_text', text: reply }] },
+    ];
+    const events = [
+      ...reasoning.flatMap((part) => [{ type: 'response.reasoning_summary_part.added' }, { type: 'response.reasoning_summary_text.delta', delta: part }]),
+      { type: 'response.output_item.added', item: { type: 'function_call', name: 'set_style_rule' } },
+      { type: 'response.output_text.delta', delta: reply },
+      { type: 'response.completed', response: { output, credits: { remaining: 45, limit: 50, tier: 'free' } } },
+    ];
+    await page.route('**/api/chat', (route) => route.fulfill({
+      status: 200, contentType: 'text/event-stream',
+      body: events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join(''),
+    }));
+
+    await bootWith(page, DIAGRAM);
+    const composer = page.locator('textarea.aui-composer-input');
+    await composer.fill('the boxes look dull, give them a calmer blue');
+    await composer.press('Enter');
+    await acceptAll(page);
+    await page.getByRole('button', { name: /Reasoning/ }).click();
+    await expect(page.getByText('Finding where the colour lives')).toBeVisible();
+    await fitAndShoot(page, '27-streamed-reasoning.png');
+  });
+});

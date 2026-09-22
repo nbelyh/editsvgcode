@@ -49,5 +49,15 @@
 ## 9. Structural Editing
 
 - `23-structural-edits.png` — A diagram translated and recoloured through query / set_text /
-  set_style_rule, both proposals accepted. The only shot taken against a scripted model
-  (`/api/chat` stubbed in `screenshots.spec.ts`), so the tool names in it are fixed.
+  set_style_rule, both proposals accepted. Taken against a scripted model (`/api/chat` stubbed
+  in `screenshots.spec.ts`), so the tool names in it are fixed — as are those in 25–27.
+
+## 10. Chat, September 2026
+
+- `25-split-path.png` — A traced tree that was one path, recoloured part by part through
+  list_path_parts / split_path: leaves green, trunk brown
+- `26-pasted-svg.png` — SVG code pasted into the chat, opened in the editor with no model call
+- `27-streamed-reasoning.png` — A finished streamed reply with its Reasoning section opened
+
+Thumbnails are the full shots at half width, 700px, as palette PNGs (sharp:
+`resize({ width: 700 }).png({ palette: true })`).
