@@ -1,5 +1,5 @@
 export const DEFAULT_PRICING = {
-  freeMonthlyCredits: 50,
+  freeMonthlyCredits: 30,
   proMonthlyCredits: 1000,
   maxSvgCharsFree: 50000,
 };
