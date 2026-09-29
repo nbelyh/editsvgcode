@@ -9,6 +9,7 @@ import { submitGalleryMeta } from './publish';
 import { trackSave, trackDownload, trackFileOpen } from './analytics';
 import { getNewUniqueId, isCleanId, stripBom, formatXml } from './svg-utils';
 import { saveSvgCode, loadSvgCode, migrateChatData } from './chat-storage';
+import { readOpenParam, withoutOpenParam, fetchSvgFromUrl } from './open-from-url';
 import { scheduleDraftSvgSave, primeDraftSvg } from './chat-history';
 import { getAuth } from 'firebase/auth';
 import DEFAULT_SVG from '../assets/default.svg?raw';
@@ -120,6 +121,15 @@ export function useDocument(routeFileId: string | undefined) {
   }, []);
 
   /**
+   * A drawing the address carried (`?svg=` or `?url=`) has been opened, so the draft load must
+   * not run over it. The load happens when auth settles, which is after this — without the
+   * flag, the reader's previous draft would come back a second after their link opened.
+   */
+  const openedFromAddress = useRef<string | null>(null);
+  /** The address has been read already — see the effect below. */
+  const openRequestHandled = useRef(false);
+
+  /**
    * The starter drawing — but only over text the loader itself wrote.
    *
    * A load runs when auth settles, which on WebKit is about a second after the
@@ -137,6 +147,68 @@ export function useDocument(routeFileId: string | undefined) {
     if (svgCodeRef.current !== loaderSvgRef.current) return;
     showLoadedSvg(DEFAULT_SVG);
   }, [showLoadedSvg]);
+
+  /**
+   * Open the drawing the address carries, before anything else loads.
+   *
+   * It becomes a document of its own, exactly as an upload does, so the draft the reader
+   * already had is still there when they come back to it. The parameter is taken out of the
+   * address as soon as it is read: a reload should not reopen the link over their work, and
+   * nobody wants a hundred kilobytes of markup in the address bar.
+   */
+  useEffect(() => {
+    // Once per editor, whatever the effect does — in development it runs twice, and the second
+    // run would find the address already stripped and open nothing. Aborting the fetch on the
+    // cleanup between those two runs is the same trap: the request was cancelled and never
+    // reissued, so a `?url=` link opened nothing at all and said nothing either.
+    if (routeFileId || openRequestHandled.current) return;
+    const request = readOpenParam(window.location.search);
+    if (!request) return;
+    openRequestHandled.current = true;
+
+    /** Take the parameter out, through the router so its own history state survives. */
+    const dropParam = () => navigate(
+      { pathname: window.location.pathname, search: withoutOpenParam(window.location.search), hash: window.location.hash },
+      { replace: true },
+    );
+
+    const open = (svg: string) => {
+      // Dropped only now: until the drawing is in hand, a reload is the reader's way out.
+      dropParam();
+      const id = getNewUniqueId();
+      docLoadToken.current++;
+      openedFromAddress.current = id;
+      localStorage.setItem('esvg-local-id', id);
+      setFileId(id);
+      loadedDocRef.current = id;
+      showLoadedSvg(formatXml(stripBom(svg)));
+      setReadOnly(false);
+      trackFileOpen('url');
+    };
+
+    const refuse = (reason: string) => {
+      dropParam();
+      notifications.show({ title: 'Could not open that link', message: reason, color: 'red' });
+    };
+
+    if (request.kind === 'invalid') {
+      refuse(request.reason);
+      return;
+    }
+    if (request.kind === 'svg') {
+      open(request.svg);
+      return;
+    }
+    fetchSvgFromUrl(request.url).then((result) => {
+      if ('error' in result) {
+        refuse(result.error);
+        return;
+      }
+      open(result.svg);
+    });
+    // Once, for the address the editor was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // DB init / load
   useEffect(() => {
@@ -200,6 +272,12 @@ export function useDocument(routeFileId: string | undefined) {
           showDefaultSvg();
           notifications.show({ title: 'Access denied', message: 'This file is private or does not exist.', color: 'red' });
         }
+        setReadOnly(false);
+      } else if (openedFromAddress.current === currentFileId) {
+        // The link's drawing is already on screen and is its own document; loading the draft
+        // now would replace it with whatever this browser had open last. Matched against the
+        // document itself rather than a bare flag: New mints another id, and a flag still set
+        // then would skip ITS load too, leaving the stand-in on screen to be autosaved.
         setReadOnly(false);
       } else {
         // Unsaved draft: a signed-in user's draft may exist server-side (chat
