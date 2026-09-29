@@ -52,6 +52,19 @@ export interface Update {
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
   {
+    id: 'open-from-a-link',
+    date: '2026-09-29',
+    title: 'Open a drawing straight from a link',
+    summary:
+      'An assistant that has just written SVG for you leaves it sitting in the chat, and the editor opens on its own starter drawing — so the markup has to be copied across by hand. A link can now carry the drawing instead: open editsvgcode.com/?svg= followed by the markup and it opens ready to edit, or point ?url= at an SVG file already on the web, such as a raw file on a code host. Either way it opens as a new drawing, the way opening a file from your computer does.',
+    changes: [
+      { kind: 'new', text: 'A link can carry a drawing: /?svg= followed by the markup opens it in the editor, ready to edit.' },
+      { kind: 'new', text: '/?url= followed by the address of an SVG file on the web opens that file, as long as the site holding it lets a browser read it.' },
+      { kind: 'improved', text: 'The free models now start at medium thinking effort rather than high, which makes an ordinary edit quicker; high and extra-high are still there in the picker whenever a change needs more thought.' },
+      { kind: 'improved', text: 'Free accounts now get 30 AI credits a month rather than 50. Almost nobody reached the old limit, and the change keeps the assistant free for everyone rather than rationing it later.' },
+    ],
+  },
+  {
     id: 'recolour-part-of-a-drawing',
     date: '2026-09-22',
     title: 'Recolour one part of a traced drawing',
