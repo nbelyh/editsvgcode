@@ -1,7 +1,7 @@
 {
   "siteName": "EditSvgCode",
-  "defaultTitle": "Online SVG Code Editor",
-  "defaultDescription": "Online SVG code editor with live preview, schema-aware autocomplete, hover docs, color picker, and cloud storage. AI chat and image generation available as pro features.",
+  "defaultTitle": "Online SVG Code Editor — view, fix and export SVG code",
+  "defaultDescription": "Paste SVG code and see it render instantly — no account, no upload. Fix broken markup, edit it with live preview and schema-aware autocomplete, or ask the built-in AI to change it. Export as SVG or PNG.",
   "defaultImage": "/screenshots/01-editor-full.png",
   "routes": {
     "/gallery": {
