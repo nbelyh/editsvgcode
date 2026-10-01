@@ -9,8 +9,19 @@ interface Feature {
   description: string;
   image: string;
   thumb: string;
+  /** The thumbnail's pixel size, when it is not THUMB_SIZE. */
+  thumbSize?: readonly [number, number];
   badge?: string;
 }
+
+/**
+ * The thumbnails' size, given to each <img> so the browser can reserve its box before the
+ * picture arrives. Without it a thumbnail was zero pixels tall until it loaded: the server-
+ * rendered page laid its text out with no pictures above it, then pushed all of it down about
+ * 330px when they came in — a layout shift of 0.21 on every visit, close to what search counts
+ * as poor. A test reads each file and fails if its real size no longer matches.
+ */
+export const THUMB_SIZE = [700, 450] as const;
 
 const AI_FEATURES: Feature[] = [
   {
@@ -32,6 +43,7 @@ const AI_FEATURES: Feature[] = [
     description: 'Ask the AI to modify a previously generated image — add elements, change colors, or refine details. The AI edits the existing raster image based on your instructions, then re-vectorizes it to SVG. Multiple modifications can be chained in the same conversation.',
     image: '/screenshots/16-image-modification.png',
     thumb: '/screenshots/thumbs/16-image-modification.png',
+    thumbSize: [400, 197],
     badge: 'Pro',
   },
   {
@@ -128,7 +140,10 @@ function FeatureSection({ title, features, onImageClick }: { title: string; feat
           <Card key={f.title} shadow="sm" padding="lg" radius="md" withBorder>
             <Card.Section>
               <UnstyledButton onClick={() => onImageClick(f)} style={{ width: '100%', cursor: 'zoom-in' }}>
-                <Image src={f.thumb} alt={f.title} />
+                {/* Intrinsic size as attributes, so the box exists before the picture does;
+                    height:auto keeps it scaling with the card rather than fixed at that size. */}
+                <Image src={f.thumb} alt={f.title} width={(f.thumbSize ?? THUMB_SIZE)[0]}
+                  height={(f.thumbSize ?? THUMB_SIZE)[1]} style={{ height: 'auto' }} />
               </UnstyledButton>
             </Card.Section>
             <Group mt="md" mb="xs" justify="space-between">
