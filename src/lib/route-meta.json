@@ -1,7 +1,7 @@
 {
   "siteName": "EditSvgCode",
-  "defaultTitle": "Online SVG Code Editor — view, fix and export SVG code",
-  "defaultDescription": "Paste SVG code and see it render instantly — no account, no upload. Fix broken markup, edit it with live preview and schema-aware autocomplete, or ask the built-in AI to change it. Export as SVG or PNG.",
+  "defaultTitle": "Online SVG Code Editor",
+  "defaultDescription": "View, fix and export SVG code online. Paste markup and see it render instantly — no account, no upload — then edit it with live preview or let AI change it.",
   "defaultImage": "/screenshots/01-editor-full.png",
   "routes": {
     "/gallery": {
