@@ -24,6 +24,7 @@ import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router';
 import { MantineProvider } from '@mantine/core';
 import { theme } from './theme';
+import { HomeIntro } from './components/HomeIntro';
 import { AboutPage } from './pages/AboutPage';
 import { BlogPage } from './pages/BlogPage';
 import { FeaturesPage } from './pages/FeaturesPage';
@@ -38,6 +39,12 @@ import { TermsPage } from './pages/TermsPage';
  *  in step: a route rendered here that main.tsx maps elsewhere would serve a
  *  crawler one page and a reader another, which is the definition of cloaking. */
 const PAGES: Record<string, () => React.JSX.Element> = {
+  // The one exception, and deliberately so: "/" mounts the editor, which cannot be rendered
+  // without a browser, so it shipped an empty #root to every crawler and assistant that fetches
+  // it — which is all of them, far more often than they fetch the pages that do carry text.
+  // HomeIntro is a summary of that page in its own terms, replaced the moment React mounts.
+  // Keep it true of the editor: a stand-in that described something else would be cloaking.
+  '/': HomeIntro,
   '/about': AboutPage,
   '/blog': BlogPage,
   '/features': FeaturesPage,

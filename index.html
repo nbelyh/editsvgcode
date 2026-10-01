@@ -16,6 +16,36 @@
     -->
     <title>Online SVG Code Editor — view, fix and export SVG code</title>
     <meta name="description" content="Paste SVG code and see it render instantly — no account, no upload. Fix broken markup, edit it with live preview and schema-aware autocomplete, or ask the built-in AI to change it. Export as SVG or PNG." />
+
+    <!-- The same claim as the description above, in the vocabulary search engines
+         parse. Kept in the shell, so every route carries it: it describes the
+         application the whole site is, not one page of it. Nothing renders from
+         it — it exists to be read by machines that do not run JavaScript. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "EditSVGCode",
+        "url": "https://editsvgcode.com/",
+        "applicationCategory": "DesignApplication",
+        "applicationSubCategory": "SVG editor",
+        "operatingSystem": "Any (runs in a web browser)",
+        "description": "Online SVG code editor: paste SVG markup and see it render instantly, edit it beside a live preview with schema-aware autocomplete, or ask the built-in AI assistant to change it. Exports SVG and PNG.",
+        "browserRequirements": "Requires JavaScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Live preview beside the markup",
+          "Schema-aware autocomplete and hover documentation",
+          "Click a shape in the preview to select it in the code",
+          "AI assistant that edits the drawing from a description",
+          "AI image generation traced into editable vector shapes",
+          "Library of over 200,000 open-source icons",
+          "Export as SVG or PNG",
+          "Cloud storage, link sharing and a public gallery"
+        ],
+        "creator": { "@type": "Organization", "name": "UnmanagedVisio", "url": "https://unmanagedvisio.com/" }
+      }
+    </script>
     <meta property="og:type" content="website" />
     <meta property="og:title" content="EditSVGCode — Online SVG Code Editor" />
     <meta property="og:description" content="Paste SVG code from ChatGPT or Claude and see it render instantly. Fix it, edit it with live preview, or let the built-in AI assistant change it for you." />
@@ -50,6 +80,17 @@
         }
       })();
     </script>
+    <!--
+      The home page's prerendered description (HomeIntro) is for readers that do
+      not run JavaScript — crawlers and the assistants that fetch the page. A
+      browser that runs it gets the editor instead, and painting the description
+      first flashed a page of text for ~130ms on a fast connection before the
+      app replaced it. Marked here, before the body is parsed, so a browser that
+      will run the app never paints it at all; a reader without JavaScript never
+      runs this line, so for it the text stays.
+    -->
+    <script>document.documentElement.classList.add('js');</script>
+    <style>.js .home-intro { display: none; }</style>
   </head>
   <body>
     <div id="root"></div>
