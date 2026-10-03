@@ -84,6 +84,18 @@ export function trackFileOpen(source: 'url' | 'upload'): void {
   if (a) logEvent(a, 'file_open', { source });
 }
 
+/** User exported the drawing as a picture — what they chose, so the defaults can follow use. */
+export function trackExport(meta: { format: string; size: string; background: string; action: 'download' | 'copy' }): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'file_export', meta);
+}
+
+/** User copied the drawing as code: svg, datauri, base64, css or react. */
+export function trackCopyAs(kind: string): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'copy_as', { kind });
+}
+
 /** User downloaded a file. */
 export function trackDownload(): void {
   const a = getAnalyticsInstance();

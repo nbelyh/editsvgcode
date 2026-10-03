@@ -28,10 +28,11 @@ test.describe('File Upload & Download', () => {
     await page.goto('/');
     await waitForEditor(page);
 
-    // Click the Download button and capture the download event
+    // Download opens a menu of formats; the .svg is the first choice.
+    await page.getByRole('button', { name: 'Download' }).click();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: /download/i }).click(),
+      page.getByRole('menuitem', { name: 'SVG file' }).click(),
     ]);
 
     expect(download.suggestedFilename()).toMatch(/\.svg$/);

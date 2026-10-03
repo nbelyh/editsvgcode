@@ -250,6 +250,9 @@ export function EditorPage() {
       onNew={handleNew}
       onUpload={handleUpload}
       onDownload={handleDownload}
+      svg={svgCode}
+      fileName={downloadName || routeFileId || fileId}
+      codeName={downloadName || galleryMeta.title || ''}
       onSave={handleSave}
       saving={saving}
       routeFileId={routeFileId}
@@ -395,6 +398,9 @@ export function EditorPage() {
               onNew={handleNew}
               onUpload={handleUpload}
               onDownload={handleDownload}
+              svg={svgCode}
+              fileName={downloadName || routeFileId || fileId}
+              codeName={downloadName || galleryMeta.title || ''}
               onSave={handleSave}
               saving={saving}
               routeFileId={routeFileId}

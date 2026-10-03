@@ -1,12 +1,17 @@
 import { Group, ActionIcon, Button, Tooltip } from '@mantine/core';
-import { IconFilePlus, IconFolderOpen, IconDownload, IconCloudUpload, IconEye, IconEyeOff } from '@tabler/icons-react';
+import { IconFilePlus, IconFolderOpen, IconCloudUpload, IconEye, IconEyeOff } from '@tabler/icons-react';
 import type { Visibility } from '../lib/firebase';
 import { VisibilityMenu } from './VisibilityMenu';
+import { ExportMenu } from './ExportMenu';
 
 interface EditorToolbarProps {
   onNew: () => void;
   onUpload: () => void;
   onDownload: () => void;
+  /** The drawing and its file name, for exporting it as a picture or copying it as code. */
+  svg: string;
+  fileName: string;
+  codeName: string;
   onSave: () => void;
   saving: boolean;
   routeFileId?: string;
@@ -20,7 +25,7 @@ interface EditorToolbarProps {
   showPreviewToggle?: boolean;
 }
 
-export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, routeFileId, visibility, isAnonymous, isOwner, onSetVisibility, onEditMeta, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
+export function EditorToolbar({ onNew, onUpload, onDownload, svg, fileName, codeName, onSave, saving, routeFileId, visibility, isAnonymous, isOwner, onSetVisibility, onEditMeta, showPreview, onTogglePreview, showPreviewToggle = true }: EditorToolbarProps) {
   return (
     // minHeight (not height): on narrow panes the buttons wrap, and a fixed
     // height would leave the wrapped row invisibly overlapping the editor
@@ -37,11 +42,7 @@ export function EditorToolbar({ onNew, onUpload, onDownload, onSave, saving, rou
             Open
           </Button>
         </Tooltip>
-        <Tooltip label="Download the file to your computer">
-          <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconDownload size={14} />} onClick={onDownload}>
-            Download
-          </Button>
-        </Tooltip>
+        <ExportMenu svg={svg} fileName={fileName} codeName={codeName} onDownload={onDownload} />
         <Tooltip label={isAnonymous ? (routeFileId ? "Save changes (unlisted)" : "Save to the cloud (unlisted — sign in to save privately)") : routeFileId ? "Save changes" : "Save to the cloud"}>
           <Button variant="subtle" color="gray" size="compact-xs" leftSection={<IconCloudUpload size={14} />} onClick={onSave} loading={saving}>
             Save

@@ -3,6 +3,7 @@ import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
+import { CHECKERBOARD_LIGHT } from '../lib/checkerboard';
 import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath } from '../lib/preview-utils';
 
 interface PreviewProps {
@@ -26,8 +27,6 @@ export interface PreviewHandle {
 
 type BgMode = 'checkerboard' | 'checkerboard-dark' | 'white' | 'black';
 
-const CHECKERBOARD_LIGHT =
-  'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAMAAADz0U65AAAABlBMVEX////g4OACVBJKAAAAFElEQVR42mNgAAJGIGDAwyAkDwQABMgAIUCVOUYAAAAASUVORK5CYII=")';
 
 const CHECKERBOARD_DARK =
   'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAGElEQVR4nGNQQgLGSICBihLIHGRFVJQAAHT8H+GQ1mTOAAAAAElFTkSuQmCC")';
