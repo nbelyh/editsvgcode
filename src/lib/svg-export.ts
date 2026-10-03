@@ -181,6 +181,23 @@ export function base64(text: string): string {
   return btoa(binary);
 }
 
+/** A file for one screen density, named the way iOS and Figma name them: logo.png, logo@2x.png. */
+export function scaledName(base: string, scale: number, format: ImageFormat): string {
+  return `${base}${scale === 1 ? '' : `@${scale}x`}.${format}`;
+}
+
+/**
+ * The <img> for a set of densities: the browser downloads the one file that suits the screen,
+ * and lays it out at the drawing's own size whichever it picks. Names are URL-encoded, since a
+ * space would end an entry in srcset.
+ */
+export function srcsetImg(base: string, format: ImageFormat, scales: number[], own: { width: number; height: number }): string {
+  const url = (scale: number) => encodeURI(scaledName(base, scale, format)).replace(/"/g, '%22').replace(/,/g, '%2C');
+  const sorted = [...scales].sort((a, b) => a - b);
+  return `<img src="${url(sorted[0])}" srcset="${sorted.map((s) => `${url(s)} ${s}x`).join(', ')}"`
+    + ` width="${Math.round(own.width)}" height="${Math.round(own.height)}" alt="">`;
+}
+
 /**
  * Whether the drawing pulls in images, fonts or styles from other websites. A browser drawing an
  * SVG as a picture fetches none of it — Firefox and Safari leave it out — so what shows in the

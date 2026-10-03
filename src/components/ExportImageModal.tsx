@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Stack, Group, Text, Button, SegmentedControl, NumberInput, ColorInput, Loader, ActionIcon, Tooltip } from '@mantine/core';
+import { Modal, Stack, Group, Text, Button, SegmentedControl, NumberInput, ColorInput, Loader, ActionIcon, Tooltip, SimpleGrid } from '@mantine/core';
 import { CHECKERBOARD_LIGHT } from '../lib/checkerboard';
 import { PositionGrid } from './PositionGrid';
 import { IconDownload, IconCopy, IconLink, IconLinkOff } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import {
-  parseSvg, intrinsicSize, outputSize, renderImage, canEncode, isColour, loadsFromOtherSites, MAX_SIDE,
+  parseSvg, intrinsicSize, outputSize, renderImage, canEncode, isColour, loadsFromOtherSites, scaledName, srcsetImg, MAX_SIDE,
   type ImageFormat, type SizeChoice, type Align,
 } from '../lib/svg-export';
+import { zipFile } from '../lib/icon-set';
 import { trackExport } from '../lib/analytics';
 
 /**
@@ -17,8 +18,11 @@ import { trackExport } from '../lib/analytics';
  * nothing PNG does not.
  *
  * 1× is the drawing's own size, so what comes out matches what the SVG says it is; the pixel
- * size is shown before anything is saved, because 1× of a 24 px icon is a 24 px picture. The
- * last settings are remembered, so someone who always wants 4× chooses it once.
+ * size is shown before anything is saved, because 1× of a 24 px icon is a 24 px picture. 2× and
+ * 3× are the same picture for sharp screens — phones, Retina laptops — and are wanted together:
+ * an app or a page ships logo.png, logo@2x.png and logo@3x.png side by side. So the scales can
+ * be picked together, as Figma's export rows and Illustrator's scale ticks can, and several come
+ * as one zip with the <img srcset> line that uses them. The last settings are remembered.
  *
  * A custom size keeps the drawing's proportions until the lock is opened. A box of another shape
  * — a square app icon from a wide logo — then needs to say where the drawing sits in it. The
@@ -26,12 +30,17 @@ import { trackExport } from '../lib/analytics';
  * preserveAspectRatio, so the picture is what a browser would show for the drawing in that box.
  */
 
-type SizeMode = '1' | '2' | '4' | 'custom';
+type SizeMode = 'scale' | 'custom';
+
+/** The densities apps and pages ship: ordinary screens, then sharp laptops and most phones. */
+const SCALES = [1, 2, 3];
 type Background = 'transparent' | 'white' | 'custom';
 
 interface Settings {
   format: ImageFormat;
   sizeMode: SizeMode;
+  /** The scales picked, when sizeMode is 'scale' — at least one, in order. */
+  scales: number[];
   customWidth: number;
   customHeight: number;
   keepRatio: boolean;
@@ -46,13 +55,20 @@ const PREVIEW_H = 180;
 
 const STORAGE_KEY = 'esvg-export-settings';
 const DEFAULTS: Settings = {
-  format: 'png', sizeMode: '1', customWidth: 1024, customHeight: 1024, keepRatio: true,
+  format: 'png', sizeMode: 'scale', scales: [1], customWidth: 1024, customHeight: 1024, keepRatio: true,
   align: 'center', background: 'transparent', customColor: '#ffffff',
 };
 
 function loadSettings(): Settings {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') };
+    const saved = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') };
+    // Anything not understood — a scale no longer offered, a size mode from before — starts at 1×.
+    const scales = Array.isArray(saved.scales) ? SCALES.filter((s) => saved.scales.includes(s)) : [];
+    return {
+      ...saved,
+      sizeMode: saved.sizeMode === 'custom' ? 'custom' : 'scale',
+      scales: scales.length ? scales : [1],
+    };
   } catch {
     return DEFAULTS;
   }
@@ -64,11 +80,18 @@ function saveSettings(settings: Settings) {
   } catch { /* private mode: the settings simply are not remembered */ }
 }
 
-/** Figma's naming: name.png at 1×, name@2x.png at 2×; a custom size names its pixels. */
-function outputName(base: string, settings: Settings, format: ImageFormat, size: { width: number; height: number }): string {
-  const suffix = settings.sizeMode === 'custom' ? `-${size.width}x${size.height}`
-    : settings.sizeMode === '1' ? '' : `@${settings.sizeMode}x`;
-  return `${base}${suffix}.${format}`;
+/** A custom size names its pixels: name-1200x630.png. */
+function customName(base: string, format: ImageFormat, size: { width: number; height: number }): string {
+  return `${base}-${size.width}x${size.height}.${format}`;
+}
+
+function save(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**
@@ -132,17 +155,27 @@ export function ExportImageModal({ opened, onClose, svg, fileName }: ExportImage
   const box = custom && !settings.keepRatio;
   // Locked, the height is never stored: it follows the width and whatever drawing is open.
   const lockedHeight = Math.max(1, Math.round(settings.customWidth / ratio));
-  const choice: SizeChoice = !custom ? { scale: Number(settings.sizeMode) }
-    : box ? { width: settings.customWidth, height: settings.customHeight }
-    : { width: settings.customWidth };
+  // One size per file that will be written: each scale picked, or the one custom size.
+  const choices: SizeChoice[] = !custom ? settings.scales.map((scale) => ({ scale }))
+    : [box ? { width: settings.customWidth, height: settings.customHeight } : { width: settings.customWidth }];
   const align: Align | undefined = box ? settings.align : undefined;
-  const size = own && !('error' in own) ? outputSize(own, choice) : null;
+  const sizes = own && !('error' in own) ? choices.map((c) => outputSize(own, c)) : null;
+  // The preview has one shape whatever the scale, so the first size stands for all of them.
+  const size = sizes?.[0] ?? null;
+  const several = choices.length > 1;
+
+  /** A scale clicked: added to or taken from the set, which always keeps one. Custom is on its own. */
+  const toggleScale = (scale: number) => {
+    if (custom) return update({ sizeMode: 'scale', scales: [scale] });
+    const picked = settings.scales.includes(scale) ? settings.scales.filter((s) => s !== scale) : [...settings.scales, scale];
+    if (picked.length) update({ scales: SCALES.filter((s) => picked.includes(s)) });
+  };
 
   // A colour half typed into the picker is not one yet: nothing is drawn or saved with it.
   const colourInvalid = settings.background === 'custom' && !isColour(settings.customColor);
   const background = settings.background === 'transparent' ? null
     : settings.background === 'white' ? '#ffffff' : settings.customColor;
-  const sizeLabel = custom ? 'custom' : `${settings.sizeMode}x`;
+  const scaleLabel = (scales: number[]) => scales.map((s) => `${s}x`).join('+');
 
   // What the picture will look like, drawn by the same renderer as the export — only smaller, in
   // a box of the export's shape — on a checkerboard so transparent parts show as transparent.
@@ -185,21 +218,37 @@ export function ExportImageModal({ opened, onClose, svg, fileName }: ExportImage
   const run = async (action: 'download' | 'copy') => {
     setBusy(action);
     try {
-      // The clipboard takes PNG only, whatever format is chosen for saving.
+      // The clipboard takes PNG only, whatever format is chosen for saving — and one picture,
+      // so with several scales picked it gets the largest.
       const output: ImageFormat = action === 'copy' ? 'png' : format;
-      const result = await renderImage(svg, { size: choice, format: output, background, align });
-      if ('error' in result) {
-        notifications.show({ title: 'Could not export the picture', message: result.error, color: 'red' });
-        return;
+      const wanted = action === 'copy' ? choices.slice(-1) : choices;
+      const scales = action === 'copy' ? settings.scales.slice(-1) : settings.scales;
+      const results = [];
+      for (const wantedSize of wanted) {
+        const rendered = await renderImage(svg, { size: wantedSize, format: output, background, align });
+        if ('error' in rendered) {
+          notifications.show({ title: 'Could not export the picture', message: rendered.error, color: 'red' });
+          return;
+        }
+        results.push(rendered);
       }
-      trackExport({ format: output, size: sizeLabel, background: settings.background, action });
+      const result = results[results.length - 1];
+      trackExport({ format: output, size: custom ? 'custom' : scaleLabel(scales), background: settings.background, action });
       if (action === 'download') {
-        const url = URL.createObjectURL(result.blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = outputName(fileName, settings, output, result);
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (custom) {
+          save(result.blob, customName(fileName, output, result));
+        } else if (!several) {
+          save(result.blob, scaledName(fileName, scales[0], output));
+        } else {
+          // Every density at once, with the line that lets the browser pick between them.
+          const files = await Promise.all(results.map(async (r, i) => ({
+            name: scaledName(fileName, scales[i], output),
+            data: new Uint8Array(await r.blob.arrayBuffer()),
+          })));
+          const img = srcsetImg(fileName, output, scales, own && !('error' in own) ? own : result);
+          files.push({ name: 'img.html', data: new TextEncoder().encode(`${img}\n`) });
+          save(new Blob([zipFile(files) as BlobPart], { type: 'application/zip' }), `${fileName}-images.zip`);
+        }
         onClose();
       } else {
         try {
@@ -253,17 +302,24 @@ export function ExportImageModal({ opened, onClose, svg, fileName }: ExportImage
 
         <div>
           <Text size="sm" fw={500} mb={4}>Size</Text>
-          <SegmentedControl
-            fullWidth
-            value={settings.sizeMode}
-            onChange={(v) => update({ sizeMode: v as SizeMode })}
-            data={[
-              { value: '1', label: '1×' },
-              { value: '2', label: '2×' },
-              { value: '4', label: '4×' },
-              { value: 'custom', label: 'Custom' },
-            ]}
-          />
+          <SimpleGrid cols={4} spacing={4}>
+            {SCALES.map((scale) => {
+              const on = !custom && settings.scales.includes(scale);
+              return (
+                <Button key={scale} variant={on ? 'filled' : 'default'} aria-pressed={on} onClick={() => toggleScale(scale)}>
+                  {`${scale}×`}
+                </Button>
+              );
+            })}
+            <Button variant={custom ? 'filled' : 'default'} aria-pressed={custom} onClick={() => update({ sizeMode: 'custom' })}>
+              Custom
+            </Button>
+          </SimpleGrid>
+          {!custom && (
+            <Text size="xs" c="dimmed" mt={4}>
+              2× and 3× are for sharp screens, such as phones and Retina laptops. Pick several to get them all at once, zipped with the HTML that uses them.
+            </Text>
+          )}
           {custom && (
             <Group mt="xs" gap="xs" align="flex-end" wrap="nowrap">
               <PixelInput
@@ -302,12 +358,12 @@ export function ExportImageModal({ opened, onClose, svg, fileName }: ExportImage
               </Text>
             </Group>
           )}
-          {size && (
+          {sizes && (
             <Text size="sm" c="dimmed" mt={6} data-testid="export-size">
-              {size.width} × {size.height} px
+              {sizes.map((s) => `${s.width} × ${s.height}`).join(', ')} px
             </Text>
           )}
-          {size?.reduced && (
+          {sizes?.some((s) => s.reduced) && (
             <Text size="xs" c="orange" mt={2}>
               Reduced to the largest picture every browser can draw.
             </Text>

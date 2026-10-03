@@ -110,19 +110,51 @@ test.describe('Export', () => {
     expect(await pixelAt(page, bytes, 'image/png', 20, 10)).toEqual([255, 0, 0, 255]); // middle: the red box
   });
 
-  test('4× is four times the size, named @4x, and a white background fills the corners', async ({ page }) => {
+  test('3× alone is three times the size, named @3x, and a white background fills the corners', async ({ page }) => {
     await openExport(page);
     await page.getByRole('menuitem', { name: 'Image (PNG, WebP)…' }).click();
     const dialog = page.getByRole('dialog', { name: 'Export image' });
-    await dialog.getByText('4×').click();
+    // The scales are picked together: add 3×, then take away the 1× that was already on.
+    await dialog.getByRole('button', { name: '3×', exact: true }).click();
+    await dialog.getByRole('button', { name: '1×', exact: true }).click();
+    await expect(dialog.getByRole('button', { name: '1×', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await dialog.getByText('White').click();
-    await expect(page.getByTestId('export-size')).toHaveText('160 × 80 px');
+    await expect(page.getByTestId('export-size')).toHaveText('120 × 60 px');
 
     const download = await exportImage(page);
-    expect(download.suggestedFilename()).toMatch(/@4x\.png$/);
+    expect(download.suggestedFilename()).toMatch(/@3x\.png$/);
     const bytes = readFileSync(await download.path());
-    expect(pngSize(bytes)).toEqual([160, 80]);
+    expect(pngSize(bytes)).toEqual([120, 60]);
     expect(await pixelAt(page, bytes, 'image/png', 2, 2)).toEqual([255, 255, 255, 255]);
+  });
+
+  test('1×, 2× and 3× together come as one zip, with the <img srcset> that uses them', async ({ page }) => {
+    await openExport(page);
+    await page.getByRole('menuitem', { name: 'Image (PNG, WebP)…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export image' });
+    await dialog.getByRole('button', { name: '2×', exact: true }).click();
+    await dialog.getByRole('button', { name: '3×', exact: true }).click();
+    await expect(page.getByTestId('export-size')).toHaveText('40 × 20, 80 × 40, 120 × 60 px');
+    const download = await exportImage(page);
+    expect(download.suggestedFilename()).toMatch(/-images\.zip$/);
+    const files = unzip(readFileSync(await download.path()));
+    const base = download.suggestedFilename().replace(/-images\.zip$/, '');
+    expect(Object.keys(files)).toEqual([`${base}.png`, `${base}@2x.png`, `${base}@3x.png`, 'img.html']);
+    expect(pngSize(files[`${base}.png`])).toEqual([40, 20]);
+    expect(pngSize(files[`${base}@2x.png`])).toEqual([80, 40]);
+    expect(pngSize(files[`${base}@3x.png`])).toEqual([120, 60]);
+    expect(files['img.html'].toString()).toBe(
+      `<img src="${base}.png" srcset="${base}.png 1x, ${base}@2x.png 2x, ${base}@3x.png 3x" width="40" height="20" alt="">\n`,
+    );
+  });
+
+  test('the last scale picked stays on', async ({ page }) => {
+    await openExport(page);
+    await page.getByRole('menuitem', { name: 'Image (PNG, WebP)…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export image' });
+    await dialog.getByRole('button', { name: '1×', exact: true }).click();
+    await expect(dialog.getByRole('button', { name: '1×', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('export-size')).toHaveText('40 × 20 px');
   });
 
   test('a custom width keeps the proportions, and typing the height moves the width', async ({ page }) => {
@@ -213,7 +245,9 @@ test.describe('Export', () => {
   test('the settings are remembered for next time', async ({ page }) => {
     await openExport(page);
     await page.getByRole('menuitem', { name: 'Image (PNG, WebP)…' }).click();
-    await page.getByRole('dialog', { name: 'Export image' }).getByText('2×').click();
+    const dialog = page.getByRole('dialog', { name: 'Export image' });
+    await dialog.getByRole('button', { name: '2×', exact: true }).click();
+    await dialog.getByRole('button', { name: '1×', exact: true }).click();
     await page.keyboard.press('Escape');
     // Closed, not just closing: its own Download button stays in the page through the animation.
     await expect(page.getByRole('dialog', { name: 'Export image' })).toBeHidden();

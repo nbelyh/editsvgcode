@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseSvg, intrinsicSize, outputSize, sizedMarkup, preserveAspectRatio, base64, svgDataUri, svgBase64DataUri, cssBackground,
-  componentName, reactComponent, loadsFromOtherSites, MAX_SIDE, MAX_PIXELS,
+  componentName, reactComponent, loadsFromOtherSites, scaledName, srcsetImg, MAX_SIDE, MAX_PIXELS,
 } from '../svg-export';
 
 const root = (svg: string) => {
@@ -31,6 +31,22 @@ describe('parseSvg — reads what the preview shows', () => {
 
   it('refuses what is not an SVG at all', () => {
     expect(parseSvg('just some text')).toMatchObject({ error: expect.stringContaining('error in its code') });
+  });
+});
+
+describe('a set of screen densities', () => {
+  it('names each file the way iOS and Figma do', () => {
+    expect(scaledName('logo', 1, 'png')).toBe('logo.png');
+    expect(scaledName('logo', 2, 'png')).toBe('logo@2x.png');
+    expect(scaledName('logo', 3, 'webp')).toBe('logo@3x.webp');
+  });
+
+  it('writes the <img> that lets the browser pick, laid out at the drawing’s own size', () => {
+    expect(srcsetImg('logo', 'png', [3, 1, 2], { width: 40, height: 20 }))
+      .toBe('<img src="logo.png" srcset="logo.png 1x, logo@2x.png 2x, logo@3x.png 3x" width="40" height="20" alt="">');
+    // A space would end a srcset entry, and a comma would start the next.
+    expect(srcsetImg('my logo, v2', 'png', [2], { width: 37.5, height: 19 }))
+      .toBe('<img src="my%20logo%2C%20v2@2x.png" srcset="my%20logo%2C%20v2@2x.png 2x" width="38" height="19" alt="">');
   });
 });
 
