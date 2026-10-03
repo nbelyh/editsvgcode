@@ -12,14 +12,14 @@ import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatA
 import { friendlyError } from '../../lib/firebase';
 import { addressForLineRange } from '../../lib/svg-dom';
 import { DEFAULT_PRICING } from '../../lib/pricing';
-import { EDIT_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import { openSignInModal } from '../SignInModal';
 import { ForeignDocNotice } from '../ForeignDocNotice';
 import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
-import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg } from '../../lib/analytics';
+import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg, trackImageDeclined } from '../../lib/analytics';
 import { pastedSvgDocument } from '../../lib/pasted-svg';
 import { describeChatError } from '../../lib/chat-errors';
 import '../AiChat.css';
@@ -820,8 +820,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   }, []);
 
   const handleImageConfirmNo = useCallback(() => {
+    // Counted, because a third of these offers were turned down and the only other trace of
+    // a decline is the length of a message sent to the model.
+    trackImageDeclined({ model: imageModel, modify: !!imageConfirmSummary?.startsWith('modify:') });
     imageConfirmResolveRef.current?.(false);
-  }, []);
+  }, [imageModel, imageConfirmSummary]);
 
   return (
     <div className="aui-root">
@@ -869,6 +872,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onIconMore={handleIconMore}
           onIconNone={handleIconNone}
           imageConfirmSummary={imageConfirmSummary}
+          imageCredits={IMAGE_MODELS.find((m) => m.value === imageModel)?.credits ?? 0}
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
           onSamplePrompt={handleSamplePrompt}

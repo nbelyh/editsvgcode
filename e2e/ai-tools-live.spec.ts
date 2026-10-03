@@ -395,6 +395,44 @@ test.describe('AI edit tools, against the real model', () => {
     expect(tools).not.toContain('replace_svg');
   });
 
+  test('the picture offer says its price, and declining it gets a drawing that can be accepted', async ({ page }) => {
+    // A third of these offers were declined, and the hand drawing that followed rejected. The
+    // offer now says what each choice gives and costs; this drives the decline end to end.
+    const tools = recordToolCalls(page);
+    await boot(page, STARTER_SVG);
+    expect(await ask(page, 'Draw me a cute kitten')).toBe('image-confirm');
+
+    const offer = page.locator('.aui-image-confirm');
+    await expect(offer).toContainText('This looks like a picture. Generate it?');
+    await expect(offer.getByRole('button', { name: 'Generate picture (10 credits)' })).toBeVisible();
+    await offer.getByRole('button', { name: 'Draw it with shapes instead (no extra credits)' }).click();
+
+    await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, { timeout: 180000 });
+    await acceptAll(page);
+    const svg = await editorValue(page);
+    console.log('declined →', tools.join(', '));
+    expect(tools).toContain('generate_image');                 // it offered the picture first
+    expect(tools).not.toContain('modify_image');
+    expect(svg).not.toBe(STARTER_SVG);                         // and drew something instead
+    expect(await parses(page, svg)).toBe(true);
+  });
+
+  test('accepting the picture offer generates one, traced into shapes that can be accepted', async ({ page }) => {
+    // Costs an image on top of the chat — about 3.5 cents at the default image model.
+    test.setTimeout(300000);
+    await boot(page, STARTER_SVG);
+    expect(await ask(page, 'Draw me a cute kitten')).toBe('image-confirm');
+    await page.locator('.aui-image-confirm').getByRole('button', { name: 'Generate picture (10 credits)' }).click();
+
+    await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, { timeout: 240000 });
+    await acceptAll(page);
+    const svg = await editorValue(page);
+    const paths = (svg.match(/<path\b/g) ?? []).length;
+    console.log('generated →', paths, 'paths,', svg.length, 'chars');
+    expect(paths).toBeGreaterThan(5);                          // a traced picture, not a few shapes
+    expect(await parses(page, svg)).toBe(true);
+  });
+
   test('a request in two steps is done in one response, not half of it', async ({ page }) => {
     // "Add DASHBOARD text below the logo" widened the canvas and never added the text: the
     // model planned a second round, and a turn ends with its first edit.

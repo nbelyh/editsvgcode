@@ -330,6 +330,68 @@ test.describe('Dropped connections', () => {
   });
 });
 
+test.describe('Offering to generate a picture', () => {
+  // A third of the people offered a generated picture chose "No, use SVG code" — on an SVG code
+  // site that sounded like the right answer — and then rejected the hand drawing they got. The
+  // offer now says what each choice gives and what it costs.
+  const KITTEN = call('generate_image', { prompt: 'a cute kitten', summary: 'A cute kitten sitting on a cushion' });
+
+  /** Serve the offer first, then whatever the model sends once it hears the answer; record every request. */
+  async function stubOffer(page: Page, afterAnswer: OutputItem[]) {
+    const bodies: Array<{ input?: unknown[] }> = [];
+    await page.route('**/api/chat', async (route) => {
+      bodies.push(JSON.parse(route.request().postData() ?? '{}'));
+      const output = bodies.length === 1 ? [KITTEN] : afterAnswer;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ output, credits: CREDITS }) });
+    });
+    return bodies;
+  }
+
+  test('says a generated picture ends as editable SVG, and prices it', async ({ page }) => {
+    await boot(page);
+    await stubOffer(page, []);
+    await send(page, 'Draw me a cute kitten');
+
+    const offer = page.locator('.aui-image-confirm');
+    await expect(offer).toBeVisible({ timeout: 15000 });
+    await expect(offer).toContainText('This looks like a picture. Generate it?');
+    await expect(offer).toContainText('A cute kitten sitting on a cushion');
+    await expect(offer).toContainText('traced into SVG shapes, so you can edit it like any other drawing');
+    await expect(offer.getByRole('button', { name: 'Generate picture (10 credits)' })).toBeVisible();
+    await expect(offer.getByRole('button', { name: 'Draw it with shapes instead (no extra credits)' })).toBeVisible();
+  });
+
+  test('a Pro image model is offered at its own price', async ({ page }) => {
+    // The price comes from the image model the user picked, not a number written into the copy.
+    await page.addInitScript(() => localStorage.setItem('esvg-image-model', 'gpt-image-1'));
+    await boot(page, DOC, { pro: true });
+    await stubOffer(page, []);
+    await send(page, 'Draw me a cute kitten');
+
+    await expect(page.locator('.aui-image-confirm').getByRole('button', { name: 'Generate picture (50 credits)' }))
+      .toBeVisible({ timeout: 15000 });
+  });
+
+  test('declining tells the model, and the drawing it sends instead can be accepted', async ({ page }) => {
+    await boot(page);
+    const bodies = await stubOffer(page, [
+      call('replace_svg', { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle id="kitten" cx="20" cy="20" r="12" fill="orange"/></svg>', summary: 'A simple hand-drawn kitten' }),
+      say('Drew a simple kitten with shapes.'),
+    ]);
+    await send(page, 'Draw me a cute kitten');
+    await page.locator('.aui-image-confirm').getByRole('button', { name: 'Draw it with shapes instead (no extra credits)' })
+      .click({ timeout: 15000 });
+
+    await expect(page.getByText('Drew a simple kitten with shapes.')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.aui-image-confirm')).toHaveCount(0);
+    // The second request carries the answer: the model was told the picture was declined.
+    expect(bodies).toHaveLength(2);
+    expect(JSON.stringify(bodies[1].input)).toContain('User declined AI image generation');
+    await acceptAll(page);
+    expect(await editorValue(page)).toContain('id="kitten"');
+  });
+});
+
 test.describe('Composer', () => {
   test('a sample prompt fills the composer and hands it the caret', async ({ page }) => {
     // The click left focus on the sample's own button, so Enter did nothing and typing went

@@ -24,6 +24,12 @@ export function trackAiChat(model: string, effort?: string): void {
   if (a) logEvent(a, 'ai_chat', { model, ...(effort ? { effort } : {}) });
 }
 
+/** User turned down the offer to generate (or change) a picture, choosing a hand drawing. */
+export function trackImageDeclined(meta: { model: string; modify: boolean }): void {
+  const a = getAnalyticsInstance();
+  if (a) logEvent(a, 'ai_image_declined', meta);
+}
+
 /** User pasted a whole SVG document into the chat, and it was opened without a model call. */
 export function trackPastedSvg(): void {
   const a = getAnalyticsInstance();

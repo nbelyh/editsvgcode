@@ -39,7 +39,7 @@ const baseProps = (): React.ComponentProps<typeof ChatThread> => ({
   hasPending: false,
   editingIndex: null, editingText: '', onEditStart: noop, onEditChange: noop, onEditSubmit: noop, onEditCancel: noop,
   iconPickIcons: null, iconPickSelected: null, onIconSelect: noop, onIconMore: noop, onIconNone: noop,
-  imageConfirmSummary: null, onImageConfirm: noop, onImageDecline: noop,
+  imageConfirmSummary: null, imageCredits: 10, onImageConfirm: noop, onImageDecline: noop,
   onSamplePrompt: noop, isAnonymous: false, isViewer: false,
 });
 

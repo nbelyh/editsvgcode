@@ -908,8 +908,16 @@
   gap: 6px;
 }
 
+/* The question itself, so it reads as one — not dimmed like the explanation under it. */
 .aui-image-confirm-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* What the assistant means to draw, in its own words. */
+.aui-image-confirm-summary {
   font-size: 12px;
+  font-style: italic;
   color: var(--mantine-color-dimmed);
 }
 

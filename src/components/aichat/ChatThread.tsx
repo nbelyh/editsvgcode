@@ -53,6 +53,8 @@ interface ChatThreadProps {
   onIconMore: () => void;
   onIconNone: () => void;
   imageConfirmSummary: string | null;
+  /** What a generated picture costs at the chosen image model, for the confirmation to say. */
+  imageCredits: number;
   onImageConfirm: () => void;
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
@@ -251,7 +253,7 @@ export function ChatThread({
   onThumbsUp, onThumbsDown, onContinue, onRetry, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
-  imageConfirmSummary, onImageConfirm, onImageDecline,
+  imageConfirmSummary, imageCredits, onImageConfirm, onImageDecline,
   onSamplePrompt, isAnonymous, isViewer,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
@@ -517,7 +519,7 @@ export function ChatThread({
 
       {imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
-          <ImageConfirm summary={imageConfirmSummary} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+          <ImageConfirm summary={imageConfirmSummary} imageCredits={imageCredits} onConfirm={onImageConfirm} onDecline={onImageDecline} />
         </div>
       )}
 
