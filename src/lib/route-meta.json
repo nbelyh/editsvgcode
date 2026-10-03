@@ -12,6 +12,45 @@
       "title": "Features",
       "description": "Live preview, schema-aware autocomplete from the W3C SVG spec, hover documentation, click-to-select, PNG and favicon export, AI chat editing, image generation with vectorization, and icon search."
     },
+    "/features/ai-chat": {
+      "title": "Edit SVG with AI Chat",
+      "description": "Describe a change — recolour, translate, add a title — and the AI assistant edits your SVG code and shows it in the preview to accept or reject.",
+      "image": "/screenshots/23-structural-edits.png"
+    },
+    "/features/ai-images": {
+      "title": "AI Pictures Traced into SVG",
+      "description": "Ask for a picture in the chat: it is generated, then traced into editable SVG paths in your browser, with settings for colours, detail and curves.",
+      "image": "/screenshots/11-image-generation.png"
+    },
+    "/features/icon-search": {
+      "title": "Add Open-Source Icons to SVG",
+      "description": "Ask the chat for an icon and pick from over 200,000 open-source icons that need no attribution. It goes into your drawing as plain SVG.",
+      "image": "/screenshots/13-icon-picker.png"
+    },
+    "/features/code-editor": {
+      "title": "Monaco Editor for SVG",
+      "description": "Edit SVG in Monaco, the editor inside VS Code: highlighting, find and replace, a colour picker and formatting, with a live preview beside the code.",
+      "image": "/screenshots/01-editor-full.png"
+    },
+    "/features/autocomplete": {
+      "title": "SVG Autocomplete and Documentation",
+      "description": "Suggestions for the elements allowed where you type, each element's attributes and their values, path commands, and MDN documentation on hover.",
+      "image": "/screenshots/02-autocomplete.png"
+    },
+    "/features/live-preview": {
+      "title": "Live SVG Preview and Click-to-Code",
+      "description": "See SVG redraw as you type, click a shape to find its code, zoom to 5000%, and check transparency on four backgrounds. Scripts are removed for safety.",
+      "image": "/screenshots/07-click-to-select.png"
+    },
+    "/features/export": {
+      "title": "Export SVG as PNG, Favicon or Code",
+      "description": "Turn SVG into PNG or WebP at any size or density, a favicon and app icons, or a data URI, CSS or React component — previewed first, made in your browser."
+    },
+    "/features/save-and-share": {
+      "title": "Save, Share and Publish SVG",
+      "description": "Save SVG drawings to the cloud with a link of their own, keep them private or unlisted, or publish them to a CC0 gallery anyone can start from.",
+      "image": "/screenshots/17-gallery.png"
+    },
     "/blog": {
       "title": "What's New",
       "description": "What changed in EditSvgCode: the new features, improvements, and fixes shipped in each update of the online SVG editor.",

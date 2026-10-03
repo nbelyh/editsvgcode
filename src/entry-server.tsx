@@ -28,6 +28,8 @@ import { HomeIntro } from './components/HomeIntro';
 import { AboutPage } from './pages/AboutPage';
 import { BlogPage } from './pages/BlogPage';
 import { FeaturesPage } from './pages/FeaturesPage';
+import { FeatureDetailPage } from './pages/FeatureDetailPage';
+import { FEATURE_PAGES } from './lib/feature-pages';
 import { ImprintPage } from './pages/ImprintPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { RefundPolicyPage } from './pages/RefundPolicyPage';
@@ -48,6 +50,11 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   '/about': AboutPage,
   '/blog': BlogPage,
   '/features': FeaturesPage,
+  // One per entry in feature-pages.ts, which is also what main.tsx's /features/:slug serves.
+  ...Object.fromEntries(FEATURE_PAGES.map((page) => [
+    `/features/${page.slug}`,
+    () => <FeatureDetailPage slug={page.slug} />,
+  ])),
   '/imprint': ImprintPage,
   '/pricing': PricingPage,
   '/privacy': PrivacyPolicyPage,
