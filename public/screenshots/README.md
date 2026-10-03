@@ -61,3 +61,15 @@
 
 Thumbnails are the full shots at half width, 700px, as palette PNGs (sharp:
 `resize({ width: 700 }).png({ palette: true })`).
+
+## 11. Export, October 2026
+
+Taken by `screenshots-export.spec.ts` in the real Chrome, in a window, at 1.5×, and cropped to the
+dialog; the headless browser draws text thinner and softer. The thumbnails are the same files. The
+pages show them at their own size (`density: 1.5`) and never stretch them.
+
+- `28-export-image.png` — Export image panel: the square logo as a 1200 × 630 social card, proportions
+  unlocked, centred on white
+- `29-favicon-icons.png` — Favicon and app icons panel: the 16 / 32 / 48 px and iPhone previews and the
+  `<head>` lines
+- `30-copy-as-code.png` — Copy as code panel showing the drawing as a React component

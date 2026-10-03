@@ -36,7 +36,8 @@ export function HomeIntro() {
         <li>Click a shape in the preview to select it in the code.</li>
         <li>An AI assistant that edits the drawing from a description — recolour, relabel, translate, add or remove a shape — and shows every change for you to accept or reject.</li>
         <li>Image generation traced into editable vector shapes, and a library of over 200,000 open-source icons.</li>
-        <li>Export as SVG or PNG; sign in to keep drawings, share them by link, or publish them to the gallery.</li>
+        <li>Export as SVG, or as a PNG or WebP picture at any size; make a favicon and app icons for a site; or copy the drawing as a data URI, CSS or a React component.</li>
+        <li>Sign in to keep drawings, share them by link, or publish them to the gallery.</li>
       </ul>
       <p>
         The editor is free and opens with no account. Signing in is free too and adds cloud storage

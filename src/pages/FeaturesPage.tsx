@@ -11,6 +11,11 @@ interface Feature {
   thumb: string;
   /** The thumbnail's pixel size, when it is not THUMB_SIZE. */
   thumbSize?: readonly [number, number];
+  /**
+   * The pixel density a screenshot of part of the screen was taken at. Such a picture is shown
+   * at its own size and never stretched to the card: scaled even a little, its small text blurs.
+   */
+  density?: number;
   badge?: string;
 }
 
@@ -122,6 +127,33 @@ const PREVIEW_FEATURES: Feature[] = [
   },
 ];
 
+const EXPORT_FEATURES: Feature[] = [
+  {
+    title: 'Export as PNG or WebP',
+    description: 'Save the drawing as a picture at its own size, at 2× and 3× for sharp screens — one at a time, or all together as a zip with the <img srcset> line that uses them — or at any width and height, on a transparent, white or coloured background; or copy it straight to the clipboard. Unlock the proportions to export into a box of another shape, such as a square logo on a 1200 × 630 social card, and pick where the drawing sits; it stays whole and is never stretched. A preview and the exact pixel size are shown before anything is saved.',
+    image: '/screenshots/28-export-image.png',
+    thumb: '/screenshots/thumbs/28-export-image.png',
+    thumbSize: [732, 1172],
+    density: 1.5,
+  },
+  {
+    title: 'Favicon & App Icons',
+    description: 'Turn the drawing into the icons a website links to: a favicon.ico with 16, 32 and 48 pixel icons, an SVG favicon, the 180 pixel iPhone home-screen icon, and the 192 and 512 pixel icons for a web app manifest. Download the favicon on its own, or everything as a zip with the lines to paste into your page. The small sizes are previewed, so you can see whether the drawing still reads at 16 pixels.',
+    image: '/screenshots/29-favicon-icons.png',
+    thumb: '/screenshots/thumbs/29-favicon-icons.png',
+    thumbSize: [732, 942],
+    density: 1.5,
+  },
+  {
+    title: 'Copy as Code',
+    description: 'Copy the drawing in the form you are about to paste it into: the SVG markup, a data URI for an <img>, Base64, a CSS background, or a React component with its attributes spelled the way React expects and editor leftovers removed. The code is shown before it is copied, and the form you used last is remembered.',
+    image: '/screenshots/30-copy-as-code.png',
+    thumb: '/screenshots/thumbs/30-copy-as-code.png',
+    thumbSize: [1002, 801],
+    density: 1.5,
+  },
+];
+
 const FILE_FEATURES: Feature[] = [
   {
     title: 'Cloud Storage',
@@ -143,7 +175,8 @@ function FeatureSection({ title, features, onImageClick }: { title: string; feat
                 {/* Intrinsic size as attributes, so the box exists before the picture does;
                     height:auto keeps it scaling with the card rather than fixed at that size. */}
                 <Image src={f.thumb} alt={f.title} width={(f.thumbSize ?? THUMB_SIZE)[0]}
-                  height={(f.thumbSize ?? THUMB_SIZE)[1]} style={{ height: 'auto' }} />
+                  height={(f.thumbSize ?? THUMB_SIZE)[1]}
+                  style={{ height: 'auto', ...(f.density && { maxWidth: (f.thumbSize ?? THUMB_SIZE)[0] / f.density, marginInline: 'auto' }) }} />
               </UnstyledButton>
             </Card.Section>
             <Group mt="md" mb="xs" justify="space-between">
@@ -177,6 +210,7 @@ export function FeaturesPage() {
           <FeatureSection title="AI Tools (Pro)" features={AI_FEATURES} onImageClick={handleImageClick} />
           <FeatureSection title="Code Editor" features={CODE_EDITOR_FEATURES} onImageClick={handleImageClick} />
           <FeatureSection title="Live Preview" features={PREVIEW_FEATURES} onImageClick={handleImageClick} />
+          <FeatureSection title="Export" features={EXPORT_FEATURES} onImageClick={handleImageClick} />
           <FeatureSection title="File Management" features={FILE_FEATURES} onImageClick={handleImageClick} />
         </Stack>
       </Container>
@@ -184,12 +218,21 @@ export function FeaturesPage() {
       <Modal
         opened={opened !== null}
         onClose={() => setOpened(null)}
-        size="95vw"
+        // A picture with a density opens at its own size; stretched to the window, it blurred.
+        size={opened?.density ? 'auto' : '95vw'}
         title={opened?.title}
         centered
         padding="xs"
       >
-        {opened && <Image src={opened.image} alt={opened.title} />}
+        {opened && (
+          <Image
+            src={opened.image}
+            srcSet={opened.density ? `${opened.image} ${opened.density}x` : undefined}
+            w={opened.density ? 'auto' : undefined}
+            maw="100%"
+            alt={opened.title}
+          />
+        )}
       </Modal>
     </div>
   );

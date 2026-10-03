@@ -30,6 +30,11 @@ export interface UpdateImage {
   /** What the picture shows. Doubles as the caption, so write it as a sentence
    *  a reader would want to read, not as a filename. */
   alt: string;
+  /**
+   * The pixel density a screenshot of part of the screen was taken at. Such a picture is shown
+   * at its own size, here and when opened, and never stretched: scaled up, its small text blurs.
+   */
+  density?: number;
 }
 
 export interface Update {
@@ -51,6 +56,44 @@ export interface Update {
 
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
+  {
+    id: 'export',
+    date: '2026-10-03',
+    title: 'Export as a picture, a favicon or code',
+    summary:
+      'Download used to give you the .svg and nothing else, so a picture for a slide, a favicon for a site or the markup in the shape a web page wants meant taking the drawing to another tool. Download now opens a menu: the SVG file as before, a PNG or WebP picture at any size, a favicon with the app icons that go with it, or the drawing as code — a data URI, a CSS background or a React component. Each one is shown before anything is saved or copied, so what you get is what you saw.',
+    images: [
+      {
+        src: '/screenshots/28-export-image.png',
+        thumb: '/screenshots/thumbs/28-export-image.png',
+        density: 1.5,
+        alt: 'A square logo exported as a 1200 × 630 social card: with the proportions unlocked, the logo sits whole in the middle of the wider picture, on a white background.',
+      },
+      {
+        src: '/screenshots/29-favicon-icons.png',
+        thumb: '/screenshots/thumbs/29-favicon-icons.png',
+        density: 1.5,
+        alt: 'The favicon panel previews the logo at 16, 32 and 48 pixels and as an iPhone home-screen icon, and lists the lines to add to a page\'s <head>.',
+      },
+      {
+        src: '/screenshots/30-copy-as-code.png',
+        thumb: '/screenshots/thumbs/30-copy-as-code.png',
+        density: 1.5,
+        alt: 'The same logo as a React component, ready to copy, with SVG, data URI, Base64 and CSS one click away.',
+      },
+    ],
+    changes: [
+      { kind: 'new', text: 'Download opens a menu with four choices: the SVG file, an image, a favicon with app icons, or the drawing as code.' },
+      { kind: 'new', text: 'Export a PNG or WebP picture at the drawing\'s own size, at 2× or 3× for sharp screens such as phones and Retina laptops, or at any width and height, on a transparent, white or coloured background — then save it, or copy it straight to the clipboard.' },
+      { kind: 'new', text: 'Pick 1×, 2× and 3× together to get all three at once — logo.png, logo@2x.png and logo@3x.png — zipped with the <img srcset> line that lets each screen load the one it needs.' },
+      { kind: 'new', text: 'Unlock the proportions to export into a box of another shape, such as a square logo on a 1200 × 630 social card, and choose where the drawing sits in it; it always stays whole and is never stretched.' },
+      { kind: 'new', text: 'Make a favicon.ico with 16, 32 and 48 pixel icons, or download a zip with every icon a site links to — an SVG favicon, the iPhone home-screen icon and the 192 and 512 pixel icons for a web app manifest — together with the lines to paste into your page.' },
+      { kind: 'new', text: 'Copy the drawing as SVG, a data URI, Base64, a CSS background or a React component, and read it before you copy it.' },
+      { kind: 'improved', text: 'The size, background and form you chose last time are remembered, so someone who always wants the 2× and 3× set or a React component chooses it once.' },
+      { kind: 'improved', text: 'An SVG copied out of a web page, which often lacks the declarations a standalone SVG needs, exports just as the preview shows it.' },
+      { kind: 'improved', text: 'The panel warns when text may come out in a different font, or when the drawing loads images from other websites, which browsers leave out of an exported picture.' },
+    ],
+  },
   {
     id: 'open-from-a-link',
     date: '2026-09-29',

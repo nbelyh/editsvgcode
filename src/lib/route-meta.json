@@ -10,7 +10,7 @@
     },
     "/features": {
       "title": "Features",
-      "description": "Live preview, schema-aware autocomplete from the W3C SVG spec, hover documentation, click-to-select, AI chat editing, image generation with vectorization, and icon search."
+      "description": "Live preview, schema-aware autocomplete from the W3C SVG spec, hover documentation, click-to-select, PNG and favicon export, AI chat editing, image generation with vectorization, and icon search."
     },
     "/blog": {
       "title": "What's New",

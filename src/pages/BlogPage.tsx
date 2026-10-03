@@ -52,6 +52,10 @@ function UpdateEntry({ update, onImageClick }: { update: Update; onImageClick: (
                 >
                   <Image
                     src={image.thumb}
+                    // At its own size: the density makes the browser lay it out that big, and no bigger.
+                    srcSet={image.density ? `${image.thumb} ${image.density}x` : undefined}
+                    w={image.density ? 'auto' : undefined}
+                    maw="100%"
                     alt={image.alt}
                     radius="sm"
                     loading="lazy"
@@ -121,12 +125,21 @@ export function BlogPage() {
       <Modal
         opened={zoomed !== null}
         onClose={() => setZoomed(null)}
-        size="95vw"
+        // A picture with a density opens at its own size; stretched to the window, it blurred.
+        size={zoomed?.density ? 'auto' : '95vw'}
         centered
         padding="xs"
         title={zoomed?.alt}
       >
-        {zoomed && <Image src={zoomed.src} alt={zoomed.alt} />}
+        {zoomed && (
+          <Image
+            src={zoomed.src}
+            srcSet={zoomed.density ? `${zoomed.src} ${zoomed.density}x` : undefined}
+            w={zoomed.density ? 'auto' : undefined}
+            maw="100%"
+            alt={zoomed.alt}
+          />
+        )}
       </Modal>
     </div>
   );
