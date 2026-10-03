@@ -3,6 +3,12 @@ import { waitForEditor, setSvgContent } from './helpers.js';
 import { shortModelName } from '../src/lib/models';
 import { readChatStream } from '../src/lib/chat-stream';
 import { signInTestUser, useEmulatorSuite } from './emulator.js';
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+/** The drawing a first-time visitor sees, which is where the sample prompts are pressed. */
+const STARTER_SVG = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../src/assets/default.svg'), 'utf-8');
 
 /**
  * The same pipeline, driven by the REAL model.
@@ -371,6 +377,84 @@ test.describe('AI edit tools, against the real model', () => {
       const [r, g, b] = rgb(fill);
       expect(g > r && g > b, `a leaf is ${fill}`).toBe(true);
     }
+  });
+
+  test('the starter "Draw me a cute kitten" goes to image generation, not a hand drawing', async ({ page }) => {
+    // A routing guard for the first sample prompt, on the starter drawing a first-time visitor
+    // presses it over. Stopping at the image confirmation is the right route; nothing is
+    // generated, since the test never confirms. (The hand-drawn kittens users rejected did NOT
+    // come from bad routing: the model chose generate_image and the user declined the
+    // confirmation, after which it draws by hand as it is told to. This test passes at every
+    // effort, low included.)
+    const tools = recordToolCalls(page);
+    await boot(page, STARTER_SVG);
+    const stopped = await ask(page, 'Draw me a cute kitten');
+    console.log('kitten →', stopped, tools.join(', '));
+    expect(stopped).toBe('image-confirm');
+    expect(tools).toContain('generate_image');
+    expect(tools).not.toContain('replace_svg');
+  });
+
+  test('a request in two steps is done in one response, not half of it', async ({ page }) => {
+    // "Add DASHBOARD text below the logo" widened the canvas and never added the text: the
+    // model planned a second round, and a turn ends with its first edit.
+    const tools = recordToolCalls(page);
+    await boot(page);
+    await ask(page, 'add a label reading "Orders" below the table, and make the drawing taller so it fits');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('two steps →', tools.join(', '));
+    expect(svg).toMatch(/>\s*Orders\s*</);           // the label the request was for
+    expect(svg).toContain('CustomerID');              // and nothing else lost
+    expect(await parses(page, svg)).toBe(true);
+  });
+
+  test('bringing a shape to the front moves it, and never just deletes it', async ({ page }) => {
+    // "Move the purple arrow to the front" removed the arrow and never put it back.
+    const OVERLAP = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">',
+      '  <rect id="red" x="10" y="10" width="60" height="60" fill="red"/>',
+      '  <rect id="blue" x="40" y="40" width="60" height="60" fill="blue"/>',
+      '</svg>',
+    ].join('\n');
+    const tools = recordToolCalls(page);
+    await boot(page, OVERLAP);
+    await ask(page, 'bring the red square to the front');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('to front →', tools.join(', '));
+    expect(svg).toMatch(/fill="red"/);                                  // still there
+    expect(svg.indexOf('fill="red"')).toBeGreaterThan(svg.indexOf('fill="blue"'));   // painted last
+    expect(await parses(page, svg)).toBe(true);
+  });
+
+  test('replacing lettering drawn as shapes says the font will not match', async ({ page }) => {
+    // "Replace GROUP with B2B" swapped outlined letters for live text in silence, and users
+    // rejected a word that suddenly looked different. The card's summary is the one line the
+    // model reliably writes, so that is where it has to say so.
+    const LETTERS = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">',
+      '  <g id="word" fill="#777">',
+      '    <path d="M10 10 h20 v6 h-14 v28 h8 v-10 h-4 v-6 h10 v22 h-20 z"/>',
+      '    <path d="M40 10 h18 v24 h-6 l8 10 h-8 l-8 -10 v10 h-4 z m4 6 v12 h10 v-12 z"/>',
+      '    <path d="M70 10 h20 v34 h-20 z m6 6 v22 h8 v-22 z"/>',
+      '    <path d="M100 10 h6 v28 h8 v-28 h6 v34 h-20 z"/>',
+      '    <path d="M130 10 h18 v18 h-12 v16 h-6 z m6 6 v6 h6 v-6 z"/>',
+      '  </g>',
+      '</svg>',
+    ].join('\n');
+    const tools = recordToolCalls(page);
+    await boot(page, LETTERS);
+    await ask(page, 'the grey shapes are the word GROUP drawn as paths — replace that word with B2B');
+    await expect(page.locator('.aui-proposal').first()).toBeVisible({ timeout: 30000 });
+    const summaries = (await page.locator('.aui-proposal-summary').allTextContents()).join(' | ');
+    console.log('lettering →', tools.join(', '), '| summary:', summaries);
+    // Words the request itself supplies — "path", "shape" — prove nothing, and the old prompt's
+    // summaries ("Replaced the path-drawn word GROUP with the text B2B in the same gray color")
+    // passed a looser check while admitting nothing. What is asserted is the admission.
+    expect(summaries).toMatch(/\bfont\b|not identical|won.t match|will not match|approximat|close but/i);
   });
 
   test('a question is answered without touching the document', async ({ page }) => {
