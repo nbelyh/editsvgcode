@@ -246,7 +246,15 @@ const SAMPLE_PROMPTS = [
   'Translate all text to German',
 ];
 
-export function ChatThread({
+// Memoized because the panel re-renders on every composer keystroke — the draft
+// lives in AiChat — and nothing here depends on the draft. Re-rendering the
+// conversation (and the composer's model popover, see ModelPicker) on every
+// character made a keystroke cost 50–90 ms at 4x CPU throttling, which is what
+// took mobile INP past 200 ms. Every prop is either
+// state, a ref or a useCallback in AiChat, so the shallow compare holds; a new
+// prop has to keep that up or this goes back to rendering on every key, which
+// e2e/composer-typing.spec.ts catches.
+export const ChatThread = memo(function ChatThread({
   messages, isRunning, progressStatus, live, onLiveGrow, canUndo,
   viewportRef,
   onAccept, onReject, onUpdateToolCallSvg, onUndoAccept, onRestore,
@@ -548,4 +556,4 @@ export function ChatThread({
 
     </div>
   );
-}
+});

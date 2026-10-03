@@ -1,9 +1,13 @@
+import { memo } from 'react';
 import { Text, Tooltip } from '@mantine/core';
 import { Link } from 'react-router-dom';
 
 export const BUY_CREDITS_URL = '/pricing';
 
-export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel, rechargeAt }: { remaining: number; limit: number; packCredits?: number; creditsByModel?: Record<string, number>; rechargeAt?: string }) {
+// Memoized because it sits in the AI composer, which re-renders on every
+// keystroke; nothing here depends on the draft, and the Tooltip and its content
+// are not free to re-render per character on a phone.
+export const CreditsIndicator = memo(function CreditsIndicator({ remaining, limit, packCredits, creditsByModel, rechargeAt }: { remaining: number; limit: number; packCredits?: number; creditsByModel?: Record<string, number>; rechargeAt?: string }) {
   const size = 18;
   const stroke = 2.5;
   const r = (size - stroke) / 2;
@@ -54,4 +58,4 @@ export function CreditsIndicator({ remaining, limit, packCredits, creditsByModel
       ) : indicator}
     </Tooltip>
   );
-}
+});
