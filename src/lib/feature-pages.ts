@@ -256,7 +256,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         heading: 'Models and credits',
         paragraphs: [
-          'Every request costs credits, and how many depends on the model. A free account gets 30 credits a month and the free models: gpt-5.4-mini, the default, costs 3 credits a request, and gpt-5.4-nano costs 1. Pro adds larger models from OpenAI and Anthropic, such as claude-sonnet-5 at 20 credits, and 1,000 credits a month.',
+          'Every request costs credits, and how many depends on the model. A free account gets 30 credits a month and the free models: gpt-5.4-mini, the default, and qwen3.8-27b cost 3 credits a request, and gpt-5.4-nano and qwen3.8-flash cost 1. Pro adds larger models from OpenAI and Anthropic, such as claude-sonnet-5 at 20 credits, and 1,000 credits a month.',
           'A request is charged once, however many steps the assistant takes to finish it, and a request that fails costs nothing. Some models also let you choose their thinking effort: lower is quicker for a simple change, higher is more careful with a complicated one.',
         ],
         image: {

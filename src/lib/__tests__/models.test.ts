@@ -62,6 +62,7 @@ describe('visibleEditModels', () => {
     const shown = visibleEditModels(DEFAULT_EDIT_MODEL).map(m => m.value);
     expect(shown).toEqual([
       'gpt-5.4-nano',
+      'qwen3.8-flash',
       'gpt-5.4-mini',
       'Kimi-K2.6',
       'qwen3.8-27b',

@@ -44,6 +44,8 @@ export const EDIT_MODELS: ModelOption[] = [
   { label: 'gpt-4.1-mini', value: 'gpt-4.1-mini', credits: 1, pro: false, hidden: true },
   { label: 'DeepSeek-V4-Flash', value: 'DeepSeek-V4-Flash', credits: 1, pro: false, hidden: true },
   { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', credits: 1, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
+  // Served through OpenRouter, like qwen3.8-27b below.
+  { label: 'qwen3.8-flash', value: 'qwen3.8-flash', credits: 1, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   { label: 'gpt-5-mini', value: 'gpt-5-mini', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', credits: 3, pro: false, efforts: EFFORTS_LMHX, defaultEffort: 'medium' },
   { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false },
