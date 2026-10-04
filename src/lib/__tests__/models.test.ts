@@ -64,6 +64,7 @@ describe('visibleEditModels', () => {
       'gpt-5.4-nano',
       'gpt-5.4-mini',
       'Kimi-K2.6',
+      'qwen3.8-27b',
       'gpt-5.6-luna',
       'gpt-5.6-terra',
       'claude-sonnet-5',

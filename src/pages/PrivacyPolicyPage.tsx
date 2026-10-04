@@ -106,6 +106,7 @@ export function PrivacyPolicyPage() {
           <List.Item><strong>PayPro Global</strong> — Merchant of Record (sales, payments, tax, invoicing)</List.Item>
           <List.Item><strong>Microsoft Azure</strong> — Hosting (Azure Static Web Apps, Azure Functions)</List.Item>
           <List.Item><strong>AI providers</strong> (OpenAI, Google) — Processing AI feature requests</List.Item>
+          <List.Item><strong>OpenRouter</strong> — Passing requests for open-weight AI models (such as Qwen) to inference providers that do not collect the data</List.Item>
         </List>
 
         <Title order={2}>6. Data Retention</Title>

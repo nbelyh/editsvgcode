@@ -714,7 +714,9 @@ export async function sendChatRequest(
   }
 
   return {
-    message,
+    // Some models (Qwen) emit a whitespace-only text item beside each tool call; untrimmed,
+    // a reply that is only edits would count as having something to say.
+    message: message.trim(),
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     credits: latestCredits,
     rawOutput: allRawOutput,

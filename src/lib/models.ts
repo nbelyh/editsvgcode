@@ -47,6 +47,8 @@ export const EDIT_MODELS: ModelOption[] = [
   { label: 'gpt-5-mini', value: 'gpt-5-mini', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', credits: 3, pro: false, efforts: EFFORTS_LMHX, defaultEffort: 'medium' },
   { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false },
+  // Served through OpenRouter rather than Azure — the one exception to the rule above.
+  { label: 'qwen3.8-27b', value: 'qwen3.8-27b', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   // --- Pro ---
   // Sonnet 5 is the Claude the picker offers by default. Haiku and Opus are hidden
   // rather than dropped: one Claude in the list is enough to say Claude is here, and
