@@ -9,7 +9,7 @@ export function PrivacyPolicyPage() {
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <Title order={1}>Privacy Policy</Title>
-        <Text c="dimmed" size="sm">Last updated: September 2026</Text>
+        <Text c="dimmed" size="sm">Last updated: October 2026</Text>
 
         <Text>
           Your privacy is important to us, and so is being transparent about how we collect, use, and share information about you.
@@ -78,11 +78,11 @@ export function PrivacyPolicyPage() {
         </Text>
         <List>
           <List.Item><strong>Essential cookies</strong> — Firebase authentication session management.</List.Item>
-          <List.Item><strong>Analytics cookies</strong> — Google Analytics (only set with your consent).</List.Item>
+          <List.Item><strong>Analytics cookies</strong> — Google Analytics. In the EU, EEA, UK and Switzerland, only set with your consent.</List.Item>
           <List.Item><strong>Preference cookies</strong> — Storing your color scheme preference.</List.Item>
         </List>
         <Text>
-          You can manage cookie preferences through the cookie consent banner or your browser settings.
+          You can manage cookie preferences through the cookie consent banner, where it is shown, or your browser settings.
           Disabling essential cookies may prevent parts of the Service from functioning correctly.
         </Text>
 

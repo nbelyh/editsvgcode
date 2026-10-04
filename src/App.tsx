@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
-import { APP_SHELL_HEADER_HEIGHT } from './lib/app-shell';
+import { useEffect, useState } from 'react';
+import { APP_SHELL_HEADER_HEIGHT, DESKTOP_QUERY, NAV_DRAWER_QUERY } from './lib/app-shell';
 import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme, Burger, Drawer, Stack, Divider, Button } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery, useElementSize } from '@mantine/hooks';
 import { IconBrandGithub, IconSun, IconMoon, IconBug, IconSparkles } from '@tabler/icons-react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { UserMenu } from './components/UserMenu';
 import { FooterLink } from './components/FooterLink';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { trackPageView } from './lib/analytics';
+import { hasResponded, consentRequired } from './lib/cookie-consent';
+import { enableAnalytics } from './lib/firebase';
 import './App.css';
 
 declare const __APP_VERSION__: string;
@@ -40,10 +42,53 @@ export default function App() {
     setColorScheme(computedColorScheme === 'dark' ? 'light' : 'dark');
   };
 
+  // Only visitors from countries that require it are asked (see consentRequired).
+  // Hidden until that is known, so nobody elsewhere sees the banner flash up.
+  const [consentPending, setConsentPending] = useState(false);
+  useEffect(() => {
+    if (hasResponded()) return;
+    let cancelled = false;
+    consentRequired().then(required => {
+      if (cancelled) return;
+      if (required) setConsentPending(true);
+      else enableAnalytics();
+    });
+    return () => { cancelled = true; };
+  }, []);
+  // The consent notice lives in the footer. On the desktop layout it fits
+  // beside the links; below that it takes a row of its own above them, sized
+  // to however many lines its sentence wraps to — measured, since that runs
+  // from one line on a tablet to three on a 320px phone. Where the header has
+  // the burger, the legal links are in its drawer, and the notice row stands
+  // alone.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY, undefined, { getInitialValueInEffect: false });
+  const hasNavDrawer = useMediaQuery(NAV_DRAWER_QUERY, undefined, { getInitialValueInEffect: false });
+  const consentDocked = consentPending && !isDesktop;
+  const { ref: noticeRef, height: noticeHeight } = useElementSize();
+  const LINKS_ROW = 26;
+  const NOTICE_PADDING = 6;
+  const footerHeight = !consentPending ? LINKS_ROW
+    : !consentDocked ? 36
+    : Math.max(36, Math.ceil(noticeHeight) + 2 * NOTICE_PADDING) + (hasNavDrawer ? 0 : LINKS_ROW);
+
+  const legalLinks = (
+    <>
+      <FooterLink href={BLOG_PATH} title="See what changed in this release">v{__APP_VERSION__}</FooterLink>
+      <FooterLink href="https://unmanagedvisio.com" target="_blank" title="Visit UnmanagedVisio website">© UnmanagedVisio</FooterLink>
+      <FooterLink href="/privacy" title="Read our privacy policy">Privacy Policy</FooterLink>
+      <FooterLink href="/terms" title="Read the terms of service">Terms of Service</FooterLink>
+      <FooterLink href="/imprint" title="Legal information">Imprint</FooterLink>
+      <FooterLink href="/refund-policy" title="Read the refund policy">Refund Policy</FooterLink>
+      {Date.now() < new Date('2026-07-11').getTime() && (
+        <FooterLink href="https://editsvgcode-legacy.web.app" target="_blank" title="The legacy version of the editor (available until July 2026)">Legacy version</FooterLink>
+      )}
+    </>
+  );
+
   return (
     <AppShell
       header={{ height: APP_SHELL_HEADER_HEIGHT }}
-      footer={{ height: 26 }}
+      footer={{ height: footerHeight }}
       padding={0}
     >
       {/* keepMounted: without it the drawer's contents mount for the first
@@ -104,6 +149,16 @@ export default function App() {
           >
             {computedColorScheme === 'dark' ? 'Light mode' : 'Dark mode'}
           </Button>
+          {/* On a phone the footer is too narrow for these — the row was cut
+              off after Privacy Policy, and the consent notice takes it over
+              entirely until answered — so they are here as well. */}
+          <Divider />
+          <Group gap="sm" px="xs">
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+            <FooterLink href="/terms">Terms of Service</FooterLink>
+            <FooterLink href="/imprint">Imprint</FooterLink>
+            <FooterLink href="/refund-policy">Refund Policy</FooterLink>
+          </Group>
         </Stack>
       </Drawer>
 
@@ -153,27 +208,33 @@ export default function App() {
       </AppShell.Main>
 
       <AppShell.Footer className="app-chrome">
-        <Group h="100%" px="xs" justify="space-between">
-          <Group gap="xs">
-            <FooterLink href={BLOG_PATH} title="See what changed in this release">v{__APP_VERSION__}</FooterLink>
-            <FooterLink href="https://unmanagedvisio.com" target="_blank" title="Visit UnmanagedVisio website">© UnmanagedVisio</FooterLink>
-            <FooterLink href="/privacy" title="Read our privacy policy">Privacy Policy</FooterLink>
-            <FooterLink href="/terms" title="Read the terms of service">Terms of Service</FooterLink>
-            <FooterLink href="/imprint" title="Legal information">Imprint</FooterLink>
-            <FooterLink href="/refund-policy" title="Read the refund policy">Refund Policy</FooterLink>
-            {Date.now() < new Date('2026-07-11').getTime() && (
-              <FooterLink href="https://editsvgcode-legacy.web.app" target="_blank" title="The legacy version of the editor (available until July 2026)">Legacy version</FooterLink>
+        {consentDocked ? (
+          <>
+            <div ref={noticeRef} style={{ display: 'flex', padding: `${NOTICE_PADDING}px 10px` }}>
+              <CookieConsentBanner onAnswered={() => setConsentPending(false)} />
+            </div>
+            {!hasNavDrawer && (
+              <Group h={LINKS_ROW} px="xs" gap="xs" wrap="nowrap" style={{ overflow: 'hidden' }}>{legalLinks}</Group>
             )}
+          </>
+        ) : (
+          <Group h="100%" px="xs" justify="space-between">
+            <Group gap="xs">
+              {legalLinks}
+            </Group>
+            <Group gap="xs">
+              {consentPending ? (
+                <CookieConsentBanner onAnswered={() => setConsentPending(false)} />
+              ) : (
+                <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />} title="View source code on GitHub">
+                  {' '}GitHub
+                </FooterLink>
+              )}
+            </Group>
           </Group>
-          <Group gap="xs">
-            <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />} title="View source code on GitHub">
-              {' '}GitHub
-            </FooterLink>
-          </Group>
-        </Group>
+        )}
       </AppShell.Footer>
 
-      <CookieConsentBanner />
     </AppShell>
   );
 }

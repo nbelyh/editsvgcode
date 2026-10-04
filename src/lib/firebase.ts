@@ -33,8 +33,8 @@ import { firebaseApp, firebaseDb, firebaseStorage, firebaseAuth, isLocalhost } f
 import { clearChatMessages } from './chat-history';
 import { visibilityOf, type Visibility } from './visibility';
 import { config } from './config';
-import { getConsent } from './cookie-consent';
-import { trackSignIn } from './analytics';
+import { getConsent, allowAnalytics, denyAnalytics } from './cookie-consent';
+import { trackSignIn, flushQueuedEvents, dropQueuedEvents } from './analytics';
 import { notifications } from '@mantine/notifications';
 
 // The app and its service handles live in ./firebase-app — see the note there
@@ -47,14 +47,26 @@ let firebaseAnalytics: Analytics | null = null;
 // Emulators are wired up in ./firebase-app; analytics stays here, with the
 // consent check and enableAnalytics() that flips it on later.
 if (!isLocalhost && getConsent() === 'accepted') {
+  allowAnalytics();
   firebaseAnalytics = getAnalytics(firebaseApp);
+  flushQueuedEvents();
+} else if (getConsent() === 'declined') {
+  denyAnalytics();
 }
 
-/** Enable analytics after user gives consent. */
+/** Enable analytics once the visitor accepts, or turns out not to need asking. */
 export function enableAnalytics(): void {
+  allowAnalytics();
   if (!firebaseAnalytics && !isLocalhost) {
     firebaseAnalytics = getAnalytics(firebaseApp);
   }
+  flushQueuedEvents();
+}
+
+/** The visitor declined: nothing is sent, including what waited for the answer. */
+export function disableAnalytics(): void {
+  denyAnalytics();
+  dropQueuedEvents();
 }
 
 /** Log an error to the console and Firebase Analytics. */

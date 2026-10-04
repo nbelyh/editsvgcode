@@ -69,8 +69,8 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/storage', () => ({ getStorage: () => ({}), connectStorageEmulator: vi.fn() }));
 vi.mock('firebase/analytics', () => ({ getAnalytics: () => ({}), logEvent: vi.fn() }));
 vi.mock('@mantine/notifications', () => ({ notifications: { show: vi.fn() } }));
-vi.mock('../analytics', () => ({ trackSignIn: vi.fn() }));
-vi.mock('../cookie-consent', () => ({ getConsent: () => 'declined' }));
+vi.mock('../analytics', () => ({ trackSignIn: vi.fn(), flushQueuedEvents: vi.fn(), dropQueuedEvents: vi.fn() }));
+vi.mock('../cookie-consent', () => ({ getConsent: () => 'declined', allowAnalytics: vi.fn(), denyAnalytics: vi.fn() }));
 
 const { EditSvgCodeDb } = await import('../firebase');
 

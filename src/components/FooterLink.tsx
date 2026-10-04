@@ -9,8 +9,8 @@ export function FooterLink({ href, target, rel, icon, title, children }: { href:
       href={href}
       target={target}
       rel={rel}
-      size="sm"
-      c="dimmed"
+      size="xs"
+      c="var(--esvg-quiet-text)"
       className="footer-link"
     >
       {icon}{children}
