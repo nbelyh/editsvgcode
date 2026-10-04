@@ -11,8 +11,10 @@ export const APP_SHELL_HEADER_HEIGHT = 50;
 /** Media queries for the layout breakpoints. EditorPage picks its phone,
  *  tablet and desktop layouts by these, and App places the consent notice by
  *  them, so the two must agree; AiChat.css repeats PHONE_QUERY's width, since
- *  CSS cannot import it. NAV_DRAWER_QUERY is where Mantine's `sm` hides the
- *  header links behind the burger. */
+ *  CSS cannot import it. */
 export const PHONE_QUERY = '(max-width: 35.99em)';
-export const NAV_DRAWER_QUERY = '(max-width: 47.99em)';
 export const DESKTOP_QUERY = '(min-width: 64em)';
+
+/** Width of the AI chat column on the right of the tablet layout, which the
+ *  cookie consent card keeps clear of. */
+export const TABLET_CHAT_WIDTH = 320;

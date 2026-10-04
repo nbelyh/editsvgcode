@@ -21,7 +21,7 @@ import { useDocument } from '../lib/useDocument';
 import { useCloneDocument } from '../lib/useCloneDocument';
 import { findElementRange } from '../lib/svg-utils';
 import { getAuth } from 'firebase/auth';
-import { DESKTOP_QUERY, PHONE_QUERY } from '../lib/app-shell';
+import { DESKTOP_QUERY, PHONE_QUERY, TABLET_CHAT_WIDTH } from '../lib/app-shell';
 
 export function EditorPage() {
   const { fileId: routeFileId } = useParams<{ fileId?: string }>();
@@ -364,7 +364,7 @@ export function EditorPage() {
                 )}
               </div>
             </div>
-            <div style={{ flex: '0 0 320px', minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
+            <div style={{ flex: `0 0 ${TABLET_CHAT_WIDTH}px`, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--esvg-chrome-border)' }}>
               <div style={{ flex: 1, minHeight: 0 }}>{renderAiChat(true)}</div>
               {adSlot}
             </div>

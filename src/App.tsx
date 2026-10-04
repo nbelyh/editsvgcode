@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { APP_SHELL_HEADER_HEIGHT, DESKTOP_QUERY, NAV_DRAWER_QUERY } from './lib/app-shell';
+import { APP_SHELL_HEADER_HEIGHT, DESKTOP_QUERY, PHONE_QUERY, TABLET_CHAT_WIDTH } from './lib/app-shell';
 import { AppShell, Group, Text, ActionIcon, Tooltip, useMantineColorScheme, useComputedColorScheme, Burger, Drawer, Stack, Divider, Button } from '@mantine/core';
 import { useDisclosure, useMediaQuery, useElementSize } from '@mantine/hooks';
 import { IconBrandGithub, IconSun, IconMoon, IconBug, IconSparkles } from '@tabler/icons-react';
@@ -55,21 +55,24 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, []);
-  // On the desktop layout the consent notice is a card floating over the page,
-  // where it is seen and covers nothing that matters. Below that it takes a
-  // footer row of its own above the links — over the page it sat on the chat
-  // box — sized to however many lines its sentence wraps to: measured, since
-  // that runs from one line on a tablet to three on a 320px phone. Where the
-  // header has the burger, the legal links are in its drawer, and the notice
-  // row stands alone.
+  // On desktop and tablet the consent notice is a card floating over the page,
+  // where it is seen and covers nothing that matters — on a tablet kept left of
+  // the editor's AI chat column, which a centred card sat on. On a phone the
+  // chat box fills the bottom of the screen, so there the notice takes the
+  // footer's place instead (the legal links are in the burger's drawer), sized
+  // to however many lines its sentence wraps to: measured, since that is two on
+  // most phones and more on the narrowest.
   const isDesktop = useMediaQuery(DESKTOP_QUERY, undefined, { getInitialValueInEffect: false });
-  const hasNavDrawer = useMediaQuery(NAV_DRAWER_QUERY, undefined, { getInitialValueInEffect: false });
-  const consentDocked = consentPending && !isDesktop;
+  const isPhone = useMediaQuery(PHONE_QUERY, undefined, { getInitialValueInEffect: false });
+  const consentDocked = consentPending && isPhone;
+  // Measured inside the padding: the hook reports the box it is given, so
+  // measuring the padded row and adding the padding again left a strip of
+  // footer showing below the notice.
   const { ref: noticeRef, height: noticeHeight } = useElementSize();
   const LINKS_ROW = 26;
   const NOTICE_PADDING = 6;
   const footerHeight = !consentDocked ? LINKS_ROW
-    : Math.max(36, Math.ceil(noticeHeight) + 2 * NOTICE_PADDING) + (hasNavDrawer ? 0 : LINKS_ROW);
+    : Math.max(36, Math.ceil(noticeHeight) + 2 * NOTICE_PADDING + 1);
 
   const legalLinks = (
     <>
@@ -209,14 +212,11 @@ export default function App() {
 
       <AppShell.Footer className="app-chrome">
         {consentDocked ? (
-          <>
-            <div ref={noticeRef} className="cookie-notice" style={{ display: 'flex', padding: `${NOTICE_PADDING}px 10px`, borderTopWidth: 1, borderTopStyle: 'solid' }}>
+          <div className="cookie-notice" style={{ height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: `${NOTICE_PADDING}px 10px`, borderTopWidth: 1, borderTopStyle: 'solid' }}>
+            <div ref={noticeRef} style={{ flex: 1, minWidth: 0, display: 'flex' }}>
               <CookieConsentBanner onAnswered={() => setConsentPending(false)} />
             </div>
-            {!hasNavDrawer && (
-              <Group h={LINKS_ROW} px="xs" gap="xs" wrap="nowrap" style={{ overflow: 'hidden' }}>{legalLinks}</Group>
-            )}
-          </>
+          </div>
         ) : (
           <Group h="100%" px="xs" justify="space-between">
             <Group gap="xs">
@@ -232,7 +232,7 @@ export default function App() {
       </AppShell.Footer>
 
       {consentPending && !consentDocked && (
-        <CookieConsentBanner floating onAnswered={() => setConsentPending(false)} />
+        <CookieConsentBanner floating keepClearRight={isDesktop ? 0 : TABLET_CHAT_WIDTH} onAnswered={() => setConsentPending(false)} />
       )}
 
     </AppShell>
