@@ -306,12 +306,13 @@ export function ExportImageModal({ opened, onClose, svg, fileName }: ExportImage
             {SCALES.map((scale) => {
               const on = !custom && settings.scales.includes(scale);
               return (
-                <Button key={scale} variant={on ? 'filled' : 'default'} aria-pressed={on} onClick={() => toggleScale(scale)}>
+                <Button key={scale} px={6} variant={on ? 'filled' : 'default'} aria-pressed={on} onClick={() => toggleScale(scale)}>
                   {`${scale}×`}
                 </Button>
               );
             })}
-            <Button variant={custom ? 'filled' : 'default'} aria-pressed={custom} onClick={() => update({ sizeMode: 'custom' })}>
+            {/* Narrow side padding: four equal cells on a phone left "Custom" cut to "Custor". */}
+            <Button px={6} variant={custom ? 'filled' : 'default'} aria-pressed={custom} onClick={() => update({ sizeMode: 'custom' })}>
               Custom
             </Button>
           </SimpleGrid>

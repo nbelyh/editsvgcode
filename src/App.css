@@ -108,6 +108,11 @@
      carries no reading load, and the words stay on --mantine-color-dimmed.
      Danger is the exception below: red passes in both schemes, and that note
      should be read in its own colour. */
+  /* Text that should sit back without fading out: the footer's links and the
+     chat box's placeholder. Halfway between gray-6 and the lifted dimmed tone,
+     it clears 4.5:1 on both the chrome and the white panel — the stock
+     placeholder gray measured 2.1:1. */
+  --esvg-quiet-text: color-mix(in srgb, var(--mantine-color-gray-6), var(--mantine-color-gray-7));
   --esvg-note-missed: var(--mantine-color-orange-6);
   --esvg-note-ineffective: var(--mantine-color-yellow-6);
   --esvg-note-broken: var(--mantine-color-red-9);
@@ -118,6 +123,7 @@
   --esvg-chrome-border: var(--mantine-color-dark-4);
   --app-shell-border-color: var(--esvg-chrome-border);
   --mantine-color-dimmed: var(--mantine-color-dark-1);
+  --esvg-quiet-text: color-mix(in srgb, var(--mantine-color-dark-1), var(--mantine-color-dark-2));
   --esvg-note-missed: var(--mantine-color-orange-5);
   --esvg-note-ineffective: var(--mantine-color-yellow-5);
   --esvg-note-broken: var(--mantine-color-red-4);

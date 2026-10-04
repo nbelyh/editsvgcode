@@ -337,7 +337,75 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const viewport = viewportRef.current;
     if (viewport && pinnedRef.current) viewport.scrollTop = viewport.scrollHeight;
   }, []);
-  useEffect(followBottom, [messages, isRunning, followBottom]);
+  useEffect(() => {
+    // An empty chat is read from the top. Pinned to the bottom like a thread,
+    // a short phone panel scrolled the first thing in it — the Paste SVG code
+    // button — out of sight.
+    if (messages.length === 0) {
+      if (viewportRef.current) viewportRef.current.scrollTop = 0;
+      return;
+    }
+    followBottom();
+  }, [messages, isRunning, followBottom]);
+
+  // A message that is nothing but an SVG document is opened in the editor, with no model call:
+  // the person wants to see it, not have it changed. Restore above the message puts the
+  // drawing back, like after any accepted edit.
+  const openPastedSvg = useCallback((text: string, pasted: string, source: 'message' | 'button') => {
+    const prevSvg = svgRef.current;
+    onPreviewSvg(null);
+    onAcceptSvg(pasted);
+    trackPastedSvg(source);
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: text },
+      {
+        role: 'assistant',
+        content: 'Opened your SVG in the editor. Ask me to change anything in it, or press Restore above your message to get back the drawing you had.',
+        toolCalls: [{ name: 'replace_svg', arguments: { svg: pasted, summary: 'Opened the pasted SVG' }, status: 'accepted', prevSvg }],
+      },
+    ]);
+  }, [onAcceptSvg, onPreviewSvg]);
+
+  // The phone's way in for SVG code. Focusing the composer to invite a paste
+  // would raise the on-screen keyboard over half the screen, so the button
+  // reads the clipboard itself; the browser asks for permission or shows its
+  // own Paste prompt, and nothing takes focus.
+  //
+  // Held to what the composer is held to: not before the chat and the
+  // document have loaded — the load would replace the opened drawing's
+  // messages, and a viewer's access is not known yet — and not during a run.
+  // Read through a ref because it must be checked again once the clipboard
+  // answers: the browser's Paste prompt can stay open while a deferred send
+  // starts.
+  const canPaste = !accessPending && !isViewer && documentReady && !isRunning && !hasPending;
+  const canPasteRef = useRef(canPaste);
+  canPasteRef.current = canPaste;
+  const handlePasteSvg = useCallback(async () => {
+    if (!canPasteRef.current) return;
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      notifications.show({
+        title: 'Could not read the clipboard',
+        message: 'This browser did not allow it. Long-press the message box below and choose Paste instead.',
+        color: 'red',
+      });
+      return;
+    }
+    const pasted = pastedSvgDocument(text);
+    if (!pasted) {
+      notifications.show({
+        title: 'No SVG code on the clipboard',
+        message: 'Copy the whole SVG code, from <svg to </svg>, and tap Paste again.',
+        color: 'yellow',
+      });
+      return;
+    }
+    if (!canPasteRef.current) return;
+    openPastedSvg(text.trim(), pasted, 'button');
+  }, [openPastedSvg]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -345,24 +413,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // paths are already blocked by the composer's disabled state.
     if (!text || isRunning || hasPending) return;
 
-    // A message that is nothing but an SVG document is opened in the editor, with no model call:
-    // the person wants to see it, not have it changed. Restore above the message puts the
-    // drawing back, like after any accepted edit.
     const pasted = pastedSvgDocument(text);
     if (pasted) {
-      const prevSvg = svgRef.current;
-      onPreviewSvg(null);
-      onAcceptSvg(pasted);
-      trackPastedSvg();
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: text },
-        {
-          role: 'assistant',
-          content: 'Opened your SVG in the editor. Ask me to change anything in it, or press Restore above your message to get back the drawing you had.',
-          toolCalls: [{ name: 'replace_svg', arguments: { svg: pasted, summary: 'Opened the pasted SVG' }, status: 'accepted', prevSvg }],
-        },
-      ]);
+      openPastedSvg(text, pasted, 'message');
       setInput('');
       return;
     }
@@ -556,7 +609,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageConfirmResolveRef.current = null;
       }
     }
-  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg]);
+  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg, openPastedSvg]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -876,6 +929,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
           onSamplePrompt={handleSamplePrompt}
+          onPasteSvg={handlePasteSvg}
+          canPaste={canPaste}
         />
         {accessPending ? null : isViewer ? (
           // Somebody else's document: the conversation is readable but not

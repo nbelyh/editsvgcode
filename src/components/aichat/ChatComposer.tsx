@@ -143,7 +143,7 @@ export function ChatComposer({
         <textarea
           ref={setTextarea}
           className="aui-composer-input"
-          placeholder="Ask AI to edit your SVG…"
+          placeholder="Ask AI to edit your SVG, or paste SVG code…"
           value={input}
           onChange={e => {
             onInputChange(e.target.value);

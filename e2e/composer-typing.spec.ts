@@ -91,7 +91,7 @@ test('typing in the composer re-renders neither the thread nor the model picker'
   // resolved; the sign-in hint only once the panel knows this is a guest, which
   // is the last of them. A guest has no credits listener, so nothing else
   // arrives later. The quiet period on top covers anything that slips past.
-  await expect(page.getByText(/Sign-in required to send/)).toBeVisible({ timeout: 20000 });
+  await expect(page.getByText(/AI edits need a free sign-in/)).toBeVisible({ timeout: 20000 });
   await page.waitForFunction(() => {
     const last = (window as any).__lastRenderAt.ChatThread ?? 0;
     return performance.now() - last > 1500;

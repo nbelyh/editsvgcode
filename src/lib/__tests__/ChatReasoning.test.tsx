@@ -40,7 +40,7 @@ const baseProps = (): React.ComponentProps<typeof ChatThread> => ({
   editingIndex: null, editingText: '', onEditStart: noop, onEditChange: noop, onEditSubmit: noop, onEditCancel: noop,
   iconPickIcons: null, iconPickSelected: null, onIconSelect: noop, onIconMore: noop, onIconNone: noop,
   imageConfirmSummary: null, imageCredits: 10, onImageConfirm: noop, onImageDecline: noop,
-  onSamplePrompt: noop, isAnonymous: false, isViewer: false,
+  onSamplePrompt: noop, onPasteSvg: noop, canPaste: true, isAnonymous: false, isViewer: false,
 });
 
 const renderThread = (over: Partial<React.ComponentProps<typeof ChatThread>>) =>

@@ -2,7 +2,7 @@ import { useState, Fragment, useRef, useEffect, useLayoutEffect, useSyncExternal
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ActionIcon, Tooltip, Button, Group, Text } from '@mantine/core';
-import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown, IconBulb } from '@tabler/icons-react';
+import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, IconX, IconArrowUp, IconThumbUp, IconThumbDown, IconBulb, IconClipboard } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { sanitizeSvg } from '../../lib/sanitize';
@@ -58,6 +58,10 @@ interface ChatThreadProps {
   onImageConfirm: () => void;
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
+  /** Opens SVG code from the clipboard — the phone layout's way in, which has no code editor. */
+  onPasteSvg: () => void;
+  /** False until the chat and document have loaded, and during a run: the button is not offered. */
+  canPaste: boolean;
   isAnonymous: boolean;
   /** Somebody else's document — no composer, so nothing to prompt into. */
   isViewer: boolean;
@@ -262,7 +266,7 @@ export const ChatThread = memo(function ChatThread({
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, imageCredits, onImageConfirm, onImageDecline,
-  onSamplePrompt, isAnonymous, isViewer,
+  onSamplePrompt, onPasteSvg, canPaste, isAnonymous, isViewer,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -307,6 +311,14 @@ export const ChatThread = memo(function ChatThread({
           </div>
         ) : (
           <div className="aui-empty">
+            {/* Phones only (see the CSS): they have no code editor, so the chat
+                is the only place SVG code can go, and nothing else says so. */}
+            {canPaste && <div className="aui-paste-svg">
+              <Button variant="light" leftSection={<IconClipboard size={16} />} onClick={onPasteSvg}>
+                Paste SVG code
+              </Button>
+              <p className="aui-empty-hint">Copied SVG code from somewhere? Tap to open it here.</p>
+            </div>}
             <IconSparkles size={32} className="aui-empty-icon" />
             <p>Ask AI to edit your SVG</p>
             <div className="aui-sample-prompts">
@@ -317,7 +329,7 @@ export const ChatThread = memo(function ChatThread({
               ))}
             </div>
             {isAnonymous && (
-              <p className="aui-empty-signin">Sign-in required to send — free, includes {DEFAULT_PRICING.freeMonthlyCredits} AI credits/month</p>
+              <p className="aui-empty-signin">AI edits need a free sign-in, with {DEFAULT_PRICING.freeMonthlyCredits} AI credits a month. Pasting SVG code works without one.</p>
             )}
           </div>
         )

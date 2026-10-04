@@ -68,16 +68,53 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* Quieter than the text around them, but past 4.5:1: at 0.7 and 0.55 they
+   measured 4.2:1 and 2.7:1. */
 .aui-empty-hint {
   font-size: 12px !important;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 /* Guest sign-in footnote — deliberately quiet, separated from the prompts */
 .aui-empty-signin {
   margin-top: 28px !important;
   font-size: 11px !important;
-  opacity: 0.55;
+  opacity: 0.8;
+}
+
+/* Phone only: that layout has no code editor, so SVG code can only come in
+   through the chat. Separated from the AI prompts below it, which are a
+   different thing to do. */
+.aui-paste-svg {
+  display: none;
+}
+
+/* PHONE_QUERY in src/lib/app-shell.ts: the layout that has no code editor. */
+@media (max-width: 35.99em) {
+  .aui-paste-svg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--mantine-color-default-border);
+  }
+
+  /* The chat gets well under half a phone screen, less still while the cookie
+     banner holds the footer: tighten the empty state so all of it fits. */
+  .aui-empty {
+    padding: 12px 8px;
+  }
+
+  .aui-empty-icon {
+    display: none;
+  }
+
+  .aui-empty-signin {
+    margin-top: 16px !important;
+  }
 }
 
 .aui-sample-prompts {
@@ -797,10 +834,12 @@
   outline-offset: -2px;
 }
 
-/* Stays the lighter placeholder tone: --mantine-color-dimmed is deliberately
-   dark app-wide, which made the hint look like text already typed. */
+/* Lighter than --mantine-color-dimmed, which is deliberately dark app-wide and
+   made the hint look like text already typed — but not Mantine's stock
+   placeholder tone either, which measured 2.1:1 on white and all but vanished.
+   See --esvg-quiet-text in App.css. */
 .aui-composer-input::placeholder {
-  color: var(--mantine-color-placeholder);
+  color: var(--esvg-quiet-text);
 }
 
 /* Footer row: model selector + actions */

@@ -30,10 +30,13 @@ export function trackImageDeclined(meta: { model: string; modify: boolean }): vo
   if (a) logEvent(a, 'ai_image_declined', meta);
 }
 
-/** User pasted a whole SVG document into the chat, and it was opened without a model call. */
-export function trackPastedSvg(): void {
+/**
+ * User pasted a whole SVG document into the chat, and it was opened without a model call.
+ * `source` tells a sent message from the phone's Paste SVG button.
+ */
+export function trackPastedSvg(source: 'message' | 'button'): void {
   const a = getAnalyticsInstance();
-  if (a) logEvent(a, 'ai_pasted_svg');
+  if (a) logEvent(a, 'ai_pasted_svg', { source });
 }
 
 /** User accepted an AI SVG edit. */

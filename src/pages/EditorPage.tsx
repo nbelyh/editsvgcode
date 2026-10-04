@@ -21,6 +21,7 @@ import { useDocument } from '../lib/useDocument';
 import { useCloneDocument } from '../lib/useCloneDocument';
 import { findElementRange } from '../lib/svg-utils';
 import { getAuth } from 'firebase/auth';
+import { DESKTOP_QUERY, PHONE_QUERY } from '../lib/app-shell';
 
 export function EditorPage() {
   const { fileId: routeFileId } = useParams<{ fileId?: string }>();
@@ -79,8 +80,8 @@ export function EditorPage() {
   // loader has already started and the fetch completes regardless: ~1 MB, 73%
   // of everything a phone downloads, for an editor the phone layout never
   // shows. Reading matchMedia synchronously picks the right branch first time.
-  const isDesktop = useMediaQuery('(min-width: 64em)', undefined, { getInitialValueInEffect: false });
-  const isPhone = useMediaQuery('(max-width: 35.99em)', undefined, { getInitialValueInEffect: false });
+  const isDesktop = useMediaQuery(DESKTOP_QUERY, undefined, { getInitialValueInEffect: false });
+  const isPhone = useMediaQuery(PHONE_QUERY, undefined, { getInitialValueInEffect: false });
   // Carbon's placement policy forbids serving an ad that is concealed rather
   // than shown, so each branch withholds this while its pane is collapsed —
   // see the desktop layout, which gates it on showSidebar.
