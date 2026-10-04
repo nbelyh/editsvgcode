@@ -1,24 +1,24 @@
-import { Group, Text, Button } from '@mantine/core';
+import { Group, Text, Button, Paper } from '@mantine/core';
 import { setConsent } from '../lib/cookie-consent';
 import { enableAnalytics, disableAnalytics } from '../lib/firebase';
 
 interface CookieConsentBannerProps {
   /** Called once the visitor has answered, so the layout can stop making room for the notice. */
   onAnswered: () => void;
+  /**
+   * A card floating over the bottom of the page, for the desktop layout. There
+   * is room for it there, and folded into the footer it was too easy to miss —
+   * consent only counts if the visitor saw the question.
+   */
+  floating?: boolean;
 }
 
 /**
- * One line in the footer, not a card over the page: as a floating card with a
- * blue Accept it was the loudest thing on screen, and on a phone it sat on the
- * chat box, the only input. App places it: beside the footer links on wide
- * screens, in their place below that.
- *
- * Quiet in place, but not faint: consent only counts if the visitor saw the
- * question, so the text is in the body colour, not the footer's muted one.
- * Accept is the primary button, as it was on the card; Decline stays a full
- * button beside it, on the same line, never a link or a second step.
+ * Below the desktop layout it is a line in the footer instead (App places
+ * it): as a floating card it sat on the chat box, a phone's only input.
+ * Decline is always a full button beside Accept, never a link or a second step.
  */
-export function CookieConsentBanner({ onAnswered }: CookieConsentBannerProps) {
+export function CookieConsentBanner({ onAnswered, floating }: CookieConsentBannerProps) {
   const handleAccept = () => {
     setConsent('accepted');
     enableAnalytics();
@@ -30,6 +30,46 @@ export function CookieConsentBanner({ onAnswered }: CookieConsentBannerProps) {
     disableAnalytics();
     onAnswered();
   };
+
+  if (floating) {
+    return (
+      <Paper
+        shadow="md"
+        p="sm"
+        withBorder
+        className="cookie-notice"
+        style={{
+          position: 'fixed',
+          bottom: 30,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          // Below Mantine's modal layer (200). At 1000 this sat on top of every
+          // dialog and, being fixed to the bottom, silently swallowed clicks on
+          // the footer buttons of any dialog tall enough to reach it.
+          zIndex: 190,
+          maxWidth: 640,
+          width: 'calc(100% - 32px)',
+        }}
+      >
+        {/* Room on a wide screen to say plainly what the cookies do, instead of
+            a bare "uses cookies". Facts only, no appeal: a pitch reads as a
+            trick. Every claim here is in the privacy policy. */}
+        <Group justify="space-between" wrap="nowrap" gap="md">
+          <div>
+            <Text size="sm" fw={600}>Cookie Usage</Text>
+            <Text size="sm">
+              This site uses Google Analytics to count visits and see which features are used. The data is anonymized and not sold. The editor works the same whether you accept or decline.{' '}
+              <Text component="a" href="/privacy" size="sm" td="underline" c="blue">Learn more</Text>
+            </Text>
+          </div>
+          <Group gap="xs" wrap="nowrap">
+            <Button size="sm" variant="default" onClick={handleDecline}>Decline</Button>
+            <Button size="sm" onClick={handleAccept}>Accept</Button>
+          </Group>
+        </Group>
+      </Paper>
+    );
+  }
 
   return (
     <Group justify="space-between" wrap="nowrap" gap="xs" style={{ flex: 1, minWidth: 0 }}>

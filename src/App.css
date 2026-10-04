@@ -289,3 +289,12 @@
 .esvg-monaco-host:empty {
   pointer-events: none;
 }
+
+/* The cookie consent notice, as the desktop card and as the footer row below
+   that. White on the white preview, or grey on the grey footer, it read as
+   just more text; a tinted surface with a coloured edge marks it as a message
+   that wants an answer. */
+.cookie-notice {
+  background-color: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
+  border-color: light-dark(var(--mantine-color-blue-3), var(--mantine-color-blue-8));
+}

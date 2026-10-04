@@ -55,20 +55,20 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, []);
-  // The consent notice lives in the footer. On the desktop layout it fits
-  // beside the links; below that it takes a row of its own above them, sized
-  // to however many lines its sentence wraps to — measured, since that runs
-  // from one line on a tablet to three on a 320px phone. Where the header has
-  // the burger, the legal links are in its drawer, and the notice row stands
-  // alone.
+  // On the desktop layout the consent notice is a card floating over the page,
+  // where it is seen and covers nothing that matters. Below that it takes a
+  // footer row of its own above the links — over the page it sat on the chat
+  // box — sized to however many lines its sentence wraps to: measured, since
+  // that runs from one line on a tablet to three on a 320px phone. Where the
+  // header has the burger, the legal links are in its drawer, and the notice
+  // row stands alone.
   const isDesktop = useMediaQuery(DESKTOP_QUERY, undefined, { getInitialValueInEffect: false });
   const hasNavDrawer = useMediaQuery(NAV_DRAWER_QUERY, undefined, { getInitialValueInEffect: false });
   const consentDocked = consentPending && !isDesktop;
   const { ref: noticeRef, height: noticeHeight } = useElementSize();
   const LINKS_ROW = 26;
   const NOTICE_PADDING = 6;
-  const footerHeight = !consentPending ? LINKS_ROW
-    : !consentDocked ? 36
+  const footerHeight = !consentDocked ? LINKS_ROW
     : Math.max(36, Math.ceil(noticeHeight) + 2 * NOTICE_PADDING) + (hasNavDrawer ? 0 : LINKS_ROW);
 
   const legalLinks = (
@@ -210,7 +210,7 @@ export default function App() {
       <AppShell.Footer className="app-chrome">
         {consentDocked ? (
           <>
-            <div ref={noticeRef} style={{ display: 'flex', padding: `${NOTICE_PADDING}px 10px` }}>
+            <div ref={noticeRef} className="cookie-notice" style={{ display: 'flex', padding: `${NOTICE_PADDING}px 10px`, borderTopWidth: 1, borderTopStyle: 'solid' }}>
               <CookieConsentBanner onAnswered={() => setConsentPending(false)} />
             </div>
             {!hasNavDrawer && (
@@ -223,17 +223,17 @@ export default function App() {
               {legalLinks}
             </Group>
             <Group gap="xs">
-              {consentPending ? (
-                <CookieConsentBanner onAnswered={() => setConsentPending(false)} />
-              ) : (
-                <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />} title="View source code on GitHub">
-                  {' '}GitHub
-                </FooterLink>
-              )}
+              <FooterLink href="https://github.com/nbelyh/editsvgcode" target="_blank" rel="noopener noreferrer" icon={<IconBrandGithub size={14} />} title="View source code on GitHub">
+                {' '}GitHub
+              </FooterLink>
             </Group>
           </Group>
         )}
       </AppShell.Footer>
+
+      {consentPending && !consentDocked && (
+        <CookieConsentBanner floating onAnswered={() => setConsentPending(false)} />
+      )}
 
     </AppShell>
   );
