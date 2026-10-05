@@ -587,6 +587,29 @@ export function isStructuralEditTool(name: string): boolean {
 }
 
 /**
+ * The list of edits in a structural call, in the shapes models actually send. The schema
+ * asks for `{ edits: [...], summary }`, but a route that does not enforce it delivers the
+ * list JSON-encoded inside a string, or ONE edit written flat — `{ selector, name, value,
+ * summary }`. Read literally, either came out as zero edits: the call "succeeded", the
+ * proposal was empty, and the user saw it accepted with nothing changed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function editsOf(args: any): any[] {
+  let edits = args?.edits;
+  if (typeof edits === 'string') {
+    try { edits = JSON.parse(edits); } catch { /* left as is: no edits */ }
+  }
+  if (Array.isArray(edits)) return edits;
+  if (edits && typeof edits === 'object') return [edits];
+  if (args && typeof args === 'object' && 'selector' in args) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { summary, edits: _none, ...edit } = args;
+    return [edit];
+  }
+  return [];
+}
+
+/**
  * Resolve a structural edit call against the snapshot, in the same currency as
  * line edits.
  *
@@ -601,7 +624,11 @@ export function planStructuralEdits(
   args: any,
 ): { planned: PlannedEdit[]; available: boolean; reason?: string } {
   const source = normalize(snapshot);
-  const raw = Array.isArray(args?.edits) ? args.edits : [];
+  const raw = editsOf(args);
+  // A call with nothing in it is a mistake to report, not an empty success.
+  if (raw.length === 0) {
+    return { planned: [{ label: toolName, status: 'failed', detail: 'the call held no edits. Send them as "edits": [ { ... } ], one object per edit.', ranges: [] }], available: true };
+  }
 
   if (toolName === 'set_text') {
     const edits: TextEdit[] = raw.map((e: Record<string, unknown>) => ({

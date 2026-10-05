@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase/auth';
 import {
-  buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned,
+  buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned, editsOf,
   planStructuralEdits, isStructuralEditTool, summarizeEdits, validityRegression, CLIP_MARKER,
   type LineEdit, type LineEditOutcome, type PlannedEdit,
 } from './svg-ai';
@@ -190,7 +190,7 @@ function describeEditArgs(name: string, args: any): Record<string, unknown> {
     };
   }
   if (isStructuralEditTool(name)) {
-    const edits = (Array.isArray(args?.edits) ? args.edits : []) as Array<{ selector?: string; name?: string; property?: string; position?: string }>;
+    const edits = editsOf(args) as Array<{ selector?: string; name?: string; property?: string; position?: string }>;
     const targets = edits.map((e) => {
       if (name === 'set_attribute') return `${e.name}@${e.selector}`;
       if (name === 'set_style_rule') return `${e.selector} { ${e.property} }`;

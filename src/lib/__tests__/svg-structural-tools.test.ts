@@ -438,3 +438,28 @@ describe('validityRegression — the guard on the way out', () => {
     }
   });
 });
+
+describe('edits in the shapes models actually send', () => {
+  // Qwen on OpenRouter is not held to the schema: it wrote one edit flat, without the
+  // "edits" list, and the editor proposed nothing and showed the call as accepted.
+  it('applies one set_attribute edit written flat', () => {
+    const { svg, outcomes } = run(DOC, 'set_attribute', { selector: '#c', name: 'fill', value: 'red', summary: 'Red' });
+    expect(outcomes[0]).toMatchObject({ status: 'applied' });
+    expect(svg).toContain('<circle id="c" r="5" fill="red"/>');
+  });
+
+  it('applies one insert_element edit written flat', () => {
+    const { svg } = run(DOC, 'insert_element', { selector: '#c', position: 'after', svg: '<rect id="new"/>', summary: 'Add' });
+    expect(svg).toMatch(/<circle id="c" r="5"\/>\n\s*<rect id="new"\/>/);
+  });
+
+  it('reads an edits list sent JSON-encoded inside a string', () => {
+    const { svg } = run(DOC, 'set_attribute', { edits: '[{"selector": "#c", "name": "fill", "value": "blue"}]', summary: 'Blue' });
+    expect(svg).toContain('fill="blue"');
+  });
+
+  it('reports a call with no edits as failed, not as an empty success', () => {
+    const { planned } = planStructuralEdits(DOC, 'set_attribute', { summary: 'Nothing' });
+    expect(planned).toEqual([expect.objectContaining({ status: 'failed', detail: expect.stringContaining('held no edits') })]);
+  });
+});
