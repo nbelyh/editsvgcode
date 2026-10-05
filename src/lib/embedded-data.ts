@@ -97,4 +97,4 @@ export const EMBEDDED_NOTE =
   + ' full data. Wherever you rewrite markup that contains one (replace_lines, replace_svg,'
   + ' insert_element), copy the token exactly as shown and the data is put back. Never write a'
   + ' data: URI of your own in its place, and know that leaving a token out removes what it stands for.'
-  + ' You cannot see what an embedded image depicts.';
+  + ' A token does not show what an embedded image depicts.';

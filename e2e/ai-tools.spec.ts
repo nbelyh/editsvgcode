@@ -770,6 +770,40 @@ test.describe('AI edit tools, end to end', () => {
     expect(await editorValue(page)).toBe(DOC);
   });
 
+  test('get_png_image sends its picture after the results, and the next turn does not replay it', async ({ page }) => {
+    await boot(page);
+    await stubChat(page, [
+      [call('get_png_image', { highlight: ['#box'], crop: null, size: null })],
+      [say('That is the box.')],
+      [say('Still the box.')],
+    ]);
+    const bodies: Array<{ input: Array<Record<string, any>> }> = [];
+    page.on('request', (req) => {
+      if (req.url().includes('/api/chat')) bodies.push(JSON.parse(req.postData() ?? '{}'));
+    });
+    const isPicture = (item: Record<string, any>) =>
+      Array.isArray(item.content) && item.content.some((part: { type?: string }) => part.type === 'input_image');
+
+    await send(page, 'which is the box?');
+    await expect(page.getByText('That is the box.')).toBeVisible({ timeout: 15000 });
+
+    // The continuation: the tool's text result, then the picture as its own user item.
+    const second = bodies[1].input;
+    const outputAt = second.findIndex((item) => item.type === 'function_call_output');
+    const pictureAt = second.findIndex(isPicture);
+    expect(String(second[outputAt].output)).toContain('1 element matches "#box"');
+    expect(pictureAt).toBeGreaterThan(outputAt);
+    const image = second[pictureAt].content.find((part: { type?: string }) => part.type === 'input_image');
+    expect(image.image_url).toMatch(/^data:image\/png;base64,/);
+
+    // The next turn replays the history: the text result is there, the picture is not.
+    await send(page, 'and now?');
+    await expect(page.getByText('Still the box.')).toBeVisible({ timeout: 15000 });
+    const third = bodies[2].input;
+    expect(third.some(isPicture)).toBe(false);
+    expect(JSON.stringify(third)).toContain('1 element matches');
+  });
+
   test('query points at the text inside a container rather than the container', async ({ page }) => {
     // A group has no text of its own. Answering with only the group's path is a
     // dead end: set_text must refuse it, and the model has nowhere else to go.

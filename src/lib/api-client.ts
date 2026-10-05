@@ -7,6 +7,8 @@ import {
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
+import { renderSnapshot } from './svg-snapshot';
+import { pictureItem, withPictures, type TurnPicture } from './chat-pictures';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
 import { readChatStream, withoutReasoningSummaries, type ChatStreamUpdate } from './chat-stream';
@@ -390,6 +392,8 @@ export async function sendChatRequest(
 
   // Collect all raw output items across agentic rounds for the caller to store
   const allRawOutput: unknown[] = [];
+  // Pictures from get_png_image: sent with each continuation, never stored (see chat-pictures).
+  const pictures: TurnPicture[] = [];
 
   // Agentic loop — execute read-only tools locally, send results back. Image
   // confirmation lives in the same loop: a declined generate/modify_image sends
@@ -404,7 +408,7 @@ export async function sendChatRequest(
   let outOfToolRounds = false; // the loop ran out of rounds rather than finishing
   for (let round = 0; ; round++) {
     const readCalls = response.output.filter(
-      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds' || item.name === 'list_path_parts')
+      item => item.type === 'function_call' && (item.name === 'read_svg_lines' || item.name === 'search_svg' || item.name === 'query' || item.name === 'search_icons' || item.name === 'get_element_bounds' || item.name === 'list_path_parts' || item.name === 'get_png_image')
     );
 
     if (readCalls.length === 0) {
@@ -440,7 +444,7 @@ export async function sendChatRequest(
             break;
           }
           onProgress?.('thinking');
-          const continuationInput = [...input, ...allRawOutput];
+          const continuationInput = [...input, ...withPictures(allRawOutput, pictures)];
           response = await callModel({ input: continuationInput, skipCredits: true });
           continue;
         }
@@ -463,6 +467,7 @@ export async function sendChatRequest(
     // Accumulate intermediate output + tool results into input for next round
     allRawOutput.push(...withoutReasoningSummaries(response.output));
     const toolResults: unknown[] = [];
+    const roundPictures: unknown[] = [];
     for (const call of readCalls) {
       const args = JSON.parse(call.arguments!);
       let result: string | null = null;
@@ -497,6 +502,12 @@ export async function sendChatRequest(
         }
       } else if (call.name === 'get_element_bounds') {
         result = getElementBounds(normalizedSvg, args.selector);
+      } else if (call.name === 'get_png_image') {
+        // The real document, not the text the model reads: that one has embedded images
+        // replaced by tokens. The picture follows the round's results as its own item.
+        const shot = await renderSnapshot(normalizedSvg, args);
+        result = shot.text;
+        if (shot.dataUrl) roundPictures.push(pictureItem(shot.text, shot.dataUrl));
       } else {
         result = executeReadTool(call.name!, args, normalizedSvg);
       }
@@ -515,10 +526,11 @@ export async function sendChatRequest(
       }
     }
     allRawOutput.push(...toolResults);
+    for (const item of roundPictures) pictures.push({ at: allRawOutput.length, item });
 
     // Send continuation: full input so far + intermediate outputs + tool results
     onProgress?.('thinking');
-    const continuationInput = [...input, ...allRawOutput];
+    const continuationInput = [...input, ...withPictures(allRawOutput, pictures)];
     response = await callModel({ input: continuationInput, skipCredits: true });
   }
 

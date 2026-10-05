@@ -193,6 +193,9 @@ export interface SvgValidity {
   message?: string;
 }
 
+/** The text each strictly parsed document came from, so a line address can be read against it. */
+const SOURCES = new WeakMap<Document, string>();
+
 /**
  * Is the document well-formed XML right now?
  *
@@ -223,6 +226,7 @@ export function validateSvg(source: string): SvgValidity {
     };
   }
   if (!doc.documentElement) return { valid: false, message: 'no root element' };
+  SOURCES.set(doc, source);
   return { valid: true, doc };
 }
 
@@ -323,14 +327,68 @@ export function isSelectorError(v: unknown): v is SelectorError {
 }
 
 /**
- * Resolve either address form against a parsed document, in document order.
+ * Resolve any address form against a parsed document, in document order.
  *
- * A leading `/` means a positional path; anything else is CSS. An address that
- * matches nothing is not an error here — the caller decides whether zero matches
- * is a problem — but a malformed CSS selector is, because the model can fix that.
+ * "line 9" means the element whose tag starts on that line; a leading `/` means a
+ * positional path; anything else is CSS. An address that matches nothing is not an
+ * error here — the caller decides whether zero matches is a problem — but a malformed
+ * CSS selector is, because the model can fix that.
  */
 export function resolveSelector(doc: Document, selector: string): Element[] | SelectorError {
+  if (isLineAddress(selector)) {
+    const source = SOURCES.get(doc);
+    if (source === undefined) return { error: 'a line address cannot be used here. Use the positional path query gives for that line.' };
+    const path = lineAddressToPath(source, selector, doc);
+    if (isSelectorError(path)) return path;
+    return resolveWithin(doc.documentElement, path);
+  }
   return resolveWithin(doc.documentElement, selector);
+}
+
+const LINE_ADDRESS = /^line\s+(\d+)$/i;
+
+export function isLineAddress(address: string): boolean {
+  return LINE_ADDRESS.test(address.trim());
+}
+
+/**
+ * A line address — "line 9" — as the positional path of the one element whose start tag
+ * begins on that line of `source`.
+ *
+ * The model reads the document as numbered lines, and given only positional paths it
+ * turned the number in front of a line into a path: the eighth path, on line 9, became
+ * path[9], and the edit landed on its neighbour. Accepting the line itself removes that
+ * translation. It stays strict: a line holding several elements, or none, names no
+ * element, and the answer hands over the positional paths instead of guessing. A line
+ * means the document as shown this turn, as it does for replace_lines.
+ */
+export function lineAddressToPath(source: string, address: string, parsed?: Document): string | SelectorError {
+  const line = Number(LINE_ADDRESS.exec(address.trim())?.[1]);
+  const doc = parsed ?? parseSvg(source);
+  if (!doc) return { error: 'the document is not well-formed XML right now, so a line cannot be mapped to an element.' };
+  const starts = lineStarts(source);
+  if (!(line >= 1 && line <= starts.length)) return { error: `there is no line ${line}: the document has ${starts.length} lines.` };
+  const ranges = elementSourceRanges(source, doc);
+  if (ranges.size === 0) return { error: `line ${line} cannot be mapped to an element in this document. Use query for positional paths.` };
+
+  const on: Element[] = [];
+  let before: { el: Element; line: number } | null = null;
+  for (const [el, tag] of ranges) {
+    const at = lineAt(starts, tag.start);
+    if (at === line) on.push(el);
+    else if (at < line) before = { el, line: at };
+  }
+  const name = (el: Element) => `<${el.tagName.toLowerCase()}> ${pathOf(el)}`;
+  if (on.length === 1) return pathOf(on[0]);
+  if (on.length > 1) {
+    const shown = on.slice(0, 8).map(name).join('; ');
+    const more = on.length > 8 ? `; and ${on.length - 8} more` : '';
+    return { error: `line ${line} holds ${on.length} elements, so it does not name one: ${shown}${more}. Address the one you mean by its positional path.` };
+  }
+  if (before) {
+    return { error: `no element starts on line ${line}. The nearest one before it starts on line ${before.line}: ${name(before.el)}. An element is addressed by the line its tag starts on.` };
+  }
+  return { error: `no element starts on line ${line}. Use query to see what is there.` };
 }
 
 /**
@@ -1215,6 +1273,19 @@ export function planElementInserts(
     }
     if (found.length === 0) {
       outcomes.push({ selector: label, status: 'failed', matched: 0, ranges: [], detail: describeNoMatch(doc, edit.selector) });
+      return;
+    }
+    // Beside the root is outside the document: a second root, and the file stops parsing.
+    // Asked for most often as "after line 1" — the line of the <svg> tag — meaning the top
+    // of the drawing, which is first-child of the root.
+    if ((edit.position === 'before' || edit.position === 'after') && found.includes(doc.documentElement)) {
+      outcomes.push({
+        selector: label,
+        status: 'failed',
+        matched: found.length,
+        ranges: [],
+        detail: `nothing can go ${edit.position} the root <svg>: a document has one root, and markup beside it breaks the file. To add at the start of the drawing use position "first-child" on it; at the end, "last-child".`,
+      });
       return;
     }
     const bad = fragmentError(edit.svg);

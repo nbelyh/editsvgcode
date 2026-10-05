@@ -887,3 +887,73 @@ describe('line numbering — the batched lookup agrees with the simple one', () 
     expect(batched).toEqual([1, 2, 3]);
   });
 });
+
+describe('line addresses — "line 9" names the element whose tag starts there', () => {
+  // The model reads the document as numbered lines. Given only positional paths it took
+  // the number in front of a line for a position — the eighth path, on line 9, became
+  // path[9] — and the edit landed on the neighbour. A line address is the number it sees.
+  const TRACED = [
+    '<svg xmlns="http://www.w3.org/2000/svg">',
+    '  <path id="p1" d="M0 0"/>',
+    '  <path id="p2" d="M1 1"/>',
+    '  <path id="p3" d="M2 2"/>',
+    '</svg>',
+  ].join('\n');
+
+  it('resolves a line to the one element starting on it', () => {
+    const found = resolveSelector(parse(TRACED), 'line 3');
+    expect(isSelectorError(found)).toBe(false);
+    expect((found as Element[]).map((e) => e.id)).toEqual(['p2']);
+  });
+
+  it('is what an edit tool takes, so the edit lands on that line', () => {
+    const { ranges } = planAttributeEdits(TRACED, [{ selector: 'line 3', name: 'fill', value: 'red' }]);
+    expect(ranges).toHaveLength(1);
+    expect(TRACED.slice(0, ranges[0].start).split('\n').length).toBe(3);
+  });
+
+  it('names a multi-line element by the line its tag starts on, and explains a line inside it', () => {
+    const src = [
+      '<svg xmlns="http://www.w3.org/2000/svg">',
+      '  <style><![CDATA[',
+      '    rect { fill: red; }',
+      '    <rect id="fake"/>',
+      '  ]]></style>',
+      '  <path id="long"',
+      '        d="M0 0 L10 10"/>',
+      '</svg>',
+    ].join('\n');
+    const doc = parse(src);
+    expect((resolveSelector(doc, 'line 2') as Element[])[0].tagName).toBe('style');
+    expect((resolveSelector(doc, 'line 6') as Element[])[0].id).toBe('long');
+    // Markup inside CDATA is text, not an element.
+    const inCdata = resolveSelector(doc, 'line 4');
+    expect(isSelectorError(inCdata) && inCdata.error).toContain('nearest one before it starts on line 2: <style> /svg[1]/style[1]');
+    const inTag = resolveSelector(doc, 'line 7');
+    expect(isSelectorError(inTag) && inTag.error).toContain('starts on line 6: <path> /svg[1]/path[1]');
+  });
+
+  it('refuses a line holding several elements, and lists their paths', () => {
+    const found = resolveSelector(parse('<svg xmlns="http://www.w3.org/2000/svg"><rect/><circle/></svg>'), 'line 1');
+    expect(isSelectorError(found)).toBe(true);
+    const error = (found as { error: string }).error;
+    expect(error).toContain('line 1 holds 3 elements');
+    expect(error).toContain('<rect> /svg[1]/rect[1]');
+    expect(error).toContain('<circle> /svg[1]/circle[1]');
+  });
+
+  it('refuses a line past the end', () => {
+    const found = resolveSelector(parse(TRACED), 'line 40');
+    expect(isSelectorError(found) && found.error).toContain('there is no line 40: the document has 5 lines');
+  });
+
+  it('is case- and space-tolerant, and not mistaken for CSS', () => {
+    expect((resolveSelector(parse(TRACED), '  Line   4 ') as Element[])[0].id).toBe('p3');
+  });
+
+  it('is refused against a document whose source is unknown', () => {
+    const doc = new DOMParser().parseFromString(TRACED, 'image/svg+xml');
+    const found = resolveSelector(doc, 'line 3');
+    expect(isSelectorError(found) && found.error).toContain('cannot be used here');
+  });
+});

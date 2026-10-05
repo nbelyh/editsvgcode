@@ -43,3 +43,24 @@ describe('chat history — reasoning stays out of the saved chat', () => {
     ]);
   });
 });
+
+describe('chat history — pictures stay out of the saved chat', () => {
+  it('does not save a get_png_image picture', async () => {
+    // Firestore documents are capped at 1 MiB and chats are copied into forks, so a
+    // picture that reached rawItems by mistake must still not reach the payload.
+    const stored = await toStored({
+      role: 'assistant',
+      content: 'Done.',
+      rawItems: [
+        { type: 'function_call', call_id: 'c1', name: 'get_png_image', arguments: '{}' },
+        { type: 'function_call_output', call_id: 'c1', output: '512×512 PNG' },
+        { role: 'user', content: [{ type: 'input_text', text: 'look' }, { type: 'input_image', image_url: 'data:image/png;base64,AAAA' }] },
+      ],
+    }, 5);
+    expect(stored.payload).not.toContain('input_image');
+    expect((await fromStored(stored)).rawItems).toEqual([
+      { type: 'function_call', call_id: 'c1', name: 'get_png_image', arguments: '{}' },
+      { type: 'function_call_output', call_id: 'c1', output: '512×512 PNG' },
+    ]);
+  });
+});

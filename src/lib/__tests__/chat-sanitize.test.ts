@@ -71,3 +71,19 @@ describe('sanitizeHistory', () => {
     expect(sanitizeHistory(history)).toEqual(history);
   });
 });
+
+describe('sanitizeHistory — pictures', () => {
+  it('drops a get_png_image picture that leaked into history', () => {
+    // Pictures are sent within their turn and never stored. One replayed from history
+    // would be re-uploaded on every later turn, showing the drawing as it used to be.
+    const picture = {
+      role: 'user',
+      content: [
+        { type: 'input_text', text: 'The picture from get_png_image: 512×512 PNG' },
+        { type: 'input_image', image_url: 'data:image/png;base64,AAAA' },
+      ],
+    };
+    const history = [user('which is the hat?'), call('c1', 'get_png_image'), output('c1'), picture, message('this one')];
+    expect(sanitizeHistory(history)).toEqual([user('which is the hat?'), call('c1', 'get_png_image'), output('c1'), message('this one')]);
+  });
+});

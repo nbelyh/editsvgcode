@@ -19,6 +19,7 @@ import { firebaseDb, firebaseStorage } from './firebase-app';
 import { loadLegacyChatMessages, clearLegacyChatMessages } from './chat-storage';
 import { isCleanId, getNewUniqueId } from './svg-utils';
 import { withoutReasoningSummaries } from './chat-stream';
+import { withoutPictures } from './chat-pictures';
 import type { DisplayMessage } from '../components/aichat/types';
 
 /** uid of the signed-in, non-anonymous user, else null. */
@@ -116,7 +117,9 @@ export async function toStored(msg: DisplayMessage, seq: number): Promise<Stored
   // with the link, and reasoning can restate the server's instructions.
   const payload = JSON.stringify({
     toolCalls,
-    rawItems: msg.rawItems && withoutReasoningSummaries(msg.rawItems),
+    // A picture from get_png_image is never meant to reach rawItems; if one did, it would
+    // push the document toward Firestore's 1 MiB limit and be copied into every fork.
+    rawItems: msg.rawItems && withoutReasoningSummaries(withoutPictures(msg.rawItems)),
     selectedIcon: msg.selectedIcon,
     readToolCalls: msg.readToolCalls,
     outOfToolRounds: msg.outOfToolRounds,

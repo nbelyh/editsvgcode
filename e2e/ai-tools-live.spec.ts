@@ -11,6 +11,37 @@ import { fileURLToPath } from 'url';
 const STARTER_SVG = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../src/assets/default.svg'), 'utf-8');
 
 /**
+ * The app's own traced logo: a cat holding a pencil, 21 anonymous paths. Three of them wear
+ * the same orange — the insides of both ears and a stripe on the forehead — so a request for
+ * the ears cannot be answered from the markup: by colour it is all three, and nothing says
+ * which two are ears. Told apart by their transforms, which are unique.
+ */
+const TRACED_CAT = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../public/editsvgcode-logo.svg'), 'utf-8');
+const CAT_EARS = ['translate(318.0625,137.91796875)', 'translate(734.8125,134.5)'];
+const CAT_STRIPE = 'translate(475,166)';
+
+/**
+ * A club poster around an embedded JPEG: a raccoon detective in a red scarf. The model reads the
+ * photo as an ⟦embedded image/jpeg …⟧ token, so what it shows — the scarf, its colour — exists
+ * only in the pixels. Nothing in the markup mentions a scarf.
+ */
+const POSTER = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/detective-poster.svg'), 'utf-8');
+
+/**
+ * Four pictograms exported with no ids, one anonymous path each, all the same grey. Which one
+ * is the heart is a matter of shape alone. Document order is not left-to-right order.
+ */
+const ICON_HEART = 'M150 85 C150 85 115 62 115 38 C115 26 124 18 135 18 C142 18 147 22 150 28 C153 22 158 18 165 18 C176 18 185 26 185 38 C185 62 150 85 150 85 Z';
+const ICONS = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">',
+  '  <path d="M250 15 L290 50 L280 50 L280 85 L260 85 L260 62 L240 62 L240 85 L220 85 L220 50 L210 50 Z" fill="#555555"/>',
+  '  <path d="M355 10 L325 55 L348 55 L340 90 L375 42 L352 42 L362 10 Z" fill="#555555"/>',
+  `  <path d="${ICON_HEART}" fill="#555555"/>`,
+  '  <path d="M50 10 L59.4 37.06 L88.04 37.64 L65.22 54.94 L73.51 82.36 L50 66 L26.49 82.36 L34.78 54.94 L11.96 37.64 L40.6 37.06 Z" fill="#555555"/>',
+  '</svg>',
+].join('\n');
+
+/**
  * The same pipeline, driven by the REAL model.
  *
  * Opt-in — `npm run e2e:live` — and kept
@@ -376,6 +407,109 @@ test.describe('AI edit tools, against the real model', () => {
       const fill = holding(leaf)[0].fill;
       const [r, g, b] = rgb(fill);
       expect(g > r && g > b, `a leaf is ${fill}`).toBe(true);
+    }
+  });
+
+  test('a part of a traced picture is found by looking at it, and only that part changes', async ({ page }) => {
+    const tools = recordToolCalls(page);
+    await boot(page, TRACED_CAT);
+    await ask(page, "make the inside of the cat's ears purple");
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('ears →', tools.join(', '));
+    // It looked before it edited: the first edit comes after a get_png_image.
+    const firstEdit = tools.findIndex((t) => ['set_attribute', 'split_path', 'set_style_rule', 'replace_lines', 'replace_svg'].includes(t));
+    expect(tools.indexOf('get_png_image')).toBeGreaterThanOrEqual(0);
+    expect(tools.indexOf('get_png_image')).toBeLessThan(firstEdit);
+    for (const wrong of ['generate_image', 'modify_image']) expect(tools).not.toContain(wrong);
+    expect(await parses(page, svg)).toBe(true);
+
+    // Each path's colour as the browser reads it, keyed by its transform.
+    const fills = await page.evaluate((s) => {
+      const doc = new DOMParser().parseFromString(s, 'image/svg+xml');
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      return Array.from(doc.getElementsByTagName('path')).map((p) => {
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = /fill:\s*([^;]+)/.exec(p.getAttribute('style') ?? '')?.[1]?.trim() ?? p.getAttribute('fill') ?? '#000';
+        return { transform: p.getAttribute('transform') ?? '', fill: String(ctx.fillStyle) };
+      });
+    }, svg);
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    for (const ear of CAT_EARS) {
+      const held = fills.filter((f) => f.transform === ear);
+      expect(held.length, ear).toBeGreaterThan(0);
+      for (const { fill } of held) {
+        const [r, g, b] = rgb(fill);
+        expect(r > g && b > g, `an ear is ${fill}`).toBe(true);
+      }
+    }
+    // The stripe shares the ears' orange and was not asked for.
+    expect(fills.filter((f) => f.transform === CAT_STRIPE).map((f) => f.fill)).toEqual(['#d8762a']);
+  });
+
+  test('a colour that exists only in an embedded photo is read off the picture', async ({ page }) => {
+    const tools = recordToolCalls(page);
+    await boot(page, POSTER);
+    await ask(page, "Make the 'New members welcome' line the same colour as the scarf in the photo.");
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('scarf colour →', tools.join(', '));
+    expect(await parses(page, svg)).toBe(true);
+    const fill = await page.evaluate((s) => {
+      const doc = new DOMParser().parseFromString(s, 'image/svg+xml');
+      const text = Array.from(doc.getElementsByTagName('text')).find((t) => t.textContent?.includes('New members welcome'));
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = /fill:\s*([^;]+)/.exec(text?.getAttribute('style') ?? '')?.[1]?.trim() ?? text?.getAttribute('fill') ?? '#000';
+      return String(ctx.fillStyle);
+    }, svg);
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(fill.slice(i, i + 2), 16));
+    // The scarf is a strong red; nothing in the markup says so.
+    expect(r > 140 && g < 100 && b < 100, `the line is ${fill}`).toBe(true);
+  });
+
+  test('what a drawing with no text shows is read off the picture', async ({ page }) => {
+    const tools = recordToolCalls(page);
+    await boot(page, TRACED_CAT);
+    await ask(page, 'Add a <title> that tells screen readers what this drawing shows.');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('title →', tools.join(', '));
+    expect(await parses(page, svg)).toBe(true);
+    const title = await page.evaluate((s) => {
+      const doc = new DOMParser().parseFromString(s, 'image/svg+xml');
+      return doc.getElementsByTagName('title')[0]?.textContent ?? '';
+    }, svg);
+    console.log('title text →', title);
+    // 21 anonymous paths: "cat" is nowhere but in the pixels.
+    expect(title).toMatch(/\b(cat|kitten|kitty)\b/i);
+  });
+
+  test('one of several anonymous icons is picked out by its shape', async ({ page }) => {
+    const tools = recordToolCalls(page);
+    await boot(page, ICONS);
+    await ask(page, 'Make the heart red.');
+    await acceptAll(page);
+
+    const svg = await editorValue(page);
+    console.log('heart →', tools.join(', '));
+    expect(await parses(page, svg)).toBe(true);
+    const fills = await page.evaluate((s) => {
+      const doc = new DOMParser().parseFromString(s, 'image/svg+xml');
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      return Array.from(doc.getElementsByTagName('path')).map((p) => {
+        ctx.fillStyle = '#000';
+        ctx.fillStyle = /fill:\s*([^;]+)/.exec(p.getAttribute('style') ?? '')?.[1]?.trim() ?? p.getAttribute('fill') ?? '#000';
+        return { d: p.getAttribute('d') ?? '', fill: String(ctx.fillStyle) };
+      });
+    }, svg);
+    for (const { d, fill } of fills) {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(fill.slice(i, i + 2), 16));
+      if (d === ICON_HEART) expect(r > 150 && g < 100 && b < 100, `the heart is ${fill}`).toBe(true);
+      else expect(fill, `${d.slice(0, 20)}… was not asked for`).toBe('#555555');
     }
   });
 

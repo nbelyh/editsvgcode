@@ -478,7 +478,7 @@ export function describePathParts(source: string, selector: string): string {
     const more = parts.length > MAX_PARTS ? `\n  … and ${parts.length - MAX_PARTS} smaller parts` : '';
     return `${where}: ${parts.length} separate parts, numbered in document order (largest listed first):\n${rows.join('\n')}${more}`;
   });
-  const header = 'Boxes are in the path\'s own coordinates, before any transform. "Across" and "down" place a part\'s centre within the whole path\'s box, from the left and from the top. You cannot see the picture: judge which part is which from where it sits and its shape, and say in your reply which parts you took for what.';
+  const header = 'Boxes are in the path\'s own coordinates, before any transform. "Across" and "down" place a part\'s centre within the whole path\'s box, from the left and from the top. Judge which part is which from where it sits and its shape, and say in your reply which parts you took for what.';
   const extra = found.length > MAX_PATHS ? `\n… ${found.length - MAX_PATHS} more paths matched; address them one at a time.` : '';
   return `${header}\n${blocks.join('\n')}${extra}\nTo colour parts differently, split_path the path, giving a fill for each part you are changing; parts you leave out keep the colour they have.`;
 }

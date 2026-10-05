@@ -216,6 +216,28 @@ describe('insert_element', () => {
     expect(reparses(last.svg)).toBe(true);
   });
 
+  it('refuses to put anything beside the root, and says where it can go', () => {
+    // "after line 1" — the <svg> tag's line — once put a <defs> outside the root, and the
+    // file stopped parsing. Beside the root is never inside the document.
+    for (const selector of ['line 1', '/svg[1]', 'svg']) {
+      const { svg, outcomes } = run(DOC, 'insert_element', {
+        edits: [{ selector, position: 'after', svg: '<defs/>' }],
+      });
+      expect(outcomes[0]).toMatchObject({ status: 'failed' });
+      expect(outcomes[0].detail).toContain('"first-child"');
+      expect(svg).toBe(DOC);
+    }
+  });
+
+  it('inserts at the top of the drawing by line address, as first child of the root', () => {
+    const { svg, outcomes } = run(DOC, 'insert_element', {
+      edits: [{ selector: 'line 1', position: 'first-child', svg: '<defs id="d"/>' }],
+    });
+    expect(outcomes[0]).toMatchObject({ status: 'applied' });
+    expect(svg).toMatch(/<svg xmlns="http:\/\/www.w3.org\/2000\/svg">\s*<defs id="d"\/>/);
+    expect(reparses(svg)).toBe(true);
+  });
+
   it('refuses to put a child inside a self-closing element', () => {
     const { svg, outcomes } = run(DOC, 'insert_element', {
       edits: [{ selector: '#c', position: 'first-child', svg: '<rect/>' }],

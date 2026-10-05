@@ -6,6 +6,7 @@ import { MONACO_HOST_CLASS } from '../lib/monaco';
 import { registerSvgProviders } from '../lib/completion-provider';
 import { formatXml, findElementAtOffset } from '../lib/svg-utils';
 import { getElementBounds } from '../lib/svg-bounds';
+import { renderSnapshot } from '../lib/svg-snapshot';
 
 interface EditorProps {
   value: string;
@@ -114,6 +115,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       (window as any).__test_monaco_editor = editor;
       (window as any).__test_formatXml = formatXml;
       (window as any).__test_getElementBounds = getElementBounds;
+      (window as any).__test_renderSnapshot = renderSnapshot;
     }
 
     if (!(monaco as any).__svgProvidersRegistered) {

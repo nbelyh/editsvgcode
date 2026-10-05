@@ -4,7 +4,7 @@
  */
 
 import { sanitizeSvg } from './sanitize';
-import { resolveWithin, isSelectorError } from './svg-dom';
+import { resolveWithin, isSelectorError, isLineAddress, lineAddressToPath } from './svg-dom';
 
 export interface ElementBounds {
   selector: string;
@@ -16,11 +16,22 @@ export interface ElementBounds {
   height: number;
 }
 
+export interface Measurement {
+  viewBox: string;
+  width: string;
+  height: string;
+  /** Every element the selector matched, drawn or not. */
+  matched: number;
+  /** The drawn ones among the first `limit` matches, in viewBox coordinates. */
+  boxes: ElementBounds[];
+}
+
 /**
- * Measure bounding boxes of elements matching a CSS selector in the given SVG code.
- * Returns a formatted string for the model.
+ * Measure what a selector matches, in viewBox coordinates — the numbers both
+ * get_element_bounds and get_png_image report. `limit` caps how many matches are
+ * measured; the count of matches is always the full one.
  */
-export function getElementBounds(svgCode: string, selector: string): string {
+export function measureElements(svgCode: string, selector: string, limit = Infinity): Measurement | { error: string } {
   // Create off-screen container
   const container = document.createElement('div');
   container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1000px;height:1000px;visibility:hidden;';
@@ -31,29 +42,19 @@ export function getElementBounds(svgCode: string, selector: string): string {
     container.innerHTML = sanitizeSvg(svgCode);
     const svgEl = container.querySelector('svg');
     if (!svgEl) {
-      return 'Error: no <svg> element found in the document.';
+      return { error: 'Error: no <svg> element found in the document.' };
     }
 
-    // Get the viewBox for context
-    const viewBox = svgEl.getAttribute('viewBox') || 'not set';
-    const svgWidth = svgEl.getAttribute('width') || 'auto';
-    const svgHeight = svgEl.getAttribute('height') || 'auto';
+    // Every address form, same as every other tool: a line or a path names one
+    // element, a CSS selector names a set. A line is read against the source, since
+    // this copy of the document was parsed as HTML and keeps no line numbers.
+    const target = isLineAddress(selector) ? lineAddressToPath(svgCode, selector) : selector;
+    if (isSelectorError(target)) return { error: `Error: ${target.error}` };
+    const found = resolveWithin(svgEl, target);
+    if (isSelectorError(found)) return { error: `Error: ${found.error}` };
 
-    // Both address forms, same as every other tool: a path names one element,
-    // a CSS selector names a set.
-    const found = resolveWithin(svgEl, selector);
-    if (isSelectorError(found)) return `Error: ${found.error}`;
-    const elements = found;
-
-    if (elements.length === 0) {
-      return `No elements matched "${selector}". Note that this tool only measures what is DRAWN, so gradients, <defs> contents and hidden elements never appear here — use query to see everything.`;
-    }
-
-    // Limit results to avoid overwhelming the model
-    const maxResults = 30;
-    const results: ElementBounds[] = [];
-
-    for (const el of elements.slice(0, maxResults)) {
+    const boxes: ElementBounds[] = [];
+    for (const el of found.slice(0, limit)) {
       if (!(el instanceof SVGGraphicsElement)) continue;
       try {
         const bbox = el.getBBox();
@@ -86,7 +87,7 @@ export function getElementBounds(svgCode: string, selector: string): string {
         const y1 = Math.min(...ys);
         const x2 = Math.max(...xs);
         const y2 = Math.max(...ys);
-        results.push({
+        boxes.push({
           selector,
           tagName: el.tagName.toLowerCase(),
           id: el.id || undefined,
@@ -100,19 +101,43 @@ export function getElementBounds(svgCode: string, selector: string): string {
       }
     }
 
-    if (results.length === 0) {
-      return `Elements matched "${selector}" but none have measurable bounds (may be non-visual elements like <defs>, <clipPath>).`;
-    }
-
-    // Format output
-    const header = `SVG canvas: viewBox="${viewBox}", width="${svgWidth}", height="${svgHeight}"`;
-    const rows = results.map((r, i) => {
-      const idPart = r.id ? ` id="${r.id}"` : '';
-      return `${i + 1}. <${r.tagName}${idPart}> — x=${r.x}, y=${r.y}, width=${r.width}, height=${r.height}`;
-    });
-    const truncated = elements.length > maxResults ? `\n(showing ${maxResults} of ${elements.length} matches)` : '';
-    return `${header}\n\nBounding boxes for "${selector}" (${results.length} element${results.length > 1 ? 's' : ''}):\n${rows.join('\n')}${truncated}`;
+    return {
+      viewBox: svgEl.getAttribute('viewBox') || 'not set',
+      width: svgEl.getAttribute('width') || 'auto',
+      height: svgEl.getAttribute('height') || 'auto',
+      matched: found.length,
+      boxes,
+    };
   } finally {
     document.body.removeChild(container);
   }
+}
+
+/**
+ * Measure bounding boxes of elements matching a CSS selector in the given SVG code.
+ * Returns a formatted string for the model.
+ */
+export function getElementBounds(svgCode: string, selector: string): string {
+  // Limit results to avoid overwhelming the model
+  const maxResults = 30;
+  const measured = measureElements(svgCode, selector, maxResults);
+  if ('error' in measured) return measured.error;
+  const { matched, boxes: results } = measured;
+
+  if (matched === 0) {
+    return `No elements matched "${selector}". Note that this tool only measures what is DRAWN, so gradients, <defs> contents and hidden elements never appear here — use query to see everything.`;
+  }
+
+  if (results.length === 0) {
+    return `Elements matched "${selector}" but none have measurable bounds (may be non-visual elements like <defs>, <clipPath>).`;
+  }
+
+  // Format output
+  const header = `SVG canvas: viewBox="${measured.viewBox}", width="${measured.width}", height="${measured.height}"`;
+  const rows = results.map((r, i) => {
+    const idPart = r.id ? ` id="${r.id}"` : '';
+    return `${i + 1}. <${r.tagName}${idPart}> — x=${r.x}, y=${r.y}, width=${r.width}, height=${r.height}`;
+  });
+  const truncated = matched > maxResults ? `\n(showing ${maxResults} of ${matched} matches)` : '';
+  return `${header}\n\nBounding boxes for "${selector}" (${results.length} element${results.length > 1 ? 's' : ''}):\n${rows.join('\n')}${truncated}`;
 }
