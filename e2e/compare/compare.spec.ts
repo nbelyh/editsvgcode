@@ -15,13 +15,13 @@ import { readChatStream } from '../../src/lib/chat-stream';
  * and grade what it wrote with `node scripts/compare-grade.mjs`.
  *
  * Each run saves the resulting SVG, every picture the model looked at, and a JSON record of its
- * tool calls, token usage, time and reply, under `<out>/<label>/<case>-<run>.*`. Offers to
+ * tool calls, token usage, time and reply, under `compare-results/<label>/<case>-<run>.*`. Offers to
  * redraw with the image model are declined, so the score is always the chat model's own edit.
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const ON = process.env.COMPARE === '1';
-const OUT = resolve(ROOT, process.env.COMPARE_OUT ?? 'test-results/compare', process.env.COMPARE_LABEL ?? 'run');
+const OUT = resolve(ROOT, process.env.COMPARE_OUT ?? 'compare-results', process.env.COMPARE_LABEL ?? 'run');
 const MODEL = process.env.COMPARE_MODEL;
 const EFFORT = process.env.COMPARE_EFFORT;
 const ONLY = process.env.COMPARE_ONLY?.split(',').map((s) => s.trim()).filter(Boolean);

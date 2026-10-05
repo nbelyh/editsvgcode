@@ -16,3 +16,4 @@ firebase-export*
 gallery.json
 gallery-*.json
 test-output
+compare-results

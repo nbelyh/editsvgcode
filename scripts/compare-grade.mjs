@@ -1,7 +1,7 @@
 /**
  * Grade what scripts/e2e-compare.mjs saved, strictly, against e2e/compare/cases.json.
  *
- *   node scripts/compare-grade.mjs            every label under test-results/compare
+ *   node scripts/compare-grade.mjs            every label under compare-results
  *   node scripts/compare-grade.mjs before after
  *
  * A case's `expect` decides what passing means:
@@ -9,6 +9,11 @@
  *                   changed, nothing was added; `mayAlsoChange` lists lines allowed to change too
  *   text + colour   the <text> holding that string took the colour
  *   title           a <title> was added that mentions every listed word
+ *   parts           judged by pixels, for drawings whose parts share a path: each part has a
+ *                   mask file and a `want` — "same" (unchanged), "reference" (as in the
+ *                   reference result), "ink" (visible on white), or a "#rrggbb" it must take.
+ *                   `outside` says what the rest must be: "same" (default), "blank" or "any".
+ *   viewBox         the new viewBox `contains` a box, with no side over `maxSide`
  * A case without `expect` is shown as "by eye". Colours are judged by family (red, blue, grey,
  * green, purple), since the model picks its own shade.
  */
@@ -17,7 +22,7 @@ import { resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const OUT = resolve(ROOT, 'test-results/compare');
+const OUT = resolve(ROOT, 'compare-results');
 const cases = Object.fromEntries(JSON.parse(readFileSync(resolve(ROOT, 'e2e/compare/cases.json'), 'utf8')).map((c) => [c.id, c]));
 const labels = process.argv.slice(2).length ? process.argv.slice(2) : existsSync(OUT) ? readdirSync(OUT) : [];
 if (labels.length === 0) {
@@ -37,7 +42,15 @@ for (const label of labels) {
     if (!c) continue;
     const before = readFileSync(resolve(ROOT, c.svg), 'utf8');
     const after = readFileSync(resolve(dir, file.replace(/\.json$/, '.svg')), 'utf8');
-    const g = c.expect ? await page.evaluate(grade, { before, after, expect: c.expect }) : { verdict: 'by eye', why: '' };
+    const read = (f) => readFileSync(resolve(ROOT, f), 'utf8');
+    const g = !c.expect ? { verdict: 'by eye', why: '' }
+      : c.expect.parts || c.expect.viewBox
+        ? await page.evaluate(gradePixels, {
+          before, after, expect: c.expect,
+          reference: c.expect.reference ? read(c.expect.reference) : null,
+          masks: (c.expect.parts ?? []).map((part) => read(part.mask)),
+        })
+        : await page.evaluate(grade, { before, after, expect: c.expect });
     grades[`${label}/${file.replace(/\.json$/, '')}`] = { ...g, seconds: Math.round(run.seconds), calls: run.calls.map((x) => x.name) };
     console.log(`${label}/${file.replace(/\.json$/, '')}`.padEnd(28), g.verdict.padEnd(8), g.why.padEnd(48), `${Math.round(run.seconds)} s`, run.calls.map((x) => x.name).join(', '));
   }
@@ -106,4 +119,87 @@ function grade({ before, after, expect }) {
     added && `added ${added}`,
   ].filter(Boolean).join('; ');
   return { verdict: why ? (missed.length ? 'fail' : 'partial') : 'pass', why: why || 'exactly the target' };
+}
+
+/**
+ * Pixel grading, in the browser. Every drawing is rendered at 256 px in the ORIGINAL's viewBox,
+ * so a result that split or rewrote paths is still compared area for area. Masks are eroded by a
+ * pixel, so anti-aliased edges do not count against a part.
+ */
+async function gradePixels({ before, after, expect, reference, masks }) {
+  const N = 256;
+  const doc = (s) => new DOMParser().parseFromString(s, 'image/svg+xml');
+  if (doc(after).getElementsByTagName('parsererror').length) return { verdict: 'fail', why: 'the result does not parse' };
+  const vbOf = (s) => (doc(s).documentElement.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number);
+
+  if (expect.viewBox) {
+    const [x, y, w, h] = vbOf(after);
+    const [bx, by, bw, bh] = expect.viewBox.contains;
+    const holds = x <= bx && y <= by && x + w >= bx + bw && y + h >= by + bh;
+    const small = Math.max(w, h) <= expect.viewBox.maxSide;
+    const why = !Number.isFinite(w) ? 'no viewBox' : !holds ? `viewBox ${x} ${y} ${w} ${h} cuts the logo off` : !small ? `viewBox ${x} ${y} ${w} ${h} leaves too much around the logo` : `viewBox ${x} ${y} ${w} ${h}`;
+    if (!expect.parts) return { verdict: holds && small ? 'pass' : 'fail', why };
+  }
+
+  const origVb = vbOf(before).join(' ');
+  const pixels = async (s, background) => {
+    const d = doc(s);
+    const root = d.documentElement;
+    root.setAttribute('viewBox', origVb);
+    root.setAttribute('width', N);
+    root.setAttribute('height', N);
+    const img = new Image();
+    await new Promise((ok) => { img.onload = ok; img.onerror = ok; img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(d)))); });
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const x = c.getContext('2d');
+    if (background) { x.fillStyle = background; x.fillRect(0, 0, N, N); }
+    x.drawImage(img, 0, 0, N, N);
+    return x.getImageData(0, 0, N, N).data;
+  };
+  const erode = (m, k) => m.map((on, i) => {
+    if (!on) return false;
+    const px = i % N, py = (i / N) | 0;
+    for (let dy = -k; dy <= k; dy++) for (let dx = -k; dx <= k; dx++) { const q = (py + dy) * N + px + dx; if (px + dx < 0 || px + dx >= N || py + dy < 0 || py + dy >= N || !m[q]) return false; }
+    return true;
+  });
+  const dilate = (m, k) => m.map((on, i) => {
+    if (on) return true;
+    const px = i % N, py = (i / N) | 0;
+    for (let dy = -k; dy <= k; dy++) for (let dx = -k; dx <= k; dx++) { const q = (py + dy) * N + px + dx; if (px + dx >= 0 && px + dx < N && py + dy >= 0 && py + dy < N && m[q]) return true; }
+    return false;
+  });
+  const maskOf = async (s) => { const d = await pixels(s, null); return Array.from({ length: N * N }, (_, i) => d[i * 4 + 3] > 128); };
+
+  const A = await pixels(before, '#ffffff'), B = await pixels(after, '#ffffff');
+  const R = reference ? await pixels(reference, '#ffffff') : null;
+  const at = (d, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const hex = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const holds = (want, i) => {
+    const px = at(B, i);
+    if (want === 'same') return dist(px, at(A, i)) < 40;
+    if (want === 'reference') return dist(px, at(R, i)) < 40;
+    if (want === 'ink') return Math.min(...px) < 200;
+    if (want === 'blank') return Math.min(...px) > 235;
+    if (want === 'any') return true;
+    return dist(px, hex(want)) < 60;
+  };
+  const share = (mask, want) => { let n = 0, ok = 0; mask.forEach((on, i) => { if (on) { n++; if (holds(want, i)) ok++; } }); return n ? ok / n : 0; };
+
+  const raw = await Promise.all(masks.map(maskOf));
+  const problems = [];
+  const count = (m) => m.reduce((n, on) => n + (on ? 1 : 0), 0);
+  expect.parts.forEach((part, k) => {
+    // Shrunk by a pixel so edge smoothing does not count; a part too thin to survive that is
+    // judged on its full mask, so it is never left with nothing and passed by default.
+    const eroded = erode(raw[k], 1);
+    const s = share(count(eroded) >= 20 ? eroded : raw[k], part.want);
+    const need = part.want === 'same' || part.want === 'reference' ? 0.97 : 0.85;
+    if (s < need) problems.push(`${part.name} ${Math.round(s * 100)}% ${part.want}`);
+  });
+  const covered = dilate(raw.reduce((u, m) => u.map((v, i) => v || m[i]), new Array(N * N).fill(false)), 2);
+  const outside = expect.outside ?? 'same';
+  const s = share(covered.map((v) => !v), outside);
+  if (s < 0.97) problems.push(`rest ${Math.round(s * 100)}% ${outside}`);
+  return { verdict: problems.length ? 'fail' : 'pass', why: problems.join('; ') || 'every part as asked' };
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240">
+  <rect x="10" y="10" width="380" height="220" rx="16" fill="#3a2a4f"/>
+  <path d="M53.0 120.0 A42 42 0 1 1 137.0 120.0 A42 42 0 1 1 53.0 120.0 Z" fill="#f4f1e8"/>
+  <text x="150" y="125" font-family="Georgia, serif" font-size="40" fill="#f4f1e8">Harbor</text>
+  <text x="152" y="155" font-family="Georgia, serif" font-size="16" fill="#f4f1e8">bakery and cafe</text>
+</svg>

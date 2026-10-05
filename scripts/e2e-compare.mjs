@@ -2,7 +2,8 @@
  * Run the comparison set (e2e/compare) against the real model and keep every result.
  *
  * For measuring a change to the AI: run once on one build, once on the other, then grade both
- * with scripts/compare-grade.mjs. Each run is saved under test-results/compare/<label>/.
+ * with scripts/compare-grade.mjs. Each run is saved under compare-results/<label>/ — not under
+ * test-results, which Playwright empties at the start of every run.
  *
  * CALL IT WITH NODE, NOT THROUGH NPM — npm's config parser eats `--flag value` pairs (see
  * e2e-live.mjs, which has the same rule for the same reason):
