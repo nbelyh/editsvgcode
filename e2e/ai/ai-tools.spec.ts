@@ -833,6 +833,35 @@ test.describe('AI edit tools, end to end', () => {
     expect(queryResult).toContain('#title "Customer"');
   });
 
+  test('deleting the box behind white lettering says the drawing may look empty', async ({ page }) => {
+    // Deleting a dark card leaves its white lettering on nothing, and the picture looks blank.
+    // Users rejected exactly this without being told why.
+    const BOXED = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">',
+      '  <rect id="box" width="200" height="100" fill="#3a2a4f"/>',
+      '  <text x="20" y="60" font-size="30" fill="#ffffff">Harbor</text>',
+      '</svg>',
+    ].join('\n');
+    await boot(page, BOXED);
+    await stubChat(page, [[call('remove_element', { edits: [{ selector: '#box' }], summary: 'Deleted the box' })]]);
+    await send(page, 'remove the card behind the text');
+    await expect(page.locator('.aui-proposal')).toContainText('Applied, but the drawing may look empty', { timeout: 15000 });
+  });
+
+  test('deleting a box behind dark lettering does not warn', async ({ page }) => {
+    const BOXED = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">',
+      '  <rect id="box" width="200" height="100" fill="#efe6d8"/>',
+      '  <text x="20" y="60" font-size="30" fill="#3a2a4f">Harbor</text>',
+      '</svg>',
+    ].join('\n');
+    await boot(page, BOXED);
+    await stubChat(page, [[call('remove_element', { edits: [{ selector: '#box' }], summary: 'Deleted the box' })]]);
+    await send(page, 'delete the box');
+    await expect(page.locator('.aui-proposal').getByRole('button', { name: 'Accept' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.aui-proposal')).not.toContainText('may look empty');
+  });
+
   test('rejecting a proposal leaves the document untouched', async ({ page }) => {
     await boot(page);
     await stubChat(page, [[

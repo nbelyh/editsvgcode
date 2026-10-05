@@ -123,6 +123,7 @@ function notesOf(message: DisplayMessage | undefined): string[] {
       ...(Array.isArray(args.warnings) ? args.warnings : []),
       ...(Array.isArray(args.editNotes) ? args.editNotes : []),
       ...(args.documentBroken ? [args.documentBroken] : []),
+      ...(args.fadedOut ? [args.fadedOut] : []),
     ]) {
       notes.push(`${tc.name}: ${String(note)}`);
     }

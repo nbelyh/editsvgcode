@@ -308,6 +308,15 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           advice="The preview shows the result. These say how the change was applied."
         />
       )}
+      {'fadedOut' in tc.arguments && (
+        // The edit worked, and what is left is white with nothing behind it: deleting the box
+        // behind white lettering leaves a picture that looks blank, and users rejected it
+        // without knowing why. Not red: nothing is broken, and accepting may be what they want.
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--esvg-note-ineffective)', borderLeft: '2px solid var(--esvg-note-ineffective)', paddingLeft: 6 }}>
+          <div>Applied, but the drawing may look empty</div>
+          <div style={{ opacity: 0.75, marginTop: 2 }}>What is left is white or nearly white with nothing behind it, so it disappears on a white page. Switch the preview to a dark background to see it, or ask for it to be recoloured.</div>
+        </div>
+      )}
       {'documentBroken' in tc.arguments && (
         // Red, and worded as damage. This shares nothing but a colour with the
         // note above: there the markup changed and the picture did not, here the

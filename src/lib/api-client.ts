@@ -8,6 +8,7 @@ import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
 import { renderSnapshot } from './svg-snapshot';
+import { fadedOutWarning } from './faded-out';
 import { pictureItem, withPictures, type TurnPicture } from './chat-pictures';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
@@ -638,6 +639,13 @@ export async function sendChatRequest(
             args.documentBroken = broke;
             toolOutput = `${toolOutput}\nWARNING: ${broke}`;
           }
+          // Deleting the box behind white lettering leaves a drawing that looks empty, and the
+          // user only finds out by rejecting it. Said on the proposal, and to the model.
+          const faded = broke ? null : await fadedOutWarning(runningSvg, planned.svg);
+          if (faded) {
+            args.fadedOut = faded;
+            toolOutput = `${toolOutput}\nWARNING: ${faded}`;
+          }
           args.svg = planned.svg;
           runningSvg = planned.svg;
         }
@@ -659,6 +667,11 @@ export async function sendChatRequest(
           if (broke) {
             args.documentBroken = broke;
             toolOutput = `WARNING: ${broke}`;
+          }
+          const faded = broke ? null : await fadedOutWarning(runningSvg, args.svg);
+          if (faded) {
+            args.fadedOut = faded;
+            toolOutput = toolOutput === 'OK' ? `WARNING: ${faded}` : `${toolOutput}\nWARNING: ${faded}`;
           }
           runningSvg = args.svg;
           documentReplaced = true;
