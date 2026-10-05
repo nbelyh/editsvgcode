@@ -11,7 +11,7 @@
  * of importing the URL Vite serves the module at. That URL is rooted (`/src/…`),
  * which TypeScript reads as an absolute *disk* path and cannot find — hence the
  * TS2307s those imports used to raise. A plain property read has nothing to
- * resolve, and `e2e/global.d.ts` types it from `TestHooks` below.
+ * resolve, and `e2e/support/global.d.ts` types it from `TestHooks` below.
  *
  * Same shape as the `__test_monaco_editor` hook in Editor.tsx. Guarded by
  * `import.meta.env.DEV`, which Vite replaces with `false` in production, so the

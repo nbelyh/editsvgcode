@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Download } from '@playwright/test';
 import { readFileSync } from 'fs';
-import { waitForEditor, setSvgContent } from './helpers.js';
+import { waitForEditor, setSvgContent } from '../support/helpers.js';
 
 /**
  * Exporting the drawing as a picture, and copying it as code.

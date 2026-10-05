@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 340">
+  <rect width="340" height="340" fill="#dbeaf2"/>
+  <path d="M20 170 l75 0 l0 75 l75 0 l75 0 l0 75 l-75 0 l-75 0 l-75 0 l0 -75 Z" fill="#cfe3c0" stroke="#ffffff" stroke-width="4"/>
+  <path d="M170 20 l75 0 l75 0 l0 75 l0 75 l-75 0 l0 -75 l-75 0 Z" fill="#cfe3c0" stroke="#ffffff" stroke-width="4"/>
+  <path d="M170 170 l75 0 l75 0 l0 75 l0 75 l-75 0 l0 -75 l-75 0 Z" fill="#cfe3c0" stroke="#ffffff" stroke-width="4"/>
+  <path d="M20 20 l75 0 l75 0 l0 75 l-75 0 l0 75 l-75 0 l0 -75 Z" fill="#cfe3c0" stroke="#ffffff" stroke-width="4"/>
+  <path d="M95 95 l75 0 l75 0 l0 75 l-75 0 l0 75 l-75 0 l0 -75 Z" fill="#cfe3c0" stroke="#ffffff" stroke-width="4"/>
+  <polygon points="132.5,193.5 136.0,202.6 145.8,203.2 138.2,209.4 140.7,218.8 132.5,213.5 124.3,218.8 126.8,209.4 119.2,203.2 129.0,202.6" fill="#e3a21a"/>
+</svg>

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers';
+import { waitForEditor, setSvgContent } from '../support/helpers';
 
 test.describe('Editor + Preview', () => {
   test('renders SVG in preview', async ({ page }) => {

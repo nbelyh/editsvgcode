@@ -30,7 +30,7 @@ interface ModelPickerProps {
  * keystroke and nothing here depends on the draft. Kept mounted (below), the
  * dropdown is a Radio and a Tooltip per model, and re-rendering all of that per
  * character was a large part of what made typing slow on phones. The memo only
- * holds while the composer passes stable props — e2e/composer-typing.spec.ts
+ * holds while the composer passes stable props — e2e/ai/composer-typing.spec.ts
  * fails if one stops being stable.
  */
 export const ModelPicker = memo(function ModelPicker({

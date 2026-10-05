@@ -123,9 +123,12 @@ async function purgeUser(uid: string): Promise<void> {
  * turned out to be a harness race in setSvgContent and nothing to do with the
  * browser. A skip has to be chosen by the spec it applies to, so each one that
  * still needs it states its own reason.
+ *
+ * `parallel` lets a spec spread its tests over workers instead. The purge stays correct:
+ * each worker has its own copy of the lists above and cleans up only what it created.
  */
-export function useEmulatorSuite(): void {
-  test.describe.configure({ mode: 'default' });
+export function useEmulatorSuite(options: { parallel?: boolean } = {}): void {
+  test.describe.configure({ mode: options.parallel ? 'parallel' : 'default' });
   test.afterEach(async () => {
     for (const id of createdFileIds.splice(0)) await purgeDraft(id);
     for (const uid of createdUids.splice(0)) await purgeUser(uid);

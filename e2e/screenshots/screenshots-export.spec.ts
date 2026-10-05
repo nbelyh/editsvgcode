@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers';
+import { waitForEditor, setSvgContent } from '../support/helpers';
 
 /**
  * Screenshots of the export panels, for /blog and /features.

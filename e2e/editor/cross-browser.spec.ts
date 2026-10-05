@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers';
+import { waitForEditor, setSvgContent } from '../support/helpers';
 
 test.describe('Cross-browser: Splitter resize', () => {
   test('dragging the splitter changes pane widths', async ({ page }) => {

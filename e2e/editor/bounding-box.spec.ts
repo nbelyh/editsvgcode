@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor } from './helpers';
+import { waitForEditor } from '../support/helpers';
 
 /**
  * Helper: call getElementBounds in the browser and return the raw output string.

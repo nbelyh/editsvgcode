@@ -257,7 +257,7 @@ const SAMPLE_PROMPTS = [
 // took mobile INP past 200 ms. Every prop is either
 // state, a ref or a useCallback in AiChat, so the shallow compare holds; a new
 // prop has to keep that up or this goes back to rendering on every key, which
-// e2e/composer-typing.spec.ts catches.
+// e2e/ai/composer-typing.spec.ts catches.
 export const ChatThread = memo(function ChatThread({
   messages, isRunning, progressStatus, live, onLiveGrow, canUndo,
   viewportRef,

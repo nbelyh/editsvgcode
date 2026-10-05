@@ -78,7 +78,7 @@ console.log(`live e2e → model: ${model ?? '(app default)'}, effort: ${effort ?
 
 const result = spawnSync(
   process.execPath,
-  ['node_modules/@playwright/test/cli.js', 'test', 'e2e/ai-tools-live.spec.ts', ...passthrough],
+  ['node_modules/@playwright/test/cli.js', 'test', 'e2e/ai/ai-tools-live.spec.ts', ...passthrough],
   // Playwright's CLI run by node itself, not through npx and a shell. The shell re-read the
   // arguments on Windows, so --grep "a|b" became a pipe into a command called b, and a
   // pattern with a space split in two.

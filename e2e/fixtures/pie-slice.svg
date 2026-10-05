@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#ffffff"/>
+  <path d="M200 200 L59.0 251.3 A150 150 0 0 1 70.1 125.0 Z" fill="#a9c6d8" stroke="#ffffff" stroke-width="2"/>
+  <path d="M200 200 L200.0 50.0 A150 150 0 0 1 347.7 226.0 Z" fill="#7aa6c2" stroke="#ffffff" stroke-width="2"/>
+  <path d="M200 200 L70.1 125.0 A150 150 0 0 1 200.0 50.0 Z" fill="#86aec7" stroke="#ffffff" stroke-width="2"/>
+  <path d="M200 200 L347.7 226.0 A150 150 0 0 1 226.0 347.7 Z" fill="#9bbcd1" stroke="#ffffff" stroke-width="2"/>
+  <path d="M200 200 L226.0 347.7 A150 150 0 0 1 59.0 251.3 Z" fill="#6d97b3" stroke="#ffffff" stroke-width="2"/>
+  <text x="271.2" y="140.2" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#1d2b36">Sales</text>
+  <text x="265.8" y="265.8" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#1d2b36">Marketing</text>
+  <text x="153.5" y="280.5" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#1d2b36">R&amp;D</text>
+  <text x="107.4" y="191.9" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#1d2b36">Support</text>
+  <text x="153.5" y="119.5" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#1d2b36">Admin</text>
+</svg>

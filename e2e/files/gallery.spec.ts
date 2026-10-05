@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor } from './helpers.js';
+import { waitForEditor } from '../support/helpers.js';
 import {
   FIRESTORE_DB, EMULATOR_AUTH,
   uniqueId, signInTestUser, seedChat, seedRawDoc, readRawDoc, useEmulatorSuite,
-} from './emulator.js';
+} from '../support/emulator.js';
 
 /**
  * Gallery cards (feature/cloud-chats): publishing goes through the publish

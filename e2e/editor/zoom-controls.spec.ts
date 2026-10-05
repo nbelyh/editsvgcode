@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers';
+import { waitForEditor, setSvgContent } from '../support/helpers';
 
 test.describe('Zoom Controls', () => {
   test('zoom in/out buttons update the zoom percentage', async ({ page }) => {

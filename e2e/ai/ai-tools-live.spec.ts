@@ -1,14 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers.js';
-import { shortModelName } from '../src/lib/models';
-import { readChatStream } from '../src/lib/chat-stream';
-import { signInTestUser, useEmulatorSuite } from './emulator.js';
+import { waitForEditor, setSvgContent } from '../support/helpers.js';
+import { shortModelName } from '../../src/lib/models';
+import { readChatStream } from '../../src/lib/chat-stream';
+import { signInTestUser, useEmulatorSuite } from '../support/emulator.js';
 import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 /** The drawing a first-time visitor sees, which is where the sample prompts are pressed. */
-const STARTER_SVG = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../src/assets/default.svg'), 'utf-8');
+const STARTER_SVG = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../src/assets/default.svg'), 'utf-8');
 
 /**
  * The app's own traced logo: a cat holding a pencil, 21 anonymous paths. Three of them wear
@@ -16,7 +16,7 @@ const STARTER_SVG = readFileSync(resolve(dirname(fileURLToPath(import.meta.url))
  * the ears cannot be answered from the markup: by colour it is all three, and nothing says
  * which two are ears. Told apart by their transforms, which are unique.
  */
-const TRACED_CAT = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../public/editsvgcode-logo.svg'), 'utf-8');
+const TRACED_CAT = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../public/editsvgcode-logo.svg'), 'utf-8');
 const CAT_EARS = ['translate(318.0625,137.91796875)', 'translate(734.8125,134.5)'];
 const CAT_STRIPE = 'translate(475,166)';
 
@@ -25,7 +25,7 @@ const CAT_STRIPE = 'translate(475,166)';
  * photo as an ⟦embedded image/jpeg …⟧ token, so what it shows — the scarf, its colour — exists
  * only in the pixels. Nothing in the markup mentions a scarf.
  */
-const POSTER = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/detective-poster.svg'), 'utf-8');
+const POSTER = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../fixtures/detective-poster.svg'), 'utf-8');
 
 /**
  * Four pictograms exported with no ids, one anonymous path each, all the same grey. Which one

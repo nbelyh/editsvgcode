@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers.js';
-import { signInTestUser, useEmulatorSuite, FIRESTORE_DB, EMULATOR_AUTH } from './emulator.js';
-import { embeddedToken } from '../src/lib/embedded-data';
+import { waitForEditor, setSvgContent } from '../support/helpers.js';
+import { signInTestUser, useEmulatorSuite, FIRESTORE_DB, EMULATOR_AUTH } from '../support/emulator.js';
+import { embeddedToken } from '../../src/lib/embedded-data';
 
 /**
  * The edit pipeline, driven end to end with the model replaced by a script.

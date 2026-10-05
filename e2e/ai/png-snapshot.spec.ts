@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor } from './helpers';
+import { waitForEditor } from '../support/helpers';
 
 /**
  * get_png_image's renderer, through its DEV window hook. jsdom has no canvas, so this is

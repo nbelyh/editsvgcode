@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers.js';
+import { waitForEditor, setSvgContent } from '../support/helpers.js';
 
 /**
  * A link can carry the drawing: `?svg=<markup>` for something small, `?url=<https://…>` for a

@@ -204,10 +204,10 @@ Line numbers are as of 2026-10-04.
 - **App unit tests:** stripping in `src/lib/__tests__/chat-sanitize.test.ts` and `chat-history-reasoning.test.ts`.
   These run in jsdom, which has no canvas, so rendering cannot be unit-tested.
 - **App e2e:**
-  - Rendering, next to `e2e/bounding-box.spec.ts`, through the `window` hook.
-  - The two-round read-then-edit loop, in `e2e/ai-tools.spec.ts`. Use the pattern at line 668 plus the request
+  - Rendering, next to `e2e/editor/bounding-box.spec.ts`, through the `window` hook.
+  - The two-round read-then-edit loop, in `e2e/ai/ai-tools.spec.ts`. Use the pattern at line 668 plus the request
     capture at ~785. Assert that the picture was sent after the outputs and is not in the saved history.
-  - A live routing case in `e2e/ai-tools-live.spec.ts` (`npm run e2e:live`, real model, spends credits).
+  - A live routing case in `e2e/ai/ai-tools-live.spec.ts` (`npm run e2e:live`, real model, spends credits).
 - **Measuring it:** re-run the traced-art requests (coat, hat, scarf, boat) on gpt-5.4-mini through the app's own
   loop, with and without the tool.
   - Ship if, on traced art, it lands at least 3 of 4 on the right part (today 0 of 4).

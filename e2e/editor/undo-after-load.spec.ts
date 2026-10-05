@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor, setSvgContent } from './helpers.js';
+import { waitForEditor, setSvgContent } from '../support/helpers.js';
 
 const MARKED_SVG = '<svg xmlns="http://www.w3.org/2000/svg"><rect id="undo-marker" width="10" height="10" fill="red"/></svg>';
 

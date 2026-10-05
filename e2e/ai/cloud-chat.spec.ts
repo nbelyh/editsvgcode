@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { waitForEditor } from './helpers.js';
+import { waitForEditor } from '../support/helpers.js';
 import {
   FIRESTORE_DB, EMULATOR_AUTH,
   uniqueId, trackFileId, signInTestUser, seedChat, useEmulatorSuite,
-} from './emulator.js';
+} from '../support/emulator.js';
 
 /**
  * Cloud chat persistence (feature/cloud-chats): signed-in users' chat,

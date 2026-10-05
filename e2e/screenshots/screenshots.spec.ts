@@ -2,13 +2,13 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { waitForEditor, setSvgContent } from './helpers';
-import { signInTestUser, useEmulatorSuite } from './emulator';
+import { waitForEditor, setSvgContent } from '../support/helpers';
+import { signInTestUser, useEmulatorSuite } from '../support/emulator';
 
 const SCREENSHOT_DIR = 'public/screenshots';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const DEFAULT_SVG = readFileSync(resolve(__dirname, '../src/assets/default.svg'), 'utf-8');
+const DEFAULT_SVG = readFileSync(resolve(__dirname, '../../src/assets/default.svg'), 'utf-8');
 
 /** Load editor with the app's default SVG and wait for preview to render. */
 async function loadDefaultSvg(page: Page) {

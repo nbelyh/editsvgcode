@@ -1,4 +1,4 @@
-import type { TestHooks } from '../src/lib/test-hooks';
+import type { TestHooks } from '../../src/lib/test-hooks';
 
 /**
  * The dev-only bridge the app publishes (see src/lib/test-hooks.ts). Declared

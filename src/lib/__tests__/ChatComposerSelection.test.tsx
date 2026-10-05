@@ -83,7 +83,7 @@ describe('ChatComposer — the selection badge', () => {
  * expectation are pinned here so the browser test cannot be silently wrong.
  */
 describe('ChatComposer — what the live e2e scope test relies on', () => {
-  // Byte-for-byte the document in e2e/ai-tools-live.spec.ts.
+  // Byte-for-byte the document in e2e/ai/ai-tools-live.spec.ts.
   const DOC = [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">',
     '  <style type="text/css">.st1 {fill:#cdcdcd;stroke:#000000;stroke-width:0.24;}',

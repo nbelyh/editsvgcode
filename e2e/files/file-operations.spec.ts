@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor } from './helpers.js';
+import { waitForEditor } from '../support/helpers.js';
 
 const TEST_SVG = '<svg xmlns="http://www.w3.org/2000/svg"><ellipse cx="100" cy="50" rx="80" ry="40" fill="green"/></svg>';
 

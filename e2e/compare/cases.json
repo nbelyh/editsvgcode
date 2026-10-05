@@ -1,0 +1,55 @@
+[
+  {
+    "id": "hat", "svg": "e2e/fixtures/raccoon-detective.svg", "title": "Only the hat",
+    "prompt": "Make only the hat red.",
+    "expect": { "lines": [8, 15], "colour": "red" },
+    "why": "The hat's colour is two small paths; the ears beside it are the same brown, and a black silhouette under the whole figure looks like the hat."
+  },
+  {
+    "id": "glass", "svg": "e2e/fixtures/raccoon-detective.svg", "title": "The glass of the magnifying glass",
+    "prompt": "Make the glass of the magnifying glass light blue.",
+    "expect": { "lines": [7], "colour": "blue", "mayAlsoChange": [18] },
+    "why": "The highlight inside the glass is the exact tan of the brow marking, so recolouring by colour repaints the eyebrow."
+  },
+  {
+    "id": "tail", "svg": "e2e/fixtures/raccoon-detective.svg", "title": "The light stripes on the tail",
+    "prompt": "Make the light brown stripes on the raccoon's tail grey. Keep the dark stripes as they are.",
+    "expect": { "lines": [12, 16], "colour": "grey" },
+    "why": "The stripes' browns are nearly the coat's browns."
+  },
+  {
+    "id": "map", "svg": "e2e/fixtures/map-star.svg", "title": "The region with the star",
+    "prompt": "Colour the region with the star in it dark green.",
+    "expect": { "lines": [7], "colour": "green" },
+    "why": "All regions are one colour, and the neighbour's bounding box also covers the star."
+  },
+  {
+    "id": "pie", "svg": "e2e/fixtures/pie-slice.svg", "title": "The Marketing slice",
+    "prompt": "Make the Marketing slice red.",
+    "expect": { "lines": [6], "colour": "red" },
+    "why": "Slices are drawn in an order unrelated to their labels; only the label's position says which slice it is."
+  },
+  {
+    "id": "cat-ears", "svg": "public/editsvgcode-logo.svg", "title": "The cat's ears",
+    "prompt": "make the inside of the cat's ears purple",
+    "expect": { "lines": [9, 10], "colour": "purple" },
+    "why": "A stripe on the forehead wears the same orange as the insides of both ears."
+  },
+  {
+    "id": "coat", "svg": "e2e/fixtures/raccoon-detective.svg", "title": "The coat",
+    "prompt": "Make the coat dark green.",
+    "why": "The coat is a dozen paths in slightly different browns. Graded by eye."
+  },
+  {
+    "id": "poster", "svg": "e2e/fixtures/detective-poster.svg", "title": "A colour from the embedded photo",
+    "prompt": "Make the 'New members welcome' line the same colour as the scarf in the photo.",
+    "expect": { "text": "New members welcome", "colour": "red" },
+    "why": "The scarf exists only in the pixels of an embedded JPEG."
+  },
+  {
+    "id": "title", "svg": "public/editsvgcode-logo.svg", "title": "Describe a drawing with no text",
+    "prompt": "Add a <title> that tells screen readers what this drawing shows.",
+    "expect": { "title": ["cat", "pencil"] },
+    "why": "Nothing in the markup says it is a cat holding a pencil."
+  }
+]

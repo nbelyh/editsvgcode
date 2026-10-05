@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForEditor } from './helpers';
+import { waitForEditor } from '../support/helpers';
 
 test.describe('DOMPurify Sanitization', () => {
   test('script tags are stripped from SVG preview', async ({ page }) => {
