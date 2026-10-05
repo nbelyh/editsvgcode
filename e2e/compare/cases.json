@@ -305,5 +305,96 @@
       }
     },
     "why": "A small badge sits far inside a large canvas; trimming too tight cuts it off."
+  },
+  {
+    "id": "flowchart",
+    "svg": "e2e/fixtures/flowchart.svg",
+    "title": "A new step in a flowchart",
+    "prompt": "Add a 'Review' step between 'Draft' and 'Publish', with arrows, matching the existing style. Make room for it.",
+    "why": "Room has to be made: either the canvas grows or every step shrinks, and the labels must stay readable. Graded by eye."
+  },
+  {
+    "id": "chart-sort",
+    "svg": "e2e/fixtures/bar-chart.svg",
+    "title": "Sort a bar chart and label it",
+    "prompt": "Sort the bars from tallest to shortest (keep each month's label with its bar) and add the value above each bar.",
+    "why": "Each label must move with its bar, and the values have to be read off the bar heights. Graded by eye."
+  },
+  {
+    "id": "card-dark",
+    "svg": "e2e/fixtures/settings-card.svg",
+    "title": "Dark theme for a settings card",
+    "prompt": "Switch this card to a dark theme.",
+    "why": "The colours live in style rules, so the edit belongs there, and the toggles should keep their accent. Graded by eye."
+  },
+  {
+    "id": "card-toggle",
+    "svg": "e2e/fixtures/settings-card.svg",
+    "title": "Flip two toggles",
+    "prompt": "Turn on Push notifications and turn off Sound.",
+    "expect": {
+      "parts": [
+        {
+          "name": "push knob",
+          "mask": "e2e/fixtures/compare/settings-card.part-push-right.svg",
+          "want": "#ffffff"
+        },
+        {
+          "name": "push track",
+          "mask": "e2e/fixtures/compare/settings-card.part-push-left.svg",
+          "want": "#6366f1"
+        },
+        {
+          "name": "sound knob",
+          "mask": "e2e/fixtures/compare/settings-card.part-sound-left.svg",
+          "want": "#ffffff"
+        },
+        {
+          "name": "sound track",
+          "mask": "e2e/fixtures/compare/settings-card.part-sound-right.svg",
+          "want": "#d1d5db"
+        }
+      ]
+    },
+    "why": "A toggle is two things, the track colour and the knob position, and both have to change."
+  },
+  {
+    "id": "badge-curve",
+    "svg": "e2e/fixtures/club-badge.svg",
+    "title": "Curve a badge's text",
+    "prompt": "Make the club name curve along the top of the gold ring instead of being a straight line.",
+    "why": "Needs a path for the text to follow, sized to the ring. Graded by eye."
+  },
+  {
+    "id": "scarf",
+    "svg": "e2e/fixtures/raccoon-detective.svg",
+    "title": "Give the raccoon a scarf",
+    "prompt": "Give the raccoon a red knitted scarf around its neck.",
+    "why": "A drawn addition on traced art: it has to land at the neck and look like a scarf. Graded by eye."
+  },
+  {
+    "id": "sunset",
+    "svg": "e2e/fixtures/night-city.svg",
+    "title": "Night city to sunset",
+    "prompt": "Turn this night scene into a sunset: a warm orange-to-purple sky and no stars.",
+    "why": "The sky, the stars and the moon are anonymous traced paths among the buildings. Graded by eye."
+  },
+  {
+    "id": "boat",
+    "svg": "e2e/fixtures/lighthouse.svg",
+    "title": "A boat in the lighthouse beam",
+    "prompt": "Add a small fishing boat on the waves, lit by the lighthouse beam.",
+    "why": "A drawn addition that has to sit on the waves, inside the beam. Graded by eye."
+  },
+  {
+    "id": "poster-text",
+    "svg": "e2e/fixtures/detective-poster.svg",
+    "title": "Change a line on a poster",
+    "prompt": "Change 'New members welcome' to 'First visit free' and make it twice as big.",
+    "expect": {
+      "text": "First visit free",
+      "fontSize": 44
+    },
+    "why": "Plain text, beside an embedded photo the edit must leave alone."
   }
 ]

@@ -7,7 +7,8 @@
  * A case's `expect` decides what passing means:
  *   lines + colour  exactly those source lines (of the original) took the colour, nothing else
  *                   changed, nothing was added; `mayAlsoChange` lists lines allowed to change too
- *   text + colour   the <text> holding that string took the colour
+ *   text            a <text> holds that string; with `colour` it took that colour, with
+ *                   `fontSize` its size is within 10% of it
  *   title           a <title> was added that mentions every listed word
  *   parts           judged by pixels, for drawings whose parts share a path: each part has a
  *                   mask file and a `want` — "same" (unchanged), "reference" (as in the
@@ -87,9 +88,21 @@ function grade({ before, after, expect }) {
   }
   if (expect.text) {
     const el = Array.from(B.getElementsByTagName('text')).find((e) => e.textContent.includes(expect.text));
-    if (!el) return { verdict: 'fail', why: 'the text is gone' };
-    const h = fillOf(el);
-    return { verdict: family(h, expect.colour) ? 'pass' : 'fail', why: `text set to ${h}` };
+    if (!el) return { verdict: 'fail', why: `no text reads "${expect.text}"` };
+    const problems = [];
+    if (expect.colour) {
+      const h = fillOf(el);
+      if (!family(h, expect.colour)) problems.push(`text is ${h}, not ${expect.colour}`);
+    }
+    if (expect.fontSize) {
+      // The size can sit on the element, in its style, or on a parent group.
+      let size = NaN;
+      for (let n = el; n && Number.isNaN(size); n = n.parentElement) {
+        size = parseFloat(/font-size:\s*([\d.]+)/.exec(n.getAttribute('style') || '')?.[1] ?? n.getAttribute('font-size') ?? '');
+      }
+      if (!(Math.abs(size - expect.fontSize) <= expect.fontSize * 0.1)) problems.push(`font size ${Number.isNaN(size) ? 'unset' : size}, not ${expect.fontSize}`);
+    }
+    return { verdict: problems.length ? 'fail' : 'pass', why: problems.join('; ') || 'the text as asked' };
   }
 
   // Shapes are matched before and after by their geometry, so an edit that moves lines around

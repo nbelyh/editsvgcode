@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" font-family="Inter, Segoe UI, sans-serif">
+  <style>
+    .card { fill: #ffffff; stroke: #e5e7eb; }
+    .title { font-size: 18px; font-weight: 600; fill: #111827; }
+    .label { font-size: 14px; fill: #374151; }
+    .hint { font-size: 11px; fill: #9ca3af; }
+    .divider { stroke: #f3f4f6; }
+    .track-on { fill: #6366f1; }
+    .track-off { fill: #d1d5db; }
+    .knob { fill: #ffffff; }
+  </style>
+  <rect width="360" height="300" fill="#f3f4f6"/>
+  <rect class="card" x="20" y="20" width="320" height="260" rx="14"/>
+  <text class="title" x="44" y="60">Notifications</text>
+  <text class="label" x="44" y="104">Email updates</text>
+  <text class="hint" x="44" y="122">Weekly summary of activity</text>
+  <rect class="track-on" x="268" y="94" width="44" height="24" rx="12"/>
+  <circle class="knob" cx="300" cy="106" r="9"/>
+  <line class="divider" x1="44" y1="140" x2="316" y2="140"/>
+  <text class="label" x="44" y="170">Push notifications</text>
+  <text class="hint" x="44" y="188">Mentions and replies</text>
+  <rect class="track-off" x="268" y="160" width="44" height="24" rx="12"/>
+  <circle class="knob" cx="280" cy="172" r="9"/>
+  <line class="divider" x1="44" y1="206" x2="316" y2="206"/>
+  <text class="label" x="44" y="236">Sound</text>
+  <text class="hint" x="44" y="254">Play a chime for new messages</text>
+  <rect class="track-on" x="268" y="226" width="44" height="24" rx="12"/>
+  <circle class="knob" cx="300" cy="238" r="9"/>
+</svg>

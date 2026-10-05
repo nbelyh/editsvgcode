@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <circle cx="150" cy="150" r="140" fill="#1e3a5f"/>
+  <circle cx="150" cy="150" r="124" fill="none" stroke="#f4c542" stroke-width="4"/>
+  <text x="150" y="80" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="bold" fill="#f4c542" letter-spacing="3">MOUNTAIN CLUB</text>
+  <path d="M60,205 L115,120 L140,155 L170,105 L240,205 Z" fill="#e8eef5"/>
+  <path d="M170,105 L185,128 L172,124 L162,134 L155,125 Z" fill="#ffffff"/>
+  <text x="150" y="245" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#e8eef5">EST. 1987</text>
+</svg>

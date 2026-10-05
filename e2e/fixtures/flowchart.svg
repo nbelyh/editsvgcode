@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="640" height="220" fill="#f8fafc"/>
+  <text x="320" y="36" text-anchor="middle" font-size="20" font-weight="600" fill="#0f172a">Content workflow</text>
+  <g id="step-idea">
+    <rect x="30" y="90" width="140" height="64" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+    <text x="100" y="128" text-anchor="middle" font-size="16" fill="#0c4a6e">Idea</text>
+  </g>
+  <g id="step-draft">
+    <rect x="250" y="90" width="140" height="64" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+    <text x="320" y="128" text-anchor="middle" font-size="16" fill="#0c4a6e">Draft</text>
+  </g>
+  <g id="step-publish">
+    <rect x="470" y="90" width="140" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="540" y="128" text-anchor="middle" font-size="16" fill="#14532d">Publish</text>
+  </g>
+  <line x1="170" y1="122" x2="246" y2="122" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="390" y1="122" x2="466" y2="122" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>
