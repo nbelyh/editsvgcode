@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { waitForEditor, setSvgContent } from '../support/helpers.js';
@@ -26,8 +26,12 @@ const MODEL = process.env.COMPARE_MODEL;
 const EFFORT = process.env.COMPARE_EFFORT;
 const ONLY = process.env.COMPARE_ONLY?.split(',').map((s) => s.trim()).filter(Boolean);
 
-interface Case { id: string; svg: string; prompt: string }
+interface Case { id: string; svg: string; prompt: string; expect?: { offer?: boolean } }
 const cases: Case[] = JSON.parse(readFileSync(resolve(ROOT, 'e2e/compare/cases.json'), 'utf8'));
+// Cases built from users' own requests stay on this machine: e2e/compare/private/ is gitignored,
+// and its cases run alongside the shared ones when the file is there.
+const PRIVATE = resolve(ROOT, 'e2e/compare/private/cases.json');
+if (existsSync(PRIVATE)) cases.push(...(JSON.parse(readFileSync(PRIVATE, 'utf8')) as Case[]));
 
 useEmulatorSuite({ parallel: true });
 
@@ -86,9 +90,18 @@ test.describe('compare', () => {
       const stop = page.getByRole('button', { name: 'Stop' });
       await expect(stop).toBeVisible({ timeout: 20000 });
       let declined = 0;
+      // A routing case asks only whether a picture is offered: the answer is in as soon as the
+      // offer shows, so the turn is stopped there instead of waiting for a hand drawing.
+      const routing = c.expect?.offer !== undefined;
+      let offered = false;
       await expect.poll(async () => {
         const offer = page.locator('.aui-image-confirm');
         if (await offer.count()) {
+          offered = true;
+          if (routing) {
+            await stop.click().catch(() => {});
+            return 'done';
+          }
           await offer.locator('button').nth(1).click().catch(() => {});
           declined++;
           return 'running';
@@ -110,7 +123,7 @@ test.describe('compare', () => {
       pictures.forEach((p, i) => writeFileSync(`${OUT}/${name}.look${i + 1}.png`, Buffer.from(p.split(',')[1], 'base64')));
       writeFileSync(`${OUT}/${name}.json`, JSON.stringify({
         id: c.id, run: info.repeatEachIndex + 1, model: MODEL ?? null, effort: EFFORT ?? null, prompt: c.prompt,
-        seconds, requests, declined, calls, usage, looks: pictures.length, reply, changed: result.trim() !== svg.trim(),
+        seconds, requests, offered, declined, calls, usage, looks: pictures.length, reply, changed: result.trim() !== svg.trim(),
       }, null, 2));
       console.log(`${name}: ${seconds.toFixed(0)} s, ${calls.length} calls (${calls.map((x) => x.name).join(', ')})`);
     });

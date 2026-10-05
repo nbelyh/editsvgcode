@@ -15,6 +15,8 @@
  *                   reference result), "ink" (visible on white), or a "#rrggbb" it must take.
  *                   `outside` says what the rest must be: "same" (default), "blank" or "any".
  *   viewBox         the new viewBox `contains` a box, with no side over `maxSide`
+ *   offer           true when the request should be offered a generated picture, false when it
+ *                   should be drawn by hand; `iconsOk` also passes a search of the icon library
  * A case without `expect` is shown as "by eye". Colours are judged by family (red, blue, grey,
  * green, purple), since the model picks its own shade.
  */
@@ -24,7 +26,12 @@ import { chromium } from '@playwright/test';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const OUT = resolve(ROOT, 'compare-results');
-const cases = Object.fromEntries(JSON.parse(readFileSync(resolve(ROOT, 'e2e/compare/cases.json'), 'utf8')).map((c) => [c.id, c]));
+const PRIVATE = resolve(ROOT, 'e2e/compare/private/cases.json');
+const cases = Object.fromEntries([
+  ...JSON.parse(readFileSync(resolve(ROOT, 'e2e/compare/cases.json'), 'utf8')),
+  // Cases from users' own requests, kept on this machine only (gitignored).
+  ...(existsSync(PRIVATE) ? JSON.parse(readFileSync(PRIVATE, 'utf8')) : []),
+].map((c) => [c.id, c]));
 const labels = process.argv.slice(2).length ? process.argv.slice(2) : existsSync(OUT) ? readdirSync(OUT) : [];
 if (labels.length === 0) {
   console.error('Nothing to grade: run node scripts/e2e-compare.mjs first.');
@@ -45,6 +52,7 @@ for (const label of labels) {
     const after = readFileSync(resolve(dir, file.replace(/\.json$/, '.svg')), 'utf8');
     const read = (f) => readFileSync(resolve(ROOT, f), 'utf8');
     const g = !c.expect ? { verdict: 'by eye', why: '' }
+      : c.expect.offer !== undefined ? gradeOffer(run, c.expect)
       : c.expect.parts || c.expect.viewBox
         ? await page.evaluate(gradePixels, {
           before, after, expect: c.expect,
@@ -58,6 +66,20 @@ for (const label of labels) {
 }
 await browser.close();
 writeFileSync(resolve(OUT, 'grades.json'), JSON.stringify(grades, null, 2));
+
+/** Whether a picture was offered, against whether one should have been. */
+function gradeOffer(run, expect) {
+  const names = run.calls.map((x) => x.name);
+  const offered = run.offered ?? names.includes('generate_image');
+  const icons = names.includes('search_icons');
+  const drew = names.find((n) => /replace_svg|insert_element|replace_lines/.test(n));
+  if (expect.offer) {
+    if (offered) return { verdict: 'pass', why: 'offered a picture' };
+    if (expect.iconsOk && icons) return { verdict: 'pass', why: 'searched the icon library' };
+    return { verdict: 'fail', why: drew ? 'drew it by hand' : icons ? 'searched icons instead' : 'no picture offered' };
+  }
+  return offered ? { verdict: 'fail', why: 'offered a picture' } : { verdict: 'pass', why: drew ? 'drew it by hand' : 'no picture offered' };
+}
 
 /** Runs in the browser, which reads colours the way the drawing will be painted. */
 function grade({ before, after, expect }) {

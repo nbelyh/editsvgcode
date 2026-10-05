@@ -17,3 +17,4 @@ gallery.json
 gallery-*.json
 test-output
 compare-results
+e2e/compare/private/

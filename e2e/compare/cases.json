@@ -396,5 +396,105 @@
       "fontSize": 44
     },
     "why": "Plain text, beside an embedded photo the edit must leave alone."
+  },
+  {
+    "id": "route-kitten",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: Draw me a cute kitten",
+    "prompt": "Draw me a cute kitten",
+    "expect": {
+      "offer": true
+    },
+    "why": "The starter sample prompt. A hand-drawn kitten from circles and lines looks amateurish."
+  },
+  {
+    "id": "route-logo",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: Make a logo for a bakery called Crumb",
+    "prompt": "Make a logo for a bakery called Crumb",
+    "expect": {
+      "offer": true
+    },
+    "why": "A logo for the user's own brand is a designed asset."
+  },
+  {
+    "id": "route-icon-svg",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: Create an app icon svg for a meditation app",
+    "prompt": "Create an app icon svg for a meditation app",
+    "expect": {
+      "offer": true
+    },
+    "why": "Saying \"svg\" names the format, not a request to draw by hand."
+  },
+  {
+    "id": "route-sketch",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: Draw me a loose crayon sketch of a bicycle",
+    "prompt": "Draw me a loose crayon sketch of a bicycle",
+    "expect": {
+      "offer": true
+    },
+    "why": "A style with texture and character is what the image model is for."
+  },
+  {
+    "id": "route-mascot",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: Design a friendly mascot for a hiking club",
+    "prompt": "Design a friendly mascot for a hiking club",
+    "expect": {
+      "offer": true
+    },
+    "why": "A character, drawn to be seen."
+  },
+  {
+    "id": "route-short",
+    "svg": "src/assets/default.svg",
+    "title": "Offers a picture: a fox",
+    "prompt": "a fox",
+    "expect": {
+      "offer": true
+    },
+    "why": "A bare subject with no verb still asks for a picture of it."
+  },
+  {
+    "id": "route-flowchart",
+    "svg": "src/assets/default.svg",
+    "title": "Draws by hand: Draw a flowchart with three steps: Plan, Build, Ship",
+    "prompt": "Draw a flowchart with three steps: Plan, Build, Ship",
+    "expect": {
+      "offer": false
+    },
+    "why": "A diagram is exact boxes, arrows and text."
+  },
+  {
+    "id": "route-circle",
+    "svg": "src/assets/default.svg",
+    "title": "Draws by hand: Draw a red circle in the middle",
+    "prompt": "Draw a red circle in the middle",
+    "expect": {
+      "offer": false
+    },
+    "why": "A plain shape."
+  },
+  {
+    "id": "route-stars",
+    "svg": "src/assets/default.svg",
+    "title": "Draws by hand: Add some random stars",
+    "prompt": "Add some random stars",
+    "expect": {
+      "offer": false
+    },
+    "why": "Simple shapes scattered as decoration."
+  },
+  {
+    "id": "route-chart",
+    "svg": "src/assets/default.svg",
+    "title": "Draws by hand: Make a bar chart for four quarters: 10, 20, 15, 30",
+    "prompt": "Make a bar chart for four quarters: 10, 20, 15, 30",
+    "expect": {
+      "offer": false
+    },
+    "why": "A chart is data, drawn exactly."
   }
 ]
