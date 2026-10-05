@@ -426,12 +426,31 @@ test.describe('Failed turns are kept to improve the assistant', () => {
     await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
     const [record] = await feedbackFor(uid);
     expect(record).toMatchObject({ kind: 'reject', tier: 'free', shared: false, prompt: 'rename Customer to Kunde', response: 'Renamed it.' });
+    // What the turn started from: the chat's first request, on the user's own drawing.
+    expect(record).toMatchObject({ firstTurn: true, doc: 'own' });
+    expect(record).not.toHaveProperty('imageDeclined');
     expect(record.svg).toContain('>Customer<');
     expect(record.proposedSvg).toContain('>Kunde<');
     // Deleted by the TTL policy after the 90 days the privacy policy promises.
     const daysKept = (Date.parse(String(record.expireAt)) - Date.now()) / 86_400_000;
     expect(daysKept).toBeGreaterThan(89);
     expect(daysKept).toBeLessThan(91);
+  });
+
+  test('a hand drawing rejected after the picture offer was declined says so in the record', async ({ page }) => {
+    // Without this a hand drawing the user chose looked the same as one the model chose.
+    const uid = await boot(page);
+    await stubChat(page, [
+      [call('generate_image', { prompt: 'a cute kitten', summary: 'A cute kitten' })],
+      [call('replace_svg', { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>', summary: 'Drew a kitten' })],
+    ]);
+    await send(page, 'Draw me a cute kitten');
+    await page.locator('.aui-image-confirm').getByRole('button', { name: /Draw it with shapes/ }).click();
+    await page.locator('.aui-proposal').getByRole('button', { name: 'Reject' }).click();
+
+    await expect.poll(async () => (await feedbackFor(uid)).length, { timeout: 15000 }).toBe(1);
+    const [record] = await feedbackFor(uid);
+    expect(record).toMatchObject({ kind: 'reject', firstTurn: true, doc: 'own', imageDeclined: true });
   });
 
   test('a free user’s error reply is kept with the error', async ({ page }) => {

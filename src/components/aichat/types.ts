@@ -1,6 +1,7 @@
 import type { StoredToolCall } from '../ToolCallProposal';
 import type { ProgressStatus, Credits, IconResult, ReadToolCall } from '../../lib/api-client';
 import type { ReasoningEffort } from '../../lib/models';
+import type { DocOrigin } from '../../lib/doc-origin';
 
 export interface DisplayMessage {
   role: 'user' | 'assistant';
@@ -28,8 +29,13 @@ export interface DisplayMessage {
   /** The turn as it was sent, for failure records only and never saved: an id so a turn is
    * recorded once however the user reacts to it, and the model and effort the request actually
    * used — the picker may have moved since, and image-like prompts go out at low effort.
-   * Absent on messages loaded from storage. */
-  turn?: { id: string; model: string; effort?: string };
+   * Absent on messages loaded from storage.
+   * `firstTurn`, `doc` and `imageDeclined` say what the turn started from — the chat's first
+   * request, on the starter, an empty or the user's own drawing — and whether the user turned
+   * down a picture offer during it. Without them a hand drawing after a declined offer looked
+   * the same as one the model chose, and "first request on the starter" was guessed from the
+   * size of the stored document. */
+  turn?: { id: string; model: string; effort?: string; firstTurn?: boolean; doc?: DocOrigin; imageDeclined?: boolean };
 }
 
 export interface AiChatProps {

@@ -162,6 +162,11 @@ export function buildFeedbackRecord(input: FeedbackInput, uid: string): Record<s
     chat: transcriptOf(input.history),
   };
   if (input.effort) record.effort = input.effort;
+  // What the turn started from, so a reject can be read without guessing from the document.
+  const turn = input.message?.turn;
+  if (turn?.firstTurn !== undefined) record.firstTurn = turn.firstTurn;
+  if (turn?.doc) record.doc = turn.doc;
+  if (turn?.imageDeclined) record.imageDeclined = true;
   if (input.error) record.error = cap(input.error, FEEDBACK_LIMITS.response);
   if (input.proposedSvg !== undefined) {
     record.proposedSvgChars = input.proposedSvg.length;

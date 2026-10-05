@@ -59,13 +59,29 @@ export function trackPastedSvg(source: 'message' | 'button'): void {
   track('ai_pasted_svg', { source });
 }
 
+/**
+ * What an accepted or rejected proposal came from. The same fields on both events, so a rate
+ * can be read for any of them — accepts used to carry none, and an accept rate per tool could
+ * not be told apart from a reject count. `first_turn` and `image_declined` are "yes"/"no", as GA
+ * reports booleans poorly.
+ */
+export type ProposalMeta = {
+  model: string;
+  effort?: string;
+  tool: string;
+  prompt_len: number;
+  first_turn: 'yes' | 'no';
+  doc: string;
+  image_declined: 'yes' | 'no';
+};
+
 /** User accepted an AI SVG edit. */
-export function trackAiAccept(): void {
-  track('ai_accept');
+export function trackAiAccept(meta: ProposalMeta): void {
+  track('ai_accept', meta);
 }
 
 /** User rejected an AI SVG edit. */
-export function trackAiReject(meta: { model: string; effort?: string; tool: string; prompt_len: number }): void {
+export function trackAiReject(meta: ProposalMeta): void {
   track('ai_reject', meta);
 }
 

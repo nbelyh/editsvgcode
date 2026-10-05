@@ -19,8 +19,9 @@ import { openSignInModal } from '../SignInModal';
 import { ForeignDocNotice } from '../ForeignDocNotice';
 import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
-import { trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg, trackImageDeclined } from '../../lib/analytics';
+import { type ProposalMeta, trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg, trackImageDeclined } from '../../lib/analytics';
 import { pastedSvgDocument } from '../../lib/pasted-svg';
+import { docOrigin } from '../../lib/doc-origin';
 import { describeChatError } from '../../lib/chat-errors';
 import '../AiChat.css';
 
@@ -62,6 +63,21 @@ function looksLikeImageGen(text: string): boolean {
 
 function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+/** The analytics fields for an accepted or rejected proposal, from the turn that made it. A
+ *  message loaded from storage has no turn; it falls back to the picker's settings and "no". */
+function proposalMeta(msg: DisplayMessage | undefined, tool: string, userMsg: DisplayMessage | undefined, model: string, effort?: string): ProposalMeta {
+  const turn = msg?.turn;
+  return {
+    model: turn?.model ?? model,
+    ...(turn ? (turn.effort ? { effort: turn.effort } : {}) : effort ? { effort } : {}),
+    tool,
+    prompt_len: userMsg?.role === 'user' ? userMsg.content.length : 0,
+    first_turn: turn?.firstTurn ? 'yes' : 'no',
+    doc: turn?.doc ?? 'unknown',
+    image_declined: turn?.imageDeclined ? 'yes' : 'no',
+  };
 }
 
 export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, visible = true, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded, onAccessResolved, onStartFrom, cloning }: AiChatProps) {
@@ -448,7 +464,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const turn = ++turnRef.current;
     // Lower effort for image-generation prompts — reasoning doesn't help much there.
     const sentEffort = supportedEfforts && looksLikeImageGen(text) ? 'low' : effort;
-    const turnInfo = { id: crypto.randomUUID(), model, effort: sentEffort };
+    const turnInfo: NonNullable<DisplayMessage['turn']> = {
+      id: crypto.randomUUID(), model, effort: sentEffort,
+      firstTurn: !messages.some((m) => m.role === 'user'),
+      doc: docOrigin(svgCode),
+    };
     live.reset();
     // Sending asks to see the reply: follow it even from further up the thread.
     pinnedRef.current = true;
@@ -491,6 +511,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           imageConfirmResolveRef.current = (confirmed) => {
             setImageConfirmSummary(null);
             imageConfirmResolveRef.current = null;
+            // Kept on the turn, so whatever the user then does with the hand drawing that
+            // follows can be told apart from a hand drawing the model chose.
+            if (!confirmed) turnInfo.imageDeclined = true;
             resolve(confirmed);
           };
         });
@@ -744,7 +767,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // Snapshot the pre-accept document as the undo target BEFORE applying.
     const prevSvg = svgRef.current;
     if (svg) onAcceptSvg(svg);
-    trackAiAccept();
+    trackAiAccept(proposalMeta(msg, tc?.name ?? '', messages[msgIndex - 1], model, effort));
     onPreviewSvg(null);
 
     setMessages(prev => prev.map((m, i) =>
@@ -755,7 +778,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         ),
       }
     ));
-  }, [messages, onAcceptSvg, onPreviewSvg]);
+  }, [messages, onAcceptSvg, onPreviewSvg, model, effort]);
 
   const handleUpdateToolCallSvg = useCallback((msgIndex: number, tcIndex: number, newSvg: string) => {
     setMessages(prev => prev.map((m, i) =>
@@ -797,9 +820,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const msg = messages[msgIndex];
     const tc = msg?.toolCalls?.[tcIndex];
     const userMsg = messages[msgIndex - 1];
-    const promptLen = userMsg?.role === 'user' ? userMsg.content.length : 0;
 
-    trackAiReject({ model, effort: effort, tool: tc?.name ?? '', prompt_len: promptLen });
+    trackAiReject(proposalMeta(msg, tc?.name ?? '', userMsg, model, effort));
     // The turn is removed from the chat just below, so this is the last chance to keep it.
     if (msg) {
       keepFailure({

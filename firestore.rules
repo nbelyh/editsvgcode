@@ -96,7 +96,7 @@ service cloud.firestore {
                          'uid', 'fileId', 'kind', 'tier', 'shared', 'model', 'effort',
                          'prompt', 'response', 'error', 'tools', 'notes', 'outOfToolRounds',
                          'svg', 'svgChars', 'svgTruncated', 'proposedSvg', 'proposedSvgChars',
-                         'chat', 'createdAt', 'expireAt'])
+                         'chat', 'createdAt', 'expireAt', 'firstTurn', 'doc', 'imageDeclined'])
                     && request.resource.data.kind in ['reject', 'error', 'refused', 'broken', 'out_of_rounds', 'thumbs_down']
                     && request.resource.data.createdAt == request.time
                     && request.resource.data.fileId is string && request.resource.data.fileId.size() <= 128
@@ -104,6 +104,9 @@ service cloud.firestore {
                     && strWithin(request.resource.data.get('response', null), 4000)
                     && strWithin(request.resource.data.get('error', null), 4000)
                     && strWithin(request.resource.data.get('chat', null), 200000)
+                    && request.resource.data.get('firstTurn', false) is bool
+                    && request.resource.data.get('imageDeclined', false) is bool
+                    && request.resource.data.get('doc', 'own') in ['starter', 'empty', 'own']
                     && request.resource.data.get('tools', []).size() <= 100
                     && request.resource.data.get('notes', []).size() <= 40
                     && request.resource.data.get('svg', '').size() + request.resource.data.get('proposedSvg', '').size() <= 600000

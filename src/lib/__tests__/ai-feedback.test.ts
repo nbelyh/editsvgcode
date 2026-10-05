@@ -104,6 +104,22 @@ describe('buildFeedbackRecord', () => {
     expect(record).not.toHaveProperty('proposedSvg');
   });
 
+  it('says what the turn started from, and whether a picture offer was turned down', () => {
+    // A hand drawing after a declined offer used to look the same as one the model chose,
+    // and "first request on the starter" could only be guessed from the document's size.
+    const turn = { id: 't1', model: 'gpt-5.4-mini', firstTurn: true, doc: 'starter' as const, imageDeclined: true };
+    expect(buildFeedbackRecord(input({ message: assistant({ turn }) }), 'u1')).toMatchObject({ firstTurn: true, doc: 'starter', imageDeclined: true });
+  });
+
+  it('leaves the turn facts out for a message with no turn, and the decline out when there was none', () => {
+    const none = buildFeedbackRecord(input(), 'u1');
+    expect(none).not.toHaveProperty('firstTurn');
+    expect(none).not.toHaveProperty('doc');
+    const plain = buildFeedbackRecord(input({ message: assistant({ turn: { id: 't2', model: 'm', firstTurn: false, doc: 'own' } }) }), 'u1');
+    expect(plain).toMatchObject({ firstTurn: false, doc: 'own' });
+    expect(plain).not.toHaveProperty('imageDeclined');
+  });
+
   it('keeps what the client reported going wrong', () => {
     const record = buildFeedbackRecord(input({
       kind: 'refused',
