@@ -445,6 +445,37 @@ function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
 }
 
+const DRAWN = new Set(['path', 'rect', 'circle', 'ellipse', 'polygon', 'polyline', 'line', 'text', 'image', 'use']);
+
+/**
+ * What to say about a BASE LAYER: one large shape with much of the drawing painted over it.
+ *
+ * A traced picture is stacked: its darkest colour becomes one silhouette of the whole figure,
+ * and every coloured piece is drawn on top. In the picture the black parts of a hat or a coat
+ * ARE that silhouette, so a model asked for "the hat" highlighted it, read "one shape —
+ * nothing to split", decided the hat was fused with the body and painted red over the whole
+ * head. The hat's colour was in two small paths drawn over it all along. Null when the
+ * element is not one.
+ *
+ * `area` and `drawingArea` are in the same units.
+ */
+export function baseLayerNote(el: Element, area: number, drawingArea: number): string | null {
+  if (el.tagName.toLowerCase() !== 'path' || !(drawingArea > 0) || area / drawingArea < 0.4) return null;
+  const all = Array.from(el.ownerDocument.getElementsByTagName('*'));
+  const following = all.slice(all.indexOf(el) + 1).filter((e) => DRAWN.has(e.tagName.toLowerCase())).length;
+  if (following < 5) return null;
+  return `${pathOf(el)} is a base layer: one shape covering ${pct(Math.min(1, area / drawingArea))} of the drawing, with ${following} elements drawn over it. In traced art this is the outline and every dark area of the whole figure at once, so it is never one part such as a hat or a coat, even where that part looks black. The colours of the parts are in the smaller paths drawn over it; recolouring this one changes every outline.`;
+}
+
+/** The drawing's area in viewBox units, or 0 when it has no usable viewBox or size. */
+export function drawingArea(doc: Document): number {
+  const root = doc.documentElement;
+  const vb = (root.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number);
+  if (vb.length === 4 && vb[2] > 0 && vb[3] > 0) return vb[2] * vb[3];
+  const w = parseFloat(root.getAttribute('width') ?? ''), h = parseFloat(root.getAttribute('height') ?? '');
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
 /** The read tool: every separable part of the matched paths, with where each one sits. */
 export function describePathParts(source: string, selector: string): string {
   const validity = validateSvg(source);
@@ -456,6 +487,7 @@ export function describePathParts(source: string, selector: string): string {
   if (isSelectorError(found)) return `Error: ${found.error}`;
   if (found.length === 0) return `Nothing matched "${selector}": ${describeNoMatch(doc, selector)}`;
   const extents = elementExtents(source, doc);
+  const drawing = drawingArea(doc);
   const MAX_PATHS = 10, MAX_PARTS = 40;
   const blocks = found.slice(0, MAX_PATHS).map((el) => {
     const extent = extents.get(el);
@@ -464,8 +496,10 @@ export function describePathParts(source: string, selector: string): string {
     if (refusal) return `${where}: cannot be split — ${refusal}.`;
     const parts = pathParts(el.getAttribute('d') ?? '', splitRiskOf(el, doc));
     if ('error' in parts) return `${where}: its path data could not be read (${parts.error}).`;
-    if (parts.length <= 1) return `${where}: one shape — there is nothing to split.`;
-    const whole = parts.map((p) => p.box).reduce(union);
+    const whole = parts.map((p) => p.box).reduce(union, emptyBox());
+    // Boxes are before any transform; a traced path is only translated, so its area holds.
+    const base = baseLayerNote(el, boxArea(whole), drawing);
+    if (parts.length <= 1) return `${where}: one shape — there is nothing to split.${base ? ` ${base}` : ''}`;
     const w = whole.maxX - whole.minX || 1, h = whole.maxY - whole.minY || 1;
     const rows = parts
       .map((p, k) => ({ p, k }))
@@ -476,7 +510,7 @@ export function describePathParts(source: string, selector: string): string {
         return `  part ${k + 1}: x=${fmt(Math.round(p.box.minX))} y=${fmt(Math.round(p.box.minY))} w=${fmt(Math.round(p.box.maxX - p.box.minX))} h=${fmt(Math.round(p.box.maxY - p.box.minY))} — centred ${pct(cx)} across, ${pct(cy)} down; ${pct(boxArea(p.box) / (w * h))} of the path's box${p.subpaths > 1 ? `; ${p.subpaths} subpaths kept together` : ''}`;
       });
     const more = parts.length > MAX_PARTS ? `\n  … and ${parts.length - MAX_PARTS} smaller parts` : '';
-    return `${where}: ${parts.length} separate parts, numbered in document order (largest listed first):\n${rows.join('\n')}${more}`;
+    return `${where}: ${parts.length} separate parts, numbered in document order (largest listed first):\n${rows.join('\n')}${more}${base ? `\n  ${base}` : ''}`;
   });
   const header = 'Boxes are in the path\'s own coordinates, before any transform. "Across" and "down" place a part\'s centre within the whole path\'s box, from the left and from the top. Judge which part is which from where it sits and its shape, and say in your reply which parts you took for what.';
   const extra = found.length > MAX_PATHS ? `\n… ${found.length - MAX_PATHS} more paths matched; address them one at a time.` : '';

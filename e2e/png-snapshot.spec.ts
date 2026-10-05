@@ -124,6 +124,33 @@ test.describe('renderSnapshot', () => {
     near(shot.pixels!.b, [191, 191, 255]);
   });
 
+  test('reads arguments a model sent JSON-encoded inside strings', async ({ page }) => {
+    // Qwen on OpenRouter sends "highlight": "[\"#a\", \"#b\"]", "crop": "{…}", "size": "256".
+    // Read literally, every one of those looks failed and the model spent its rounds retrying.
+    const shot = await render(page, { highlight: '["#a", "#b"]', crop: '{"x": 0, "y": 0, "width": 200, "height": 100}', size: '256' });
+    expect(shot.width).toBe(256);
+    expect(shot.text).toContain('Magenta outline: 1 element matches "#a"');
+    expect(shot.text).toContain('Cyan outline: 1 element matches "#b"');
+    expect(shot.text).toContain('the region x=0, y=0, width=200, height=100');
+  });
+
+  test('splits positional paths joined by commas into separate highlights', async ({ page }) => {
+    const shot = await render(page, { highlight: '/svg[1]/g[1]/rect[1], /svg[1]/g[1]/rect[2]' });
+    expect(shot.text).toContain('Magenta outline: 1 element matches "/svg[1]/g[1]/rect[1]"');
+    expect(shot.text).toContain('Cyan outline: 1 element matches "/svg[1]/g[1]/rect[2]"');
+  });
+
+  test('says when a highlighted path is the base layer under the whole figure', async ({ page }) => {
+    const traced = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+      '  <path d="M5 5 H95 V95 H5 Z" fill="#010D1A"/>',
+      ...[10, 20, 30, 40, 50].map((x) => `  <path d="M${x} 10 h5 v5 h-5 Z" fill="#8a5a2a"/>`),
+      '</svg>'].join('\n');
+    const base = await render(page, { highlight: ['line 2'] }, {}, traced);
+    expect(base.text).toContain('/svg[1]/path[1] is a base layer');
+    const part = await render(page, { highlight: ['line 3'] }, {}, traced);
+    expect(part.text).not.toContain('base layer');
+  });
+
   test('more addresses than there are outline colours is refused', async ({ page }) => {
     const shot = await render(page, { highlight: ['#a', '#b', 'rect', 'g', 'svg'] });
     expect(shot.dataUrl).toBeUndefined();

@@ -272,3 +272,24 @@ describe('list_path_parts', () => {
     expect(describePathParts(TRACED.replace(/d="[^"]*"/, `d="${square(0, 0, 10)}"`), 'path')).toContain('one shape');
   });
 });
+
+describe('list_path_parts — the base layer of a traced drawing', () => {
+  // Stacked tracing draws the darkest colour as one silhouette under the whole figure. A model
+  // took that silhouette for "the hat", read "nothing to split", and painted over the head.
+  const small = (x: number) => `  <path d="M${x} 10 h5 v5 h-5 Z" style="fill: #8a5a2a;"/>`;
+  const traced = (first: string, rest: string[]) =>
+    ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">', first, ...rest, '</svg>'].join('\n');
+  const SILHOUETTE = '  <path d="M5 5 H95 V95 H5 Z" style="fill: #010D1A;"/>';
+
+  it('says a large path with much drawn over it is the base layer, not a part', () => {
+    const out = describePathParts(traced(SILHOUETTE, [10, 20, 30, 40, 50].map(small)), 'line 2');
+    expect(out).toContain('one shape — there is nothing to split.');
+    expect(out).toContain('/svg[1]/path[1] is a base layer: one shape covering 81% of the drawing, with 5 elements drawn over it');
+    expect(out).toContain('never one part such as a hat or a coat');
+  });
+
+  it('says nothing for a small part, or for a large shape with little over it', () => {
+    expect(describePathParts(traced(SILHOUETTE, [10, 20, 30, 40, 50].map(small)), 'line 3')).not.toContain('base layer');
+    expect(describePathParts(traced(SILHOUETTE, [10, 20].map(small)), 'line 2')).not.toContain('base layer');
+  });
+});

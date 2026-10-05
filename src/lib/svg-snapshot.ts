@@ -15,6 +15,7 @@
 import { parseSvg, intrinsicSize, base64 } from './svg-export';
 import { resolveSelector, isSelectorError, describeNoMatch, describeMatches, isLineAddress, lineAddressToPath } from './svg-dom';
 import { measureElements } from './svg-bounds';
+import { baseLayerNote, drawingArea } from './path-parts';
 
 export const SNAPSHOT_SIZES = [256, 512, 1024] as const;
 const DEFAULT_SIZE = 512;
@@ -45,8 +46,8 @@ export interface Crop {
 export interface SnapshotOptions {
   /** Addresses to highlight, each in its own colour. A bare string is one address. */
   highlight?: string | string[] | null;
-  crop?: Crop | null;
-  size?: number | null;
+  crop?: Crop | string | null;
+  size?: number | string | null;
 }
 
 /** `text` is the tool result; `dataUrl` the picture, absent when there is none to show. */
@@ -119,7 +120,52 @@ function resolveGroup(doc: Document, svg: string, address: string, colour: Group
     return `${m.path}${m.line ? ` on line ${m.line}` : ''}${shown ? ` with ${shown}` : ''}`;
   });
   const more = found.length > MAX_LISTED ? `; and ${found.length - MAX_LISTED} more` : '';
-  return { colour, elements: found, note: `${name} outline: ${count}, ${at} — ${listed.join('; ')}${more}.` };
+  // A match that is the base layer under the whole figure gets said so, once per address.
+  const area = drawingArea(doc);
+  // Boxes line up with matches only when every match is drawn; otherwise skip the check.
+  const base = boxes.length === found.length
+    ? found.map((el, i) => baseLayerNote(el, boxes[i].width * boxes[i].height, area)).find(Boolean)
+    : null;
+  return { colour, elements: found, note: `${name} outline: ${count}, ${at} — ${listed.join('; ')}${more}.${base ? ` ${base}` : ''}` };
+}
+
+/**
+ * Arguments as some models send them. The schema asks for an array, an object and a number,
+ * but a route that does not enforce it delivers each JSON-encoded inside a string —
+ * "[\"line 2\", \"line 7\"]", "{\"x\": 100, …}", "1024" — or a list of addresses joined by
+ * commas. Read literally, nearly every look failed and the model spent its rounds retrying.
+ */
+function decoded(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const text = value.trim();
+  if (!/^[[{]/.test(text)) return value;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return value;
+  }
+}
+
+function highlightList(value: unknown): string[] {
+  const raw = decoded(value);
+  const list = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : [];
+  return list
+    .filter((a): a is string => typeof a === 'string')
+    .flatMap((a) => {
+      // "/svg[1]/path[7], /svg[1]/path[9]" is several addresses, not one CSS selector list:
+      // a positional path or a line cannot appear inside CSS. Plain CSS keeps its commas.
+      const parts = a.split(',').map((p) => p.trim()).filter(Boolean);
+      return parts.length > 1 && parts.every((p) => p.startsWith('/') || isLineAddress(p)) ? parts : [a];
+    })
+    .map((a) => a.trim())
+    .filter(Boolean);
+}
+
+function cropOf(value: unknown): Crop | null {
+  const raw = decoded(value) as Record<string, unknown> | null | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  const n = (v: unknown) => (typeof v === 'string' ? Number(v) : (v as number));
+  return { x: n(raw.x), y: n(raw.y), width: n(raw.width), height: n(raw.height) };
 }
 
 /**
@@ -130,11 +176,7 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
   const parsed = parseSvg(svg);
   if ('error' in parsed) return { text: 'Error: the document is not well-formed SVG, so it cannot be drawn. Fix the markup first.' };
 
-  const raw = options.highlight;
-  const addresses = (Array.isArray(raw) ? raw : raw ? [raw] : [])
-    .filter((a): a is string => typeof a === 'string')
-    .map((a) => a.trim())
-    .filter(Boolean);
+  const addresses = highlightList(options.highlight);
   if (addresses.length > MAX_HIGHLIGHTS) {
     return { text: `Error: at most ${MAX_HIGHLIGHTS} addresses can be highlighted at once, one outline colour each. Split them over several calls in the same response.` };
   }
@@ -143,7 +185,7 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
   const intrinsic = intrinsicSize(parsed.root);
   const whole: Crop = own ?? { x: 0, y: 0, width: intrinsic.width, height: intrinsic.height };
 
-  const crop = options.crop ?? null;
+  const crop = cropOf(options.crop);
   if (crop && ![crop.x, crop.y, crop.width, crop.height].every(Number.isFinite)) {
     return { text: 'Error: crop needs four numbers — x, y, width and height in viewBox units.' };
   }
@@ -154,7 +196,7 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
 
   // The picture's pixels. With a crop the region's own proportions; without one, the
   // drawing's — its width and height when it has them, which can differ from the viewBox.
-  const longest = pickSize(options.size);
+  const longest = pickSize(typeof options.size === 'string' ? Number(options.size) : options.size);
   const shape = crop ? region : intrinsic;
   const scale = longest / Math.max(shape.width, shape.height);
   const width = Math.max(1, Math.round(shape.width * scale));
