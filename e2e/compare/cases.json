@@ -496,5 +496,127 @@
       "offer": false
     },
     "why": "A chart is data, drawn exactly."
+  },
+  {
+    "id": "icon-new",
+    "svg": "src/assets/default.svg",
+    "title": "A new icon on the starter",
+    "prompt": "Create a megaphone icon svg for social media marketing",
+    "why": "Asked for an icon as the drawing itself, on the starter: the icon replaces the sample and fills the canvas. A library icon or an offer to generate one passes; drawing it by hand fails.",
+    "expect": {
+      "icon": {
+        "whole": true,
+        "pictureOk": true
+      }
+    }
+  },
+  {
+    "id": "icon-add",
+    "svg": "src/assets/default.svg",
+    "title": "Add an icon to a drawing",
+    "prompt": "Add a heart icon in the top right corner",
+    "why": "An icon placed into an existing drawing: a library heart in the top right quarter, 60 to 140 units across (the shape, which fills about 85% of its box) on the 400-unit canvas.",
+    "expect": {
+      "icon": {
+        "within": [
+          200,
+          0,
+          200,
+          200
+        ],
+        "across": [
+          60,
+          140
+        ]
+      }
+    }
+  },
+  {
+    "id": "icon-empty",
+    "svg": "e2e/fixtures/empty.svg",
+    "title": "An icon on an empty canvas",
+    "prompt": "Create a cat icon",
+    "why": "On an empty canvas the icon fills it. A library icon or an offer to generate one passes; drawing it by hand fails.",
+    "expect": {
+      "icon": {
+        "whole": true,
+        "pictureOk": true
+      }
+    }
+  },
+  {
+    "id": "icon-brand",
+    "svg": "src/assets/default.svg",
+    "title": "A well-known brand logo on the starter",
+    "prompt": "Strava logo",
+    "why": "Asked for a brand logo by name alone: the real logo from the icon library becomes the drawing and fills the canvas. A generated or hand-drawn look-alike fails, and is a trademark risk.",
+    "expect": {
+      "icon": {
+        "whole": true
+      }
+    }
+  },
+  {
+    "id": "icon-corner",
+    "svg": "src/assets/default.svg",
+    "title": "A brand logo placed in a corner",
+    "prompt": "Add the Strava logo in the top left corner",
+    "why": "A logo added to a drawing: the real logo from the library in the top left quarter, 60 to 140 units across (the shape, which fills about 85% of its box) on the 400-unit canvas.",
+    "expect": {
+      "icon": {
+        "within": [
+          0,
+          0,
+          200,
+          200
+        ],
+        "across": [
+          60,
+          140
+        ]
+      }
+    }
+  },
+  {
+    "id": "icon-title",
+    "svg": "e2e/fixtures/settings-card.svg",
+    "title": "An icon beside a title",
+    "prompt": "Add a bell icon before the Notifications title",
+    "expect": {
+      "icon": {
+        "within": [
+          20,
+          28,
+          220,
+          50
+        ],
+        "height": [
+          14,
+          32
+        ]
+      }
+    },
+    "why": "An icon sized to the 18px title it sits beside, not to the canvas: 14 to 32 units tall, on the title row. The title may move right to make room."
+  },
+  {
+    "id": "icon-box",
+    "svg": "e2e/fixtures/flowchart.svg",
+    "title": "An icon inside a box",
+    "prompt": "Add a rocket icon inside the Publish box, to the left of its label",
+    "expect": {
+      "icon": {
+        "within": [
+          470,
+          90,
+          140,
+          64
+        ],
+        "across": [
+          16,
+          48
+        ]
+      }
+    },
+    "why": "An icon sized to its container: inside the 140x64 Publish box, 16 to 48 units across, without spilling over its edges."
   }
 ]

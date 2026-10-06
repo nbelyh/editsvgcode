@@ -49,11 +49,21 @@ test.describe('compare', () => {
       const calls: Array<{ name: string; args: string }> = [];
       const usage: unknown[] = [];
       const pictures: string[] = [];
+      // What each tool returned, as the next round sent it back: the model's view of its own calls.
+      const results: Array<{ id: string; output: string }> = [];
+      // What the model reasoned, per request, where it streams a summary: why it did what it did.
+      const reasoning: string[] = [];
+      // The first request as the page sent it, to replay outside the browser.
+      let firstInput: unknown = null;
       let requests = 0;
       await page.route('**/api/chat', async (route) => {
         requests++;
         const sent = JSON.parse(route.request().postData() ?? '{}');
+        if (requests === 1) firstInput = sent;
         for (const item of sent.input ?? []) {
+          if (item?.type === 'function_call_output' && !results.some((r) => r.id === item.call_id)) {
+            results.push({ id: item.call_id, output: String(item.output).slice(0, 4000) });
+          }
           for (const part of Array.isArray(item.content) ? item.content : []) {
             if (part?.type === 'input_image' && !pictures.includes(part.image_url)) pictures.push(part.image_url);
           }
@@ -61,11 +71,13 @@ test.describe('compare', () => {
         // A turn's rounds can run for minutes on a slow model.
         const response = await route.fetch({ timeout: 900_000 });
         const body = await response.text();
+        let thought = '';
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const reply: any = body.trimStart().startsWith('{') ? JSON.parse(body) : await readChatStream<any>(new Response(body).body!);
+          const reply: any = body.trimStart().startsWith('{') ? JSON.parse(body) : await readChatStream<any>(new Response(body).body!, (u) => { if (u.kind === 'reasoning') thought += u.delta; });
           for (const item of reply.output ?? []) if (item.type === 'function_call') calls.push({ name: item.name, args: item.arguments });
           if (reply.tokens) usage.push(reply.tokens);
+          reasoning.push(thought);
         } catch { /* an error reply is the page's to show */ }
         await route.fulfill({ response, body });
       });
@@ -95,6 +107,13 @@ test.describe('compare', () => {
       const routing = c.expect?.offer !== undefined;
       let offered = false;
       await expect.poll(async () => {
+        // The icon picker holds the turn open until the user chooses; take the first match,
+        // as most people would.
+        const picker = page.locator('.aui-icon-picker:not(.aui-icon-picker-collapsed) .aui-icon-picker-item');
+        if (await picker.count()) {
+          await picker.first().click().catch(() => {});
+          return 'running';
+        }
         const offer = page.locator('.aui-image-confirm');
         if (await offer.count()) {
           offered = true;
@@ -123,7 +142,7 @@ test.describe('compare', () => {
       pictures.forEach((p, i) => writeFileSync(`${OUT}/${name}.look${i + 1}.png`, Buffer.from(p.split(',')[1], 'base64')));
       writeFileSync(`${OUT}/${name}.json`, JSON.stringify({
         id: c.id, run: info.repeatEachIndex + 1, model: MODEL ?? null, effort: EFFORT ?? null, prompt: c.prompt,
-        seconds, requests, offered, declined, calls, usage, looks: pictures.length, reply, changed: result.trim() !== svg.trim(),
+        seconds, requests, offered, declined, calls, results, reasoning, firstInput, usage, looks: pictures.length, reply, changed: result.trim() !== svg.trim(),
       }, null, 2));
       console.log(`${name}: ${seconds.toFixed(0)} s, ${calls.length} calls (${calls.map((x) => x.name).join(', ')})`);
     });

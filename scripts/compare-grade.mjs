@@ -17,6 +17,11 @@
  *   viewBox         the new viewBox `contains` a box, with no side over `maxSide`
  *   offer           true when the request should be offered a generated picture, false when it
  *                   should be drawn by hand; `iconsOk` also passes a search of the icon library
+ *   icon            an icon from the library, not drawn by hand: the icon the user picked must be
+ *                   in the result. `pictureOk` also passes an offer of a generated picture. Then,
+ *                   by pixels: with `within` [x, y, w, h] everything that changed lies in that box,
+ *                   and its longer side (`across`) or its height (`height`) is in [min, max] units;
+ *                   with `whole` the icon replaced the drawing and spans most of the canvas
  * A case without `expect` is shown as "by eye". Colours are judged by family (red, blue, grey,
  * green, purple), since the model picks its own shade.
  */
@@ -53,6 +58,7 @@ for (const label of labels) {
     const read = (f) => readFileSync(resolve(ROOT, f), 'utf8');
     const g = !c.expect ? { verdict: 'by eye', why: '' }
       : c.expect.offer !== undefined ? gradeOffer(run, c.expect)
+      : c.expect.icon ? await gradeIcon(run, before, after, c.expect.icon)
       : c.expect.parts || c.expect.viewBox
         ? await page.evaluate(gradePixels, {
           before, after, expect: c.expect,
@@ -79,6 +85,99 @@ function gradeOffer(run, expect) {
     return { verdict: 'fail', why: drew ? 'drew it by hand' : icons ? 'searched icons instead' : 'no picture offered' };
   }
   return offered ? { verdict: 'fail', why: 'offered a picture' } : { verdict: 'pass', why: drew ? 'drew it by hand' : 'no picture offered' };
+}
+
+/**
+ * An icon request: lost, hand-drawn, or the library icon the user picked — then where it went
+ * and how big it is, by pixels.
+ */
+async function gradeIcon(run, before, after, expect) {
+  // A provider error (the model's host refusing or failing the call) says nothing about the model.
+  if (/^Error: /m.test(run.reply)) return { verdict: 'error', why: run.reply.match(/^Error: .*$/m)[0].slice(0, 48) };
+  if (!run.calls.length) return { verdict: 'fail', why: 'lost the request' };
+  // The icon the user picked, as the tool handed it over, is matched by its first path.
+  const picked = (run.results ?? []).map((r) => r.output).filter((o) => o.startsWith('User selected icon'));
+  const paths = picked.map((o) => /\sd="([^"]{12,})"/.exec(o)?.[1]?.slice(0, 24)).filter(Boolean);
+  const fromLibrary = paths.some((d) => after.includes(d));
+  if (!fromLibrary) {
+    if (expect.pictureOk && run.offered) return { verdict: 'pass', why: 'offered a generated picture' };
+    const why = picked.length ? 'the picked icon is not in the result'
+      : run.calls.some((x) => x.name === 'search_icons') ? 'searched, picked nothing, drew by hand'
+      : run.offered ? 'offered a picture, then drew by hand' : 'drew it by hand';
+    return { verdict: 'fail', why };
+  }
+  return page.evaluate(placement, { before, after, expect });
+}
+
+/** Where the icon went and how big it is, in the browser. Both drawings render at 256 px. */
+async function placement({ before, after, expect }) {
+  const N = 256;
+  const doc = (s) => new DOMParser().parseFromString(s, 'image/svg+xml');
+  const vbOf = (s) => {
+    const r = doc(s).documentElement;
+    const v = (r.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number);
+    return v.length === 4 && v[2] > 0 ? v : [0, 0, parseFloat(r.getAttribute('width')) || 300, parseFloat(r.getAttribute('height')) || 150];
+  };
+  // Rendered in the given viewBox, square, so a pixel maps back to units.
+  const pixels = async (s, vb) => {
+    const d = doc(s);
+    const root = d.documentElement;
+    root.setAttribute('viewBox', vb.join(' '));
+    root.setAttribute('width', N);
+    root.setAttribute('height', N);
+    root.setAttribute('preserveAspectRatio', 'none');
+    const img = new Image();
+    await new Promise((ok) => { img.onload = ok; img.onerror = ok; img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(d)))); });
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, N, N);
+    x.drawImage(img, 0, 0, N, N);
+    return x.getImageData(0, 0, N, N).data;
+  };
+  const px = (d, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const boxOf = (on) => {
+    let x0 = N, y0 = N, x1 = -1, y1 = -1, n = 0;
+    for (let i = 0; i < N * N; i++) if (on(i)) { n++; const x = i % N, y = (i / N) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    return n ? { x0, y0, x1, y1, n } : null;
+  };
+
+  if (expect.whole) {
+    // Its own canvas: drawn content spans most of it, and the old drawing is gone.
+    const vb = vbOf(after);
+    const B = await pixels(after, vb);
+    const ink = boxOf((i) => Math.min(...px(B, i)) < 235);
+    if (!ink) return { verdict: 'fail', why: 'the result is empty' };
+    const span = Math.max(ink.x1 - ink.x0 + 1, ink.y1 - ink.y0 + 1) / N;
+    const A = await pixels(before, vbOf(before)), Bo = await pixels(after, vbOf(before));
+    let inkA = 0, kept = 0;
+    for (let i = 0; i < N * N; i++) if (Math.min(...px(A, i)) < 235) { inkA++; if (dist(px(A, i), px(Bo, i)) < 40) kept++; }
+    const problems = [];
+    if (span < 0.6) problems.push(`spans ${Math.round(span * 100)}% of the canvas`);
+    if (inkA && kept / inkA > 0.5) problems.push('the old drawing is still there');
+    return { verdict: problems.length ? 'fail' : 'pass', why: problems.join('; ') || `fills ${Math.round(span * 100)}% of the canvas` };
+  }
+
+  // Added to the drawing: compare in the original's viewBox.
+  const vb = vbOf(before);
+  const A = await pixels(before, vb), B = await pixels(after, vb);
+  const changed = (i) => dist(px(A, i), px(B, i)) > 40;
+  const box = boxOf(changed);
+  if (!box) return { verdict: 'fail', why: 'nothing changed' };
+  const ux = (p) => vb[0] + (p / N) * vb[2], uy = (p) => vb[1] + (p / N) * vb[3];
+  const [x, y, w, h] = [ux(box.x0), uy(box.y0), ((box.x1 - box.x0 + 1) / N) * vb[2], ((box.y1 - box.y0 + 1) / N) * vb[3]];
+  const problems = [];
+  if (expect.within) {
+    const [bx, by, bw, bh] = expect.within;
+    let outside = 0;
+    for (let i = 0; i < N * N; i++) if (changed(i)) { const X = ux(i % N), Y = uy((i / N) | 0); if (X < bx || X > bx + bw || Y < by || Y > by + bh) outside++; }
+    if (outside / box.n > 0.03) problems.push(`${Math.round((outside / box.n) * 100)}% drawn outside the place asked for`);
+  }
+  const size = expect.height ? h : Math.max(w, h);
+  const [lo, hi] = expect.height ?? expect.across ?? [0, Infinity];
+  if (size < lo) problems.push(`${Math.round(size)} units ${expect.height ? 'tall' : 'across'}, under ${lo}`);
+  if (size > hi) problems.push(`${Math.round(size)} units ${expect.height ? 'tall' : 'across'}, over ${hi}`);
+  return { verdict: problems.length ? 'fail' : 'pass', why: problems.join('; ') || `${Math.round(w)}×${Math.round(h)} at ${Math.round(x)},${Math.round(y)}` };
 }
 
 /** Runs in the browser, which reads colours the way the drawing will be painted. */
