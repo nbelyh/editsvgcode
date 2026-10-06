@@ -109,7 +109,9 @@ async function callServer(
     },
     // Ask for the streamed reply. An API that predates streaming ignores the flag and
     // answers with JSON, which the path below still reads — the two repos deploy separately.
-    body: JSON.stringify({ ...body, stream: true }),
+    // pictures: this build answers get_png_image, so the API may offer it. One that predates
+    // the tool does not say so, and is not offered a call it would leave unanswered.
+    body: JSON.stringify({ ...body, stream: true, pictures: true }),
     signal,
   });
 
