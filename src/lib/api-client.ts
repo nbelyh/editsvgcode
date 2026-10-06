@@ -492,11 +492,11 @@ export async function sendChatRequest(
               } else if (selected === 'more') {
                 excludeNames.push(...icons.map(i => i.name));
               } else {
-                result = formatIconForModel(selected);
+                result = formatIconForModel(selected, normalizedSvg);
                 picked = true;
               }
             } else {
-              result = formatIconForModel(icons[0]);
+              result = formatIconForModel(icons[0], normalizedSvg);
               picked = true;
             }
           }
