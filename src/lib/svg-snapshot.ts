@@ -90,7 +90,7 @@ function loadImage(markup: string): Promise<HTMLImageElement | null> {
 }
 
 /** What one address matched in `doc`, measured in the source `svg`, and how to say so. */
-function resolveGroup(doc: Document, svg: string, address: string, colour: Group['colour']): Group {
+function resolveGroup(doc: Document, svg: string, address: string, colour: Group['colour'], area: number): Group {
   // A line is read against the source: this copy has had its root resized, and the
   // export parser it came from keeps no record of lines.
   const target = isLineAddress(address) ? lineAddressToPath(svg, address) : address;
@@ -121,7 +121,6 @@ function resolveGroup(doc: Document, svg: string, address: string, colour: Group
   });
   const more = found.length > MAX_LISTED ? `; and ${found.length - MAX_LISTED} more` : '';
   // A match that is the base layer under the whole figure gets said so, once per address.
-  const area = drawingArea(doc);
   // Boxes line up with matches only when every match is drawn; otherwise skip the check.
   const base = boxes.length === found.length
     ? found.map((el, i) => baseLayerNote(el, boxes[i].width * boxes[i].height, area)).find(Boolean)
@@ -211,7 +210,12 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
 
   // Resolve every address before anything is added to the copy, so a positional path
   // counts the same children the model's other tools count.
-  const groups = addresses.map((address, i) => resolveGroup(doc, svg, address, HIGHLIGHT_COLOURS[i]));
+  // Measured on the drawing as it is, not on this copy: with a crop the copy's viewBox is the
+  // crop, and the lens of a magnifying glass, 1% of the drawing, filled 64% of a crop around it
+  // and was called the base layer under the whole figure — which the model is told never to
+  // recolour.
+  const area = drawingArea(parsed.doc);
+  const groups = addresses.map((address, i) => resolveGroup(doc, svg, address, HIGHLIGHT_COLOURS[i], area));
   const shown = groups.filter((g) => g.elements.length > 0);
   if (addresses.length > 0 && shown.length === 0) return { text: groups.map((g) => g.note).join(' ') };
 

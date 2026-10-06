@@ -149,6 +149,15 @@ test.describe('renderSnapshot', () => {
     expect(base.text).toContain('/svg[1]/path[1] is a base layer');
     const part = await render(page, { highlight: ['line 3'] }, {}, traced);
     expect(part.text).not.toContain('base layer');
+    // Cropped close around a small part, the part fills most of the picture — but it is still
+    // a small part of the drawing, and must not be called the base layer.
+    const small = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+      '  <path d="M10 10 h5 v5 h-5 Z" fill="#8a5a2a"/>',
+      ...[20, 30, 40, 50, 60, 70].map((x) => `  <path d="M${x} 10 h5 v5 h-5 Z" fill="#8a5a2a"/>`),
+      '</svg>'].join('\n');
+    const close = await render(page, { highlight: ['line 2'], crop: { x: 9, y: 9, width: 7, height: 7 } }, {}, small);
+    expect(close.text).toContain('Magenta outline');
+    expect(close.text).not.toContain('base layer');
   });
 
   test('more addresses than there are outline colours is refused', async ({ page }) => {
