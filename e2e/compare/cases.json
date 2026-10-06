@@ -618,5 +618,52 @@
       }
     },
     "why": "An icon sized to its container: inside the 140x64 Publish box, 16 to 48 units across, without spilling over its edges."
+  },
+  {
+    "id": "shades-ball",
+    "svg": "e2e/fixtures/compare/shaded-ball.svg",
+    "title": "A ball in three shades",
+    "prompt": "Make the ball blue.",
+    "expect": {
+      "lines": [
+        7,
+        8,
+        9
+      ],
+      "colour": "blue"
+    },
+    "why": "The ball is a body, a highlight and a shadow side, three shapes in three reds. All three are the ball. The toy house roof is the same red as the ball and must stay."
+  },
+  {
+    "id": "shades-mug",
+    "svg": "e2e/fixtures/compare/shaded-mug.svg",
+    "title": "A mug in three shades",
+    "prompt": "Make the mug green.",
+    "expect": {
+      "lines": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "colour": "green"
+    },
+    "why": "The mug is a lit side, a shaded side, a handle and a rim. All four are the mug. The book beside it is the same orange as the lit side and must stay."
+  },
+  {
+    "id": "shades-kite",
+    "svg": "e2e/fixtures/compare/shaded-kite.svg",
+    "title": "A kite in two shades",
+    "prompt": "Make the kite purple.",
+    "expect": {
+      "lines": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "colour": "purple"
+    },
+    "why": "The kite is four panels in two reds. The two birds wear the same two reds and must stay, and so must the yellow tail bows."
   }
 ]
