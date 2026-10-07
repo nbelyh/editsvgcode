@@ -25,6 +25,9 @@ const OUT = resolve(ROOT, process.env.COMPARE_OUT ?? 'compare-results', process.
 const MODEL = process.env.COMPARE_MODEL;
 const EFFORT = process.env.COMPARE_EFFORT;
 const ONLY = process.env.COMPARE_ONLY?.split(',').map((s) => s.trim()).filter(Boolean);
+// The same build without the picture tool: the page's request goes out without the flag that
+// has the API offer get_png_image, so a run with and a run without differ in that alone.
+const NO_PICTURES = process.env.COMPARE_NO_PICTURES === '1';
 
 interface Case { id: string; svg: string; prompt: string; expect?: { offer?: boolean } }
 const cases: Case[] = JSON.parse(readFileSync(resolve(ROOT, 'e2e/compare/cases.json'), 'utf8'));
@@ -69,7 +72,10 @@ test.describe('compare', () => {
           }
         }
         // A turn's rounds can run for minutes on a slow model.
-        const response = await route.fetch({ timeout: 900_000 });
+        const response = await route.fetch({
+          timeout: 900_000,
+          ...(NO_PICTURES && { postData: JSON.stringify({ ...sent, pictures: undefined }) }),
+        });
         const body = await response.text();
         let thought = '';
         try {
