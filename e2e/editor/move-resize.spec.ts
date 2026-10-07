@@ -273,3 +273,50 @@ test.describe('Moving parts of real drawings', () => {
     expect(strip(changed[0][1])).toBe(strip(changed[0][0]));
   });
 });
+
+test.describe('Selection edge cases', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+  });
+
+  test('a tag inside a comment does not shift which element is selected or deleted', async ({ page }) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" width="200" height="100">
+  <!-- <rect id="ghost"/> -->
+  <rect id="a" x="10" y="10" width="60" height="60" fill="teal"/>
+  <rect id="b" x="120" y="10" width="60" height="60" fill="orange"/>
+</svg>`;
+    await setSvgContent(page, svg);
+    await selectById(page, 'a');
+    await page.keyboard.press('Delete');
+    await expect.poll(() => editorValue(page)).not.toContain('id="a"');
+    expect(await editorValue(page)).toContain('id="b"');
+  });
+
+  test('Ctrl+click keeps the shapes already picked', async ({ page }) => {
+    await setSvgContent(page, GROUPED);
+    const sun = await centreOf(page, '#sun');
+    const wall = await centreOf(page, '#wall');
+    await page.mouse.click(sun.x, sun.y);
+    await page.keyboard.down('Control');
+    await page.mouse.click(wall.x - 30, wall.y);
+    await page.keyboard.up('Control');
+    await page.waitForTimeout(400);
+    const picked = await page.evaluate(() =>
+      document.querySelector('[data-testid="svg-preview"]')!.shadowRoot!.querySelectorAll('[data-esvg-selected]').length);
+    expect(picked).toBe(2);
+  });
+
+  test('undo right after a nudge puts the preview back, and editing goes on', async ({ page }) => {
+    await setSvgContent(page, GROUPED);
+    await selectById(page, 'door');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('[data-testid="svg-preview"] #door')).toHaveAttribute('x', '90');
+    expect(await editorValue(page)).toBe(GROUPED);
+
+    await selectById(page, 'door');
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => editorValue(page)).toContain('id="door" x="91"');
+  });
+});

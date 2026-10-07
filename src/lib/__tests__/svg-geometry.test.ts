@@ -338,3 +338,31 @@ describe('shifted', () => {
     expect(shifted(1.5e-7, 0)).toBe('1.5e-7');
   });
 });
+
+describe('planResize keeps what the drag did not change', () => {
+  it('leaves an unstretched axis of a long translate exactly as written', () => {
+    const path = el('<path d="M0 0 H10 V10 H0 Z" transform="translate(121.31122970581055,-0.511744499206543)"/>');
+    const plan = planResize(path, req({ handle: 'e', dx: 10, bbox: { x: 0, y: 0, width: 10, height: 10 } }));
+    expect(plan).toEqual({ ok: true, attrs: { transform: 'translate(121.31122970581055,-0.511744499206543) scale(2,1)' } });
+  });
+
+  it('rounds a small scale to significant digits, not decimal places', () => {
+    const glyph = el('<path d="M0 0 H2048 V2048 H0 Z" transform="scale(0.00048828125)"/>');
+    const plan = planResize(glyph, req({ handle: 'se', dx: 2.048, dy: 2.048, bbox: { x: 0, y: 0, width: 2048, height: 2048 } }));
+    expect(plan).toEqual({ ok: true, attrs: { transform: 'scale(0.00048877)' } });
+  });
+
+  it('refuses an element with a transform-origin attribute', () => {
+    expect(planResize(el('<path transform-origin="50 50" d="M0 0 H10 V10 Z"/>'), req({ dx: 1 })).ok).toBe(false);
+    expect(planMove(el('<path transform-origin="50 50" d="M0 0 H10 V10 Z"/>'), 1, 1).ok).toBe(false);
+  });
+
+  it('refuses to resize a nested svg, whose units differ inside and out', () => {
+    expect(planResize(el('<svg x="0" y="0" width="48" height="48" viewBox="0 0 24 24"/>'), req({ dx: 1 })).ok).toBe(false);
+  });
+
+  it('still moves a nested svg by its x and y', () => {
+    expect(planMove(el('<svg x="5" y="5" width="48" height="48" viewBox="0 0 24 24"/>'), 1, 2))
+      .toEqual({ ok: true, attrs: { x: '6', y: '7' } });
+  });
+});

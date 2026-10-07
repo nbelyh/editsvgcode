@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, selectionChain, nextInChain, LEVELS } from '../preview-utils';
+import { sanitizeSvg } from '../sanitize';
+import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR, LEVELS } from '../preview-utils';
 
 // ---------------------------------------------------------------------------
 // stepUp / stepDown (zoom levels)
@@ -316,5 +317,33 @@ describe('nextInChain', () => {
 
   it('is null for an empty chain', () => {
     expect(nextInChain([], null)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// stampSourcePaths / findBySourcePath
+// ---------------------------------------------------------------------------
+describe('stampSourcePaths', () => {
+  const NS = 'xmlns="http://www.w3.org/2000/svg"';
+
+  it('stamps every element with its positional path in the source', () => {
+    const stamped = stampSourcePaths(`<svg ${NS}><g><rect/><rect/></g><circle/></svg>`)!;
+    const svg = makeSvg(stamped);
+    expect(Array.from(svg.querySelectorAll('*')).map((e) => e.getAttribute(SOURCE_PATH_ATTR)))
+      .toEqual(['/svg[1]/g[1]', '/svg[1]/g[1]/rect[1]', '/svg[1]/g[1]/rect[2]', '/svg[1]/circle[1]']);
+  });
+
+  it('keeps an element\'s source path when the sanitizer lifts it out of its parent', () => {
+    // Inkscape's flowed text: the sanitizer drops <flowRoot> and <flowRegion>
+    // and keeps the rect inside, which then sits beside the drawing's own rect.
+    const source = `<svg ${NS}><flowRoot><flowRegion><rect id="frame"/></flowRegion></flowRoot><rect id="real"/></svg>`;
+    const svg = makeSvg(sanitizeSvg(stampSourcePaths(source)!));
+    const real = svg.querySelector('#real')!;
+    expect(real.getAttribute(SOURCE_PATH_ATTR)).toBe('/svg[1]/rect[1]');
+    expect(findBySourcePath(svg, '/svg[1]/rect[1]')).toBe(real);
+  });
+
+  it('is null when the source does not parse', () => {
+    expect(stampSourcePaths('<svg><rect></svg>')).toBeNull();
   });
 });

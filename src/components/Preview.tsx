@@ -5,7 +5,7 @@ import { notifications } from '@mantine/notifications';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
 import { CHECKERBOARD_LIGHT } from '../lib/checkerboard';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath, selectionChain, nextInChain } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR } from '../lib/preview-utils';
 import { pathOf, parseSvg, resolveSelector, isSelectorError } from '../lib/svg-dom';
 import {
   planMove, planResize, invert, applyToVector, pixelsPerUnit, decimalsFor, roundTo,
@@ -206,6 +206,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
    * the render debounce, and an element may only be edited while the two
    * agree — otherwise its path could name a different element in the code. */
   const renderedSourceRef = useRef<string | null>(null);
+  const [renderTick, setRenderTick] = useState(0);
 
   // Attach shadow DOM on mount for CSS isolation
   useEffect(() => {
@@ -246,10 +247,15 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     return selected && selected.length > 0 ? selected[selected.length - 1] : null;
   }, []);
 
+  /** Where a preview element came from in the source. Falls back to its place
+   * in the preview's own tree when the source did not parse and nothing was
+   * stamped — selection still works then, editing does not. */
+  const sourcePathOf = (el: Element) => el.getAttribute(SOURCE_PATH_ATTR) ?? pathOf(el);
+
   const notifySelection = useCallback(() => {
     const last = currentSelection();
     // By position in the tree, which is how the source is addressed too.
-    onElementSelect?.(last ? pathOf(last) : null);
+    onElementSelect?.(last ? sourcePathOf(last) : null);
   }, [onElementSelect, currentSelection]);
 
   /**
@@ -313,7 +319,8 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     if (renderedSourceRef.current !== svgCodeRef.current) return { error: null };
     const doc = parseSvg(svgCodeRef.current);
     if (!doc) return { error: INVALID_SOURCE };
-    const path = pathOf(target);
+    const path = target.getAttribute(SOURCE_PATH_ATTR);
+    if (!path) return { error: NOT_IN_SOURCE };
     const found = resolveSelector(doc, path);
     if (isSelectorError(found) || found.length !== 1 || found[0].tagName.toLowerCase() !== target.tagName.toLowerCase()) {
       return { error: NOT_IN_SOURCE };
@@ -471,7 +478,10 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       target = current;
     } else {
       const chain = chainAt(e);
-      target = current && chain.includes(current) ? current : nextInChain(chain, current);
+      const onSelection = !!current && chain.includes(current);
+      // A finger dragging anything but the selection means to scroll the pane.
+      if (e.pointerType === 'touch' && !onSelection) return;
+      target = onSelection ? current : nextInChain(chain, current);
     }
     if (!(target instanceof SVGGraphicsElement)) return;
     gestureRef.current = { pointerId: e.pointerId, mode: handle ? 'resize' : 'move', handle, startX: e.clientX, startY: e.clientY, target };
@@ -622,7 +632,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       naturalSize.current = null;
       return;
     }
-    shadow.innerHTML = sanitizeSvg(svgCode);
+    // Stamped with source paths, so an element can be found in the code
+    // again whatever the sanitizer does to the tree around it.
+    shadow.innerHTML = sanitizeSvg(stampSourcePaths(svgCode) ?? svgCode);
     renderedSourceRef.current = svgCode;
     // The elements a gesture was holding have just been replaced.
     gestureRef.current = null;
@@ -728,21 +740,37 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
         setZoomPct(size!.w > el.clientWidth || size!.h > el.clientHeight ? Math.max(1, fit) : 100);
       }
     }
-  }, [debouncedSvg, documentReady]);
+  }, [debouncedSvg, documentReady, renderTick]);
+
+  // An edit drawn here, then undone before the debounce fired, leaves the
+  // code back where the debounced value already is — so it never changes, the
+  // render above never runs, and the preview keeps showing the edit. Render
+  // anyway. After the render effect, so an ordinary render has settled first.
+  useEffect(() => {
+    if (documentReady && svgCode === debouncedSvg && renderedSourceRef.current !== null && renderedSourceRef.current !== svgCode) {
+      setRenderTick((n) => n + 1);
+    }
+  }, [svgCode, debouncedSvg, documentReady]);
 
   // Sync external selection (from editor cursor) via xpath
   useEffect(() => {
     const svg = getSvg();
     if (!svg) return;
 
-    clearAllSelections();
-    if (!selectedXPath) return;
+    // Stamped when the source parses; when it does not, there is nothing
+    // better than walking the preview's own tree.
+    const target = !selectedXPath ? null
+      : svg.hasAttribute(SOURCE_PATH_ATTR) ? findBySourcePath(svg, selectedXPath)
+      : resolveXPath(svg, selectedXPath);
+    // The preview reporting its own selection back. Leave it be: clearing
+    // would drop every other shape a Ctrl+click had added.
+    if (target && target === currentSelection()) return;
 
-    const target = resolveXPath(svg, selectedXPath);
-    if (target) {
+    clearAllSelections();
+    if (target instanceof SVGElement && target !== svg) {
       applySelectionFilter(target, true);
     }
-  }, [selectedXPath, debouncedSvg, clearAllSelections, applySelectionFilter]);
+  }, [selectedXPath, debouncedSvg, clearAllSelections, applySelectionFilter, currentSelection]);
 
   // Apply zoom + background + border
   useEffect(() => {
@@ -870,8 +898,11 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
             scrollable height — a second phantom scrollbar on top of the one the
             SVG itself caused. */}
         <div ref={overlayHostRef} style={{ position: 'relative', minWidth: '100%', minHeight: '100%', display: 'inline-flex', verticalAlign: 'top', alignItems: 'center', justifyContent: 'center' }}>
-          {/* userSelect: dragging across text in the drawing would select it. */}
-          <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair', userSelect: 'none' }} />
+          {/* userSelect: dragging across text in the drawing would select it.
+              touchAction: with something selected, a finger on the drawing
+              must reach the drag code instead of starting a browser pan,
+              which cancels the gesture. Pinch-zoom stays the browser's. */}
+          <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair', userSelect: 'none', touchAction: quad ? 'pinch-zoom' : 'auto' }} />
           <SelectionOverlay quad={quad} coarse={coarsePointer} />
         </div>
       </div>

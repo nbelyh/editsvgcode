@@ -183,6 +183,7 @@ const NUMBER_LIST = /^\s*[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?(?:(?:\s*,\s*|\s+
 
 const CSS_POSITIONED = 'This element is positioned by CSS, so it cannot be moved or resized here. Change its style in the code instead.';
 const ANIMATED = 'This element is animated, so it cannot be moved or resized here.';
+const NESTED_SVG = 'A nested <svg> cannot be resized here. Change its width and height in the code instead.';
 const UNREADABLE_TRANSFORM = 'This element\'s transform could not be read, so it cannot be moved or resized here.';
 
 /** Does CSS — the element's own style, or a rule in the document — set this property? */
@@ -200,6 +201,9 @@ function cssSets(el: Element, property: string): boolean {
  */
 function blockedReason(el: Element): string | null {
   if (['transform', 'transform-origin', 'transform-box'].some((p) => cssSets(el, p))) return CSS_POSITIONED;
+  // The same property as an attribute: it moves the point a scale grows
+  // from, so a resize would leap away from the pointer.
+  if (el.hasAttribute('transform-origin') || el.hasAttribute('transform-box')) return CSS_POSITIONED;
   if (Array.from(el.children).some((c) => /^(animate|animatetransform|animatemotion|set)$/i.test(c.tagName))) return ANIMATED;
   return null;
 }
@@ -372,7 +376,7 @@ export function resizedBox(box: Rect, maps: { x: AxisMap; y: AxisMap }): Rect {
 /** The box a shape's own attributes describe, when this module can read them. */
 function nativeBox(el: Element): { box: Rect; values: Record<string, number[]> } | null {
   const tag = el.tagName.toLowerCase();
-  if (tag === 'rect' || tag === 'image' || tag === 'svg' || tag === 'foreignobject') {
+  if (tag === 'rect' || tag === 'image' || tag === 'foreignobject') {
     const v = plainNumbers(el, ['x', 'y', 'width', 'height'], { required: ['width', 'height'] });
     if (!v) return null;
     if (tag === 'rect') {
@@ -420,6 +424,9 @@ export function planResize(el: Element, req: ResizeRequest): EditPlan {
   const list = readTransform(el);
   if (!list) return { ok: false, reason: UNREADABLE_TRANSFORM };
   const tag = el.tagName.toLowerCase();
+  // Its width and height are in its parent's units but what it draws is in
+  // its viewBox's, so neither the handles nor a scale would track the pointer.
+  if (tag === 'svg') return { ok: false, reason: NESTED_SVG };
 
   const native = nativeBox(el);
   if (native) {
@@ -463,19 +470,27 @@ export function planResize(el: Element, req: ResizeRequest): EditPlan {
   // nobody wants to read one where two plain functions would do.
   let runStart = list.length;
   while (runStart > 0 && (list[runStart - 1].name === 'translate' || list[runStart - 1].name === 'scale')) runStart -= 1;
-  const run = multiply(listMatrix(list.slice(runStart)), local);
+  const before = listMatrix(list.slice(runStart));
+  const run = multiply(before, local);
   const value = el.getAttribute('transform') ?? '';
   const prefix = runStart === 0 ? '' : value.slice(0, list[runStart - 1].end).trim();
   const comma = runStart < list.length && value.slice(list[runStart].start).includes(',');
 
   const sep = comma ? ',' : ' ';
-  const e = roundTo(run.e, req.decimals + 1);
-  const f = roundTo(run.f, req.decimals + 1);
-  const sx = roundTo(run.a, 5);
-  const sy = roundTo(run.d, 5);
+  // What the drag changed is rounded; what it did not stays as written. The
+  // offset moves by an amount rounded to what the zoom can show, keeping the
+  // digits it had — a traced path's translate(121.31122970581055,…) is not cut
+  // to 121.3. The scale is rounded to significant digits, so a glyph's
+  // scale(0.00048828125) is not cut to 0.00049, a 0.35% jump at the first pixel.
+  const offset = (was: number, now: number) => shifted(was, roundTo(now - was, req.decimals + 1));
+  const e = offset(before.e, run.e);
+  const f = offset(before.f, run.f);
+  const sx = maps.x.k === 1 ? before.a : Number(run.a.toPrecision(6));
+  const sy = maps.y.k === 1 ? before.d : Number(run.d.toPrecision(6));
+  const num = (n: number) => String(Object.is(n, -0) ? 0 : n);
   const parts: string[] = [];
-  if (e !== 0 || f !== 0) parts.push(`translate(${fmt(e)}${sep}${fmt(f)})`);
-  if (sx !== 1 || sy !== 1) parts.push(sx === sy ? `scale(${fmt(sx)})` : `scale(${fmt(sx)}${sep}${fmt(sy)})`);
+  if (Number(e) !== 0 || Number(f) !== 0) parts.push(`translate(${e}${sep}${f})`);
+  if (sx !== 1 || sy !== 1) parts.push(sx === sy ? `scale(${num(sx)})` : `scale(${num(sx)}${sep}${num(sy)})`);
   const next = [prefix, ...parts].filter(Boolean).join(' ');
   if (next === value.trim()) return { ok: true, attrs: {} };
   return { ok: true, attrs: { transform: next || null } };

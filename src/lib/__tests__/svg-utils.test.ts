@@ -341,3 +341,21 @@ describe('findElementRangeByPath', () => {
     expect(findElementRangeByPath('<svg><rect></svg>', '/svg[1]/rect[1]')).toBeNull();
   });
 });
+
+describe('findElementAtOffset with tricky markup', () => {
+  it('is not fooled by a tag inside a comment', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><!-- <rect/> --><rect id="a"/><rect id="b"/></svg>';
+    const result = findElementAtOffset(svg, svg.indexOf('id="a"'))!;
+    expect(result.xpath).toBe('/svg[1]/rect[1]');
+    expect(result.element).toBe('<rect id="a"/>');
+  });
+
+  it('ends a group at its own closing tag, not an inner group\'s', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><g id="a"><g id="b"><rect/></g><circle/></g><path/></svg>';
+    const result = findElementAtOffset(svg, svg.indexOf('<circle') + 2)!;
+    expect(result.xpath).toBe('/svg[1]/g[1]/circle[1]');
+    const outer = findElementAtOffset(svg, svg.indexOf('</g><path') + 2)!;
+    expect(outer.xpath).toBe('/svg[1]/g[1]');
+    expect(outer.element).toBe('<g id="a"><g id="b"><rect/></g><circle/></g>');
+  });
+});

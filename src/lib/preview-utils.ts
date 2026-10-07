@@ -2,6 +2,49 @@
  * Pure utility functions extracted from Preview.tsx for testability.
  */
 
+import { parseSvg } from './svg-dom';
+
+/** Where in the source a preview element came from, as a positional path. */
+export const SOURCE_PATH_ATTR = 'data-esvg-path';
+
+/**
+ * The source with every element stamped with its own positional path, for the
+ * preview to draw from. Null when the source does not parse.
+ *
+ * Computing a path from the preview's tree is not the same thing: the
+ * sanitizer drops elements it does not know and KEEPS THEIR CONTENT, lifting
+ * it into the parent. Inkscape's flowed text puts a <rect> inside a
+ * <flowRoot>; sanitized, that rect becomes a sibling of the drawing's other
+ * rects, every later rect's index moves up by one, and a drag on one of them
+ * was written to its neighbour. A stamp made before sanitizing travels with
+ * the element wherever it ends up.
+ */
+export function stampSourcePaths(source: string): string | null {
+  const doc = parseSvg(source);
+  if (!doc) return null;
+  const walk = (el: Element, path: string) => {
+    el.setAttribute(SOURCE_PATH_ATTR, path);
+    const counts = new Map<string, number>();
+    for (const child of Array.from(el.children)) {
+      const tag = child.tagName.toLowerCase();
+      const n = (counts.get(tag) ?? 0) + 1;
+      counts.set(tag, n);
+      walk(child, `${path}/${tag}[${n}]`);
+    }
+  };
+  const root = doc.documentElement;
+  walk(root, `/${root.tagName.toLowerCase()}[1]`);
+  return new XMLSerializer().serializeToString(doc);
+}
+
+/** The preview element stamped with this source path, if there is one. */
+export function findBySourcePath(svg: Element, path: string): Element | null {
+  for (const el of Array.from(svg.querySelectorAll(`[${SOURCE_PATH_ATTR}]`))) {
+    if (el.getAttribute(SOURCE_PATH_ATTR) === path) return el;
+  }
+  return null;
+}
+
 export const LEVELS = [1, 2, 5, 10, 25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 800, 1000, 1500, 2000, 3000, 5000];
 
 /** Next zoom level up from the given percentage */

@@ -202,62 +202,23 @@ export function findElementRangeByPath(svgCode: string, path: string) {
 
 /**
  * Given a cursor offset in SVG source, find the enclosing element's xpath.
- * Uses DOMParser for accurate nesting, then maps back to source positions.
  * Returns xpath, element text, and line range, or null if cursor is outside any element.
+ *
+ * Extents come from the same tag scan the edit tools use, which steps over
+ * comments and CDATA and pairs each close tag with its own open tag. Matching
+ * by regex counted a `<rect/>` inside a comment as an element — naming the
+ * wrong rect from then on — and ended a `<g>` at the first `</g>` after it,
+ * which for a group holding a group is the inner one's.
  */
 export function findElementAtOffset(svgCode: string, offset: number) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgCode, 'text/xml');
-  if (doc.querySelector('parsererror')) return null;
+  const { doc } = validateSvg(svgCode);
+  if (!doc) return null;
 
-  // Build a list of elements with their source offsets using opening tag regex
-  // and match to DOM order via a tree-walk
-  const domElements: Element[] = [];
-  const walk = (el: Element) => {
-    domElements.push(el);
-    for (let i = 0; i < el.children.length; i++) walk(el.children[i]);
-  };
-  if (doc.documentElement) walk(doc.documentElement);
-
-  // Find source ranges for each DOM element in document order
-  const openRegex = /<([a-zA-Z][\w.:-]*)/g;
-  const sourceElements: { el: Element; tagName: string; start: number; end: number }[] = [];
-  let domIdx = 0;
-  let m: RegExpExecArray | null;
-  while ((m = openRegex.exec(svgCode)) !== null) {
-    // Skip closing tags (matched by accident) - the regex only matches opening
-    if (svgCode[m.index - 1] === '/') continue;
-
-    const tagStart = m.index;
-    const tagName = m[1];
-    const domEl = domElements[domIdx];
-    if (!domEl || domEl.tagName.toLowerCase() !== tagName.toLowerCase()) continue;
-    domIdx++;
-
-    // Find end of this element
-    let tagEnd = tagStart;
-    const selfClose = svgCode.indexOf('/>', tagStart);
-    const openEnd = svgCode.indexOf('>', tagStart);
-    if (selfClose >= 0 && selfClose <= openEnd) {
-      tagEnd = selfClose + 2;
-    } else {
-      const closeTag = svgCode.indexOf(`</${tagName}>`, tagStart);
-      if (closeTag >= 0) {
-        tagEnd = closeTag + tagName.length + 3;
-      } else if (openEnd >= 0) {
-        tagEnd = openEnd + 1;
-      }
-    }
-    sourceElements.push({ el: domEl, tagName, start: tagStart, end: tagEnd });
-  }
-
-  // Find the tightest enclosing element
-  let best: (typeof sourceElements)[number] | null = null;
-  for (const se of sourceElements) {
-    if (offset >= se.start && offset <= se.end) {
-      if (!best || (se.start >= best.start && se.end <= best.end)) {
-        best = se;
-      }
+  // The tightest enclosing element
+  let best: { el: Element; start: number; end: number } | null = null;
+  for (const [el, { start, end }] of elementExtents(svgCode, doc)) {
+    if (offset >= start && offset <= end && (!best || (start >= best.start && end <= best.end))) {
+      best = { el, start, end };
     }
   }
   if (!best) return null;

@@ -119,8 +119,13 @@ export function EditorPage() {
 
   /** Select the element at `path` in both panes, as found in `code`. */
   const selectPath = useCallback((code: string, path: string) => {
-    setSelectedXPath(path);
     const range = findElementRangeByPath(code, path);
+    // Set after selectRange, never before: Monaco reports the new cursor
+    // synchronously, and handleCursorElement then names whatever element
+    // ends where the selection does — which can be the next sibling, or for
+    // a group's end, the root. Last write wins, and the path is the truth.
+    if (range) editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
+    setSelectedXPath(path);
     if (!range) {
       // The source does not parse right now, so there is no telling which
       // bytes the preview's element came from. Keep the highlight, and leave
