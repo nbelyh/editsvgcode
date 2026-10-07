@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, LEVELS } from '../preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, selectionChain, nextInChain, LEVELS } from '../preview-utils';
 
 // ---------------------------------------------------------------------------
 // stepUp / stepDown (zoom levels)
@@ -247,5 +247,74 @@ describe('resolveXPath', () => {
   it('returns null for empty xpath', () => {
     const svg = makeSvg(svgHtml);
     expect(resolveXPath(svg, '')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// selectionChain / nextInChain (click cycling)
+// ---------------------------------------------------------------------------
+describe('selectionChain', () => {
+  it('runs from the top-level item down to the clicked element', () => {
+    const svg = makeSvg('<svg><g id="a"><g id="b"><rect id="r"/></g><circle/></g><path/></svg>');
+    const chain = selectionChain(svg.querySelector('#r')!, svg);
+    expect(chain.map((e) => e.id)).toEqual(['a', 'b', 'r']);
+  });
+
+  it('is just the element when it sits directly under the root', () => {
+    const svg = makeSvg('<svg><rect id="r"/><path/></svg>');
+    expect(selectionChain(svg.querySelector('#r')!, svg).map((e) => e.id)).toEqual(['r']);
+  });
+
+  it('skips a group that wraps the whole drawing', () => {
+    const svg = makeSvg('<svg><defs/><title>t</title><g id="all"><g id="part"><rect id="r"/></g><circle/></g></svg>');
+    expect(selectionChain(svg.querySelector('#r')!, svg).map((e) => e.id)).toEqual(['part', 'r']);
+  });
+
+  it('skips nested wrappers, but never the clicked element itself', () => {
+    const svg = makeSvg('<svg><g id="w1"><g id="w2"><rect id="r"/></g></g></svg>');
+    expect(selectionChain(svg.querySelector('#r')!, svg).map((e) => e.id)).toEqual(['r']);
+  });
+
+  it('treats a run of text as part of its text element', () => {
+    const svg = makeSvg('<svg><text id="t">a<tspan id="s">b</tspan></text><rect/></svg>');
+    expect(selectionChain(svg.querySelector('#s')!, svg).map((e) => e.id)).toEqual(['t']);
+  });
+
+  it('is empty for an element outside the root', () => {
+    const svg = makeSvg('<svg><rect/></svg>');
+    const stray = makeSvg('<svg><rect id="x"/></svg>').querySelector('#x')!;
+    expect(selectionChain(stray, svg)).toEqual([]);
+  });
+});
+
+describe('nextInChain', () => {
+  const svg = makeSvg('<svg><g id="a"><g id="b"><rect id="r"/><rect id="r2"/></g><circle id="c"/></g><path id="p"/></svg>');
+  const $ = (id: string) => svg.querySelector(`#${id}`)!;
+  const chain = selectionChain($('r'), svg);
+
+  it('starts at the top when nothing is selected', () => {
+    expect(nextInChain(chain, null)).toBe($('a'));
+  });
+
+  it('goes one level deeper on each click of the selection', () => {
+    expect(nextInChain(chain, $('a'))).toBe($('b'));
+    expect(nextInChain(chain, $('b'))).toBe($('r'));
+  });
+
+  it('wraps back to the top after the innermost element', () => {
+    expect(nextInChain(chain, $('r'))).toBe($('a'));
+  });
+
+  it('stays at the same level when a sibling of the selection is clicked', () => {
+    expect(nextInChain(chain, $('r2'))).toBe($('r'));
+    expect(nextInChain(chain, $('c'))).toBe($('b'));
+  });
+
+  it('starts again from the top for an unrelated selection', () => {
+    expect(nextInChain(chain, $('p'))).toBe($('a'));
+  });
+
+  it('is null for an empty chain', () => {
+    expect(nextInChain([], null)).toBeNull();
   });
 });

@@ -22,6 +22,12 @@ export interface EditorHandle {
   openCommandPalette: () => void;
   undo: () => void;
   redo: () => void;
+  /**
+   * Splice edits made outside the editor — from the preview — into the model as
+   * one undo step. Offsets are into `source`; false when the model no longer
+   * holds that text, and the caller then replaces the value instead.
+   */
+  applyEdits: (source: string, edits: { start: number; end: number; replacement: string }[]) => boolean;
 }
 
 export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ value, onChange, readOnly, theme, onCursorElement }, ref) {
@@ -100,6 +106,23 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(function Editor({ va
       if (!ed) return;
       ed.focus();
       ed.trigger('preview', 'redo', null);
+    },
+    applyEdits(source, edits) {
+      const ed = editorRef.current;
+      const model = ed?.getModel();
+      if (!ed || !model || model.getValue() !== source) return false;
+      const ops = edits.map((e) => {
+        const from = model.getPositionAt(e.start);
+        const to = model.getPositionAt(e.end);
+        return {
+          range: { startLineNumber: from.lineNumber, startColumn: from.column, endLineNumber: to.lineNumber, endColumn: to.column },
+          text: e.replacement,
+        };
+      });
+      ed.pushUndoStop();
+      const done = ed.executeEdits('preview', ops);
+      ed.pushUndoStop();
+      return done;
     },
   }), []);
 

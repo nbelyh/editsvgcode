@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { stripBom, findElementRange, findElementAtOffset, computeXPath, getNewUniqueId, formatXml } from '../svg-utils';
+import { stripBom, findElementRange, findElementRangeByPath, findElementAtOffset, computeXPath, getNewUniqueId, formatXml } from '../svg-utils';
 
 // ---------------------------------------------------------------------------
 // stripBom
@@ -312,5 +312,32 @@ describe('computeXPath', () => {
     );
     const path = doc.querySelector('path')!;
     expect(computeXPath(path)).toBe('/svg[1]/g[1]/g[1]/path[1]');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findElementRangeByPath
+// ---------------------------------------------------------------------------
+describe('findElementRangeByPath', () => {
+  it('finds the element the path names, children included', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg">\n  <g>\n    <rect/>\n  </g>\n  <g><rect width="5"/></g>\n</svg>';
+    const range = findElementRangeByPath(svg, '/svg[1]/g[2]/rect[1]')!;
+    expect(svg.slice(range.startOffset, range.endOffset)).toBe('<rect width="5"/>');
+    expect(range.startLine).toBe(5);
+    expect(range.startCol).toBe(6);
+  });
+
+  it('is not fooled by tags inside comments', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><!-- <rect id="old"/> --><rect id="real"/></svg>';
+    const range = findElementRangeByPath(svg, '/svg[1]/rect[1]')!;
+    expect(svg.slice(range.startOffset, range.endOffset)).toBe('<rect id="real"/>');
+  });
+
+  it('is null when the path matches nothing', () => {
+    expect(findElementRangeByPath('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>', '/svg[1]/circle[1]')).toBeNull();
+  });
+
+  it('is null when the source does not parse', () => {
+    expect(findElementRangeByPath('<svg><rect></svg>', '/svg[1]/rect[1]')).toBeNull();
   });
 });

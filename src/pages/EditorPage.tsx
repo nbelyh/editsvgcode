@@ -19,7 +19,9 @@ import { AiChat } from '../components/aichat';
 import { PublishDialog } from '../components/PublishDialog';
 import { useDocument } from '../lib/useDocument';
 import { useCloneDocument } from '../lib/useCloneDocument';
-import { findElementRange } from '../lib/svg-utils';
+import { findElementRangeByPath } from '../lib/svg-utils';
+import { planElementRemovals } from '../lib/svg-dom';
+import { applyRanges } from '../lib/svg-ai';
 import { getAuth } from 'firebase/auth';
 import { DESKTOP_QUERY, PHONE_QUERY, TABLET_CHAT_WIDTH } from '../lib/app-shell';
 
@@ -107,21 +109,55 @@ export function EditorPage() {
     fileInputRef.current?.click();
   }, []);
 
-  const handleElementSelect = useCallback((tagName: string, index: number) => {
-    if (!tagName || index < 0) {
-      editorRef.current?.clearSelection();
+  const clearSelection = useCallback(() => {
+    editorRef.current?.clearSelection();
+    setSelectedElement(undefined);
+    setSelectedLineRange(undefined);
+    setSelectedXPath(undefined);
+  }, []);
+
+  /** Select the element at `path` in both panes, as found in `code`. */
+  const selectPath = useCallback((code: string, path: string) => {
+    setSelectedXPath(path);
+    const range = findElementRangeByPath(code, path);
+    if (!range) {
+      // The source does not parse right now, so there is no telling which
+      // bytes the preview's element came from. Keep the highlight, and leave
+      // the code alone rather than select something else.
       setSelectedElement(undefined);
       setSelectedLineRange(undefined);
-      setSelectedXPath(undefined);
       return;
     }
-    const range = findElementRange(svgCode, tagName, index);
-    if (!range) return;
     editorRef.current?.selectRange(range.startLine, range.startCol, range.endLine, range.endCol);
-    setSelectedElement(svgCode.substring(range.startOffset, range.endOffset));
+    setSelectedElement(code.substring(range.startOffset, range.endOffset));
     setSelectedLineRange({ start: range.startLine, end: range.endLine });
-    setSelectedXPath(undefined);
-  }, [svgCode]);
+  }, []);
+
+  const handleElementSelect = useCallback((path: string | null) => {
+    if (path) selectPath(svgCode, path);
+    else clearSelection();
+  }, [svgCode, selectPath, clearSelection]);
+
+  // An edit made from the preview changes where the selection's bytes are, so
+  // it is selected again once the new text has landed.
+  const reselectRef = useRef<string | null>(null);
+  useEffect(() => {
+    const path = reselectRef.current;
+    if (!path) return;
+    reselectRef.current = null;
+    selectPath(svgCode, path);
+  }, [svgCode, selectPath]);
+
+  /**
+   * Splice edits into the document as one undo step. Through the editor when
+   * it holds this text, so the history and the cursor stay its own; the phone
+   * layout has no editor, and there the value is simply replaced.
+   */
+  const applySourceEdits = useCallback((ranges: { start: number; end: number; replacement: string }[], reselect: string | null) => {
+    reselectRef.current = reselect;
+    if (editorRef.current?.applyEdits(svgCode, ranges)) return;
+    setSvgCode(applyRanges(svgCode, ranges));
+  }, [svgCode, setSvgCode]);
 
   const handleCursorElement = useCallback((element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => {
     const isRootSvg = xpath && /^\/svg\[\d+\]$/.test(xpath);
@@ -130,15 +166,15 @@ export function EditorPage() {
     setSelectedXPath(isRootSvg ? undefined : xpath);
   }, []);
 
+  // Exactly the element, not the lines it sits on: a line can hold more than
+  // one element, and a long one can share its last line with the next.
   const handleDeleteElement = useCallback(() => {
-    if (!selectedLineRange) return;
-    const lines = svgCode.split('\n');
-    lines.splice(selectedLineRange.start - 1, selectedLineRange.end - selectedLineRange.start + 1);
-    setSvgCode(lines.join('\n'));
-    setSelectedElement(undefined);
-    setSelectedLineRange(undefined);
-    setSelectedXPath(undefined);
-  }, [svgCode, selectedLineRange, setSvgCode]);
+    if (!selectedXPath) return;
+    const plan = planElementRemovals(svgCode, [{ selector: selectedXPath }]);
+    if (!plan.available || plan.ranges.length === 0) return;
+    applySourceEdits(plan.ranges, null);
+    clearSelection();
+  }, [svgCode, selectedXPath, applySourceEdits, clearSelection]);
 
   const handleOpenCommandPalette = useCallback(() => {
     editorRef.current?.openCommandPalette();
@@ -295,7 +331,7 @@ export function EditorPage() {
       documentReady={documentReady}
       onElementSelect={handleElementSelect}
       selectedXPath={selectedXPath}
-      onDeleteElement={selectedLineRange ? handleDeleteElement : undefined}
+      onDeleteElement={selectedXPath ? handleDeleteElement : undefined}
       onUndo={handleEditorUndo}
       onRedo={handleEditorRedo}
     />
@@ -439,7 +475,7 @@ export function EditorPage() {
           </div>
         </Allotment.Pane>
         <Allotment.Pane preferredSize="45%" visible={showPreview}>
-          <Preview svgCode={proposedSvg ?? svgCode} documentReady={documentReady} onElementSelect={handleElementSelect} selectedXPath={selectedXPath} onDeleteElement={selectedLineRange ? handleDeleteElement : undefined} onUndo={handleEditorUndo} onRedo={handleEditorRedo} />
+          {previewPanel}
         </Allotment.Pane>
         <Allotment.Pane preferredSize="15%" minSize={320} visible={showSidebar}>
           <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--mantine-color-body)' }}>

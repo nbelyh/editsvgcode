@@ -97,6 +97,52 @@ export function findSvgTarget(target: Element, svg: SVGSVGElement, container: HT
   return null;
 }
 
+/** Elements that never paint on their own: a click cannot land on them, and a
+ * wrapper is judged by its painted children, not by its `<defs>` or `<title>`. */
+const NON_GRAPHICAL = new Set([
+  'defs', 'style', 'title', 'desc', 'metadata', 'script', 'symbol', 'clippath', 'mask',
+  'marker', 'pattern', 'lineargradient', 'radialgradient', 'filter',
+]);
+
+const isGraphical = (el: Element) => !NON_GRAPHICAL.has(el.tagName.toLowerCase());
+
+/**
+ * Everything a click on `leaf` can select, outermost first — the stops that
+ * repeated clicks walk through, the way Visio drills from a group into its parts.
+ *
+ * A run of text inside a `<text>` is part of it, not a stop of its own. Wrapper
+ * groups are dropped from the top: a drawing that puts everything in one `<g>`
+ * would otherwise answer every first click with the whole picture.
+ */
+export function selectionChain(leaf: Element, root: Element): Element[] {
+  let el: Element | null = leaf;
+  while (el && el !== root && /^(tspan|textpath)$/i.test(el.tagName)) el = el.parentElement;
+  const chain: Element[] = [];
+  for (; el && el !== root; el = el.parentElement) chain.unshift(el);
+  if (el !== root) return [];
+  while (chain.length > 1 && Array.from(chain[0].parentElement!.children).filter(isGraphical).length === 1) {
+    chain.shift();
+  }
+  return chain;
+}
+
+/**
+ * What the next click selects, given what is selected now.
+ *
+ * Clicking the selection again goes one level deeper, wrapping back to the top
+ * after the innermost. Clicking a sibling of the selection stays at its level,
+ * so once inside a group you can pick its parts one after another. Anything
+ * else starts again from the top.
+ */
+export function nextInChain(chain: Element[], current: Element | null): Element | null {
+  if (chain.length === 0) return null;
+  if (!current) return chain[0];
+  const at = chain.indexOf(current);
+  if (at >= 0) return chain[(at + 1) % chain.length];
+  const parentAt = current.parentElement ? chain.indexOf(current.parentElement) : -1;
+  return (parentAt >= 0 ? chain[parentAt + 1] : undefined) ?? chain[0];
+}
+
 /**
  * Resolve a positional xpath like "/svg[1]/g[2]/path[3]" against a rendered SVG element.
  * Returns the matching element, or null if the path can't be resolved.

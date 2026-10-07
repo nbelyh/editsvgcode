@@ -3,7 +3,7 @@
  */
 
 import xmlFormat from 'xml-formatter';
-import { pathOf as computeXPath } from './svg-dom';
+import { pathOf as computeXPath, validateSvg, resolveSelector, isSelectorError, elementExtents } from './svg-dom';
 
 /** Extract document ID from the URL pathname (first segment after '/') */
 export function getUniqueId(): string {
@@ -167,6 +167,11 @@ export function findElementRange(svgCode: string, tagName: string, index: number
     endOffset = openEnd + 1;
   }
 
+  return rangeOf(svgCode, startOffset, endOffset);
+}
+
+/** Line and column positions of a source span, in the editor's 1-based terms. */
+function rangeOf(svgCode: string, startOffset: number, endOffset: number) {
   const before = svgCode.substring(0, startOffset);
   const startLine = before.split('\n').length;
   const startCol = startOffset - before.lastIndexOf('\n');
@@ -175,6 +180,24 @@ export function findElementRange(svgCode: string, tagName: string, index: number
   const endCol = endOffset - upToEnd.lastIndexOf('\n');
 
   return { startLine, startCol, endLine, endCol, startOffset, endOffset };
+}
+
+/**
+ * The source span of the element at a positional path like "/svg[1]/g[2]/rect[1]".
+ *
+ * Identity by structure rather than by counting tags of one name: a count also
+ * counts tags inside comments and CDATA, and runs off by one whenever the
+ * preview's sanitizer has dropped an element the source still has. Null when
+ * the source does not parse — there is no tree to walk.
+ */
+export function findElementRangeByPath(svgCode: string, path: string) {
+  const { doc } = validateSvg(svgCode);
+  if (!doc) return null;
+  const found = resolveSelector(doc, path);
+  if (isSelectorError(found) || found.length !== 1) return null;
+  const extent = elementExtents(svgCode, doc).get(found[0]);
+  if (!extent) return null;
+  return rangeOf(svgCode, extent.start, extent.end);
 }
 
 /**

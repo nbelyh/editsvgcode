@@ -4,7 +4,8 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
 import { CHECKERBOARD_LIGHT } from '../lib/checkerboard';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath, selectionChain, nextInChain } from '../lib/preview-utils';
+import { pathOf } from '../lib/svg-dom';
 
 interface PreviewProps {
   svgCode: string;
@@ -14,7 +15,8 @@ interface PreviewProps {
    * middle of the pane that jumps to the drawing's size the moment one arrives.
    */
   documentReady?: boolean;
-  onElementSelect?: (tagName: string, index: number) => void;
+  /** The selected element's positional path, or null when nothing is. */
+  onElementSelect?: (path: string | null) => void;
   selectedXPath?: string;
   onDeleteElement?: () => void;
   onUndo?: () => void;
@@ -147,17 +149,33 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     }
   }, []);
 
+  /** The most recently selected element, which is the one the code pane shows. */
+  const currentSelection = useCallback((): SVGElement | null => {
+    const selected = getSvg()?.querySelectorAll<SVGElement>(`[${DATA_SELECTED}]`);
+    return selected && selected.length > 0 ? selected[selected.length - 1] : null;
+  }, []);
+
   const notifySelection = useCallback(() => {
+    const last = currentSelection();
+    // By position in the tree, which is how the source is addressed too.
+    onElementSelect?.(last ? pathOf(last) : null);
+  }, [onElementSelect, currentSelection]);
+
+  /**
+   * What a click at this point would select: the top-level item under the
+   * pointer first, then one level deeper with each click on the selection —
+   * the way Visio walks from a group into its parts.
+   */
+  const pickAt = useCallback((e: React.MouseEvent): SVGElement | null => {
+    const container = containerRef.current;
     const svg = getSvg();
-    if (!svg) { onElementSelect?.('', -1); return; }
-    const selected = svg.querySelectorAll(`[${DATA_SELECTED}]`);
-    if (selected.length === 0) { onElementSelect?.('', -1); return; }
-    // Notify about the last selected element
-    const last = selected[selected.length - 1];
-    const tagName = last.tagName.toLowerCase();
-    const allSameTag = Array.from(svg.querySelectorAll(tagName));
-    onElementSelect?.(tagName, allSameTag.indexOf(last));
-  }, [onElementSelect]);
+    if (!container || !svg) return null;
+    const actual = (e.nativeEvent.composedPath()[0] as Element) || e.target;
+    const leaf = findSvgTarget(actual, svg, container);
+    if (!leaf) return null;
+    const pick = nextInChain(selectionChain(leaf, svg), currentSelection());
+    return pick instanceof SVGElement ? pick : null;
+  }, [currentSelection]);
 
   // DEL key: delete selected element when the preview pane is focused
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -175,15 +193,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
   // Click-to-select handler
   const handleClick = useCallback((e: React.MouseEvent) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const svg = getSvg();
-    if (!svg) return;
+    const target = pickAt(e);
 
-    const actual = (e.nativeEvent.composedPath()[0] as Element) || e.target;
-    const target = findSvgTarget(actual, svg, container);
-
-    if (!target || !(target instanceof SVGElement)) {
+    if (!target) {
       clearAllSelections();
       notifySelection();
       return;
@@ -201,7 +213,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     notifySelection();
     // Give focus to the scroll pane so DEL key works without extra click
     scrollRef.current?.focus();
-  }, [clearAllSelections, applySelectionFilter, notifySelection]);
+  }, [pickAt, clearAllSelections, applySelectionFilter, notifySelection]);
 
   // Hover highlight + right-mouse-button pan
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -214,13 +226,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       return;
     }
 
-    const container = containerRef.current;
-    if (!container) return;
-    const svg = getSvg();
-    if (!svg) return;
-
-    const actual = (e.nativeEvent.composedPath()[0] as Element) || e.target;
-    const target = findSvgTarget(actual, svg, container) as SVGElement | null;
+    // Highlight what a click would select, so the next level down is visible
+    // before it is chosen.
+    const target = pickAt(e);
     const prev = hoveredRef.current;
 
     if (target === prev) return;
@@ -235,7 +243,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       target.style.filter = HOVER_FILTER;
     }
     hoveredRef.current = target;
-  }, []);
+  }, [pickAt]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 2) {
