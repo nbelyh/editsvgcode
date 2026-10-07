@@ -43,8 +43,8 @@ Light/dark checkerboard, solid white, solid black. Checkerboard makes transparen
 
 ![Background Modes](https://editsvgcode.com/screenshots/06-background-modes.png)
 
-### Click-to-Select
-Click an element in the preview to jump to the corresponding source code. Bounding box highlight on selected elements.
+### Click-to-Select, Move and Resize
+Click an element in the preview to jump to the corresponding source code; repeated clicks walk from a group down into its parts. Drag the selection to move it, or its handles to resize it — the change is written back into the source as edits to that element's own attributes, with everything else left as it was.
 
 ![Click-to-Select](https://editsvgcode.com/screenshots/07-click-to-select.png)
 

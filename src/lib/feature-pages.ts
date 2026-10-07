@@ -606,7 +606,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
   {
     slug: 'live-preview',
     title: 'Live preview, with click-to-code',
-    lead: 'The drawing sits beside its code and redraws a moment after you stop typing. Click a shape in the picture and its code is selected; put the cursor in the code and its shape lights up. Zoom in on detail, and switch the background to see exactly what is transparent.',
+    lead: 'The drawing sits beside its code and redraws a moment after you stop typing. Click a shape in the picture and its code is selected; put the cursor in the code and its shape lights up. Drag a shape to move it, or its handles to resize it, and the code changes with it. Zoom in on detail, and switch the background to see exactly what is transparent.',
     tryIt: {
       label: 'Try it with a sample drawing',
       svg: OVERLAP,
@@ -616,7 +616,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         heading: 'Click a shape, find its code',
         paragraphs: [
-          'Click a shape in the preview and the editor selects its element; hovering highlights a shape before you click. It works the other way too: move the cursor in the code and the element under it glows in the picture, which is the quickest way to find out what a line draws. Ctrl+click picks several shapes.',
+          'Click a shape in the preview and the editor selects its element; hovering highlights what a click would pick. The first click picks the whole group the shape belongs to, and each further click goes one level deeper, down to the shape itself. It works the other way too: move the cursor in the code and the element under it glows in the picture, which is the quickest way to find out what a line draws. Ctrl+click picks several shapes.',
           'With a shape selected in the preview, Del removes its element from the code, and Ctrl+Z puts it back.',
         ],
         image: {
@@ -624,6 +624,13 @@ export const FEATURE_PAGES: FeaturePage[] = [
           alt: 'A circle clicked in the preview, highlighted there, with its line selected in the code.',
           width: 1400, height: 900,
         },
+      },
+      {
+        heading: 'Move and resize by hand',
+        paragraphs: [
+          'Drag a shape to move it, or drag one of the handles around it to resize it. Shift keeps its proportions, and Esc during a drag puts it back where it was. The arrow keys move the selection by one unit, ten with Shift.',
+          'Each change is written into the code the way you would write it yourself: a rectangle\'s x and width, a circle\'s cx and r, a traced path\'s translate. Nothing else in the file is touched, and one Ctrl+Z undoes a whole drag. Shapes that have no position of their own, such as paths, groups and text, are moved and resized with a transform.',
+        ],
       },
       {
         heading: 'Zoom and backgrounds',
@@ -646,7 +653,9 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
     ],
     limits: [
-      'Clicking selects the shape itself. To select a group, put the cursor on its tag in the code.',
+      'Moving and resizing work on one shape or group at a time, and not on a phone.',
+      'Shapes can be moved and resized, not rotated. Resizing a path, a group or text scales its outline too.',
+      'A shape positioned by CSS, or animated, cannot be dragged. Change it in the code instead.',
       'The preview redraws 300 milliseconds after you stop typing, not on every key.',
       'The background choice resets when the page is reloaded.',
     ],
@@ -654,6 +663,10 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         q: 'Why does my drawing show here but not in my app?',
         a: 'The preview reads markup the forgiving way a web page does, so an SVG missing its `xmlns` declaration, for example, still shows. A standalone .svg file or an <img> needs it. Exporting the drawing as a data URI adds what is missing.',
+      },
+      {
+        q: 'Does dragging a shape rewrite my file?',
+        a: 'No. Only the attributes of the shape you moved change, where they stand. Formatting, comments and everything else stay as they were.',
       },
       {
         q: 'Can a pasted SVG run code on the page?',
