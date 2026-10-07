@@ -388,3 +388,84 @@ test.describe('Wheel zoom', () => {
     await expect.poll(width).toBeGreaterThan(before * 1.2);
   });
 });
+
+test.describe('After an undo the preview is whole', () => {
+  test('undo right after a nudge keeps the drawing sized, dressed and selected', async ({ page }) => {
+    // viewBox only: the preview sizes it, and a render it does not dress shows nothing.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect id="r" x="20" y="20" width="60" height="60" fill="teal"/>
+  <circle cx="150" cy="150" r="20" fill="orange"/>
+</svg>`;
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, svg);
+    await selectById(page, 'r');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Control+z');
+    await expect.poll(() => editorValue(page)).toBe(svg);
+    await page.waitForTimeout(600);
+
+    const state = await page.evaluate(() => {
+      const root = document.querySelector('[data-testid="svg-preview"]')!.shadowRoot!;
+      const s = root.querySelector('svg')!;
+      const box = s.getBoundingClientRect();
+      return { w: box.width, h: box.height, border: s.style.border, selected: root.querySelectorAll('[data-esvg-selected]').length };
+    });
+    expect(state.w).toBeGreaterThan(100);
+    expect(state.h).toBeGreaterThan(100);
+    expect(state.border).not.toBe('');
+    expect(state.selected).toBe(1);
+
+    // And editing goes on from there.
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => editorValue(page)).toContain('id="r" x="21"');
+  });
+});
+
+test.describe('Touch', () => {
+  test.use({ hasTouch: true });
+  test.skip(({ browserName }) => browserName !== 'chromium', 'touch is driven through the Chrome DevTools Protocol');
+
+  test('with a shape selected, a finger elsewhere scrolls and a finger on it drags', async ({ page, context }) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#eef"/>
+  <rect id="a" x="40" y="40" width="80" height="80" fill="teal"/>
+</svg>`;
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, svg);
+    for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Zoom in' }).click();
+    const pane = page.locator('[data-testid="svg-preview"]').locator('xpath=../..');
+    await pane.evaluate((el) => { el.scrollTop = 200; el.scrollLeft = 0; });
+    await selectById(page, 'a');
+
+    const cdp = await context.newCDPSession(page);
+    const swipe = async (x: number, y: number, dx: number, dy: number) => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 10; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + dx * i / 10, y: y + dy * i / 10 }] });
+        await page.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(400);
+    };
+
+    // Elsewhere on the drawing: the pane scrolls, and nothing moves.
+    const box = (await pane.boundingBox())!;
+    const before = await pane.evaluate((el) => el.scrollTop);
+    await swipe(box.x + box.width * 0.7, box.y + box.height * 0.7, 0, -150);
+    expect(await pane.evaluate((el) => el.scrollTop)).toBeGreaterThan(before + 50);
+    expect(await editorValue(page)).toBe(svg);
+
+    // On the selection: it moves, and the pane stays where it is. Scrolled
+    // back to the top first, since the swipe above may have carried it out of view.
+    await pane.evaluate((el) => { el.scrollTop = 0; });
+    await page.waitForTimeout(200);
+    const a = await page.locator('[data-testid="svg-preview"] #a').boundingBox();
+    const scrolled = await pane.evaluate((el) => el.scrollTop);
+    await swipe(a!.x + a!.width / 2, a!.y + a!.height / 2, 60, 0);
+    await expect.poll(() => editorValue(page)).not.toBe(svg);
+    expect(await editorValue(page)).toMatch(/<rect id="a" x="\d+" y="40"/);
+    expect(await pane.evaluate((el) => el.scrollTop)).toBe(scrolled);
+  });
+});

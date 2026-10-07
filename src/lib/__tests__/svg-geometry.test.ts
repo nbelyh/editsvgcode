@@ -186,8 +186,14 @@ describe('planMove', () => {
   it('refuses an element whose transform CSS controls', () => {
     const inline = planMove(el('<rect style="transform: rotate(3deg)" width="5" height="5"/>'), 1, 1);
     expect(inline.ok).toBe(false);
-    const rule = planMove(el('<path id="t" d="M0 0"/>', '<style>#t { transform-origin: center; }</style>'), 1, 1);
+    const rule = planMove(el('<path id="t" d="M0 0"/>', '<style>#t { transform: scale(2); }</style>'), 1, 1);
     expect(rule.ok).toBe(false);
+  });
+
+  it('moves an element with a transform origin of its own, which a shift does not feel', () => {
+    expect(planMove(el('<path id="t" d="M0 0"/>', '<style>#t { transform-origin: center; }</style>'), 1, 1).ok).toBe(true);
+    expect(planMove(el('<rect transform-origin="center" x="5" y="5" width="5" height="5"/>'), 1, 0))
+      .toEqual({ ok: true, attrs: { x: '6' } });
   });
 
   it('refuses an animated element', () => {
@@ -354,9 +360,9 @@ describe('planResize keeps what the drag did not change', () => {
     expect(plan).toEqual({ ok: true, attrs: { transform: 'scale(0.00048877)' } });
   });
 
-  it('refuses an element with a transform-origin attribute', () => {
+  it('refuses to resize an element with a transform origin of its own', () => {
     expect(planResize(el('<path transform-origin="50 50" d="M0 0 H10 V10 Z"/>'), req({ dx: 1 })).ok).toBe(false);
-    expect(planMove(el('<path transform-origin="50 50" d="M0 0 H10 V10 Z"/>'), 1, 1).ok).toBe(false);
+    expect(planResize(el('<path id="t" d="M0 0 H10 V10 Z"/>', '<style>#t { transform-box: fill-box; }</style>'), req({ dx: 1 })).ok).toBe(false);
   });
 
   it('refuses to resize a nested svg, whose units differ inside and out', () => {

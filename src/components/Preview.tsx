@@ -389,9 +389,13 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
       e.preventDefault();
       onUndo?.();
+      // The editor takes focus to undo; give it back, so the arrow keys
+      // pressed next still nudge rather than move the text cursor.
+      scrollRef.current?.focus();
     } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
       e.preventDefault();
       onRedo?.();
+      scrollRef.current?.focus();
     }
   }, [onDeleteElement, onUndo, onRedo, nudge, cancelGesture, currentSelection, clearAllSelections, notifySelection, refreshOverlay]);
 
@@ -602,10 +606,13 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     }
   }, []);
 
-  const zoomIn = useCallback(() => setZoomPct(stepUp), []);
-  const zoomOut = useCallback(() => setZoomPct(stepDown), []);
-  const zoomReset = useCallback(() => setZoomPct(100), []);
+  // The toolbar zooms about the middle. A wheel anchor left over from a notch
+  // that changed nothing — at the 1% floor — must not steer it.
+  const zoomIn = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(stepUp); }, []);
+  const zoomOut = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(stepDown); }, []);
+  const zoomReset = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(100); }, []);
   const zoomFit = useCallback(() => {
+    zoomAnchorRef.current = null;
     const el = scrollRef.current;
     const ns = naturalSize.current;
     if (!el || !ns) return;
@@ -758,6 +765,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   // code back where the debounced value already is — so it never changes, the
   // render above never runs, and the preview keeps showing the edit. Render
   // anyway. After the render effect, so an ordinary render has settled first.
+  // Every effect that dresses a fresh render — zoom, background, selection,
+  // overlay — keys on renderTick too: a forced render that only the render
+  // effect saw left the drawing unsized, unstyled and unselected.
   useEffect(() => {
     if (documentReady && svgCode === debouncedSvg && renderedSourceRef.current !== null && renderedSourceRef.current !== svgCode) {
       setRenderTick((n) => n + 1);
@@ -782,12 +792,15 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     if (target instanceof SVGElement && target !== svg) {
       applySelectionFilter(target, true);
     }
-  }, [selectedXPath, debouncedSvg, clearAllSelections, applySelectionFilter, currentSelection]);
+  }, [selectedXPath, debouncedSvg, renderTick, clearAllSelections, applySelectionFilter, currentSelection]);
 
   // Apply zoom + background + border
   useEffect(() => {
     const svg = getSvg();
     const el = scrollRef.current;
+    // Taken before anything can return early, so it never outlives the zoom it was for.
+    const anchor = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
     if (!svg || !naturalSize.current || !el) return;
     const { w, h } = naturalSize.current;
 
@@ -812,8 +825,6 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
     // Preserve scroll: recenter on zoom changes, restore position on content edits
     const prev = prevZoomRef.current;
-    const anchor = zoomAnchorRef.current;
-    zoomAnchorRef.current = null;
     if (prev !== zoomPct && anchor) {
       // The wheel: put the spot that was under the pointer back under it.
       // While the drawing is smaller than the pane there is nothing to scroll,
@@ -833,13 +844,13 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       });
     }
     prevZoomRef.current = zoomPct;
-  }, [debouncedSvg, zoomPct, bgMode]);
+  }, [debouncedSvg, renderTick, zoomPct, bgMode]);
 
   // After the effects above, which re-render, re-select and re-size the
   // drawing — each of which moves the selection on screen.
   useEffect(() => {
     refreshOverlay();
-  }, [debouncedSvg, selectedXPath, zoomPct, bgMode, editable, onEditElement, refreshOverlay]);
+  }, [debouncedSvg, renderTick, selectedXPath, zoomPct, bgMode, editable, onEditElement, refreshOverlay]);
 
   // The drawing is centred in the pane, so resizing the pane moves it too.
   useEffect(() => {
@@ -849,6 +860,24 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     ro.observe(el);
     return () => ro.disconnect();
   }, [refreshOverlay]);
+
+  // A finger that pressed on the selection or a handle is dragging it, and the
+  // browser must not take the same touch for a scroll — that would cancel the
+  // drag. Anywhere else the touch scrolls the pane as usual. Decided per touch:
+  // pointerdown, which sets up the gesture, fires before touchstart. A blanket
+  // touch-action on the drawing could not tell the two apart, and stopped every
+  // scroll over it while anything was selected.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const hold = (e: TouchEvent) => { if (gestureRef.current) e.preventDefault(); };
+    el.addEventListener('touchstart', hold, { passive: false });
+    el.addEventListener('touchmove', hold, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', hold);
+      el.removeEventListener('touchmove', hold);
+    };
+  }, []);
 
   // Ctrl+scroll zoom (native listener for passive:false)
   useEffect(() => {
@@ -925,11 +954,8 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
             scrollable height — a second phantom scrollbar on top of the one the
             SVG itself caused. */}
         <div ref={overlayHostRef} style={{ position: 'relative', minWidth: '100%', minHeight: '100%', display: 'inline-flex', verticalAlign: 'top', alignItems: 'center', justifyContent: 'center' }}>
-          {/* userSelect: dragging across text in the drawing would select it.
-              touchAction: with something selected, a finger on the drawing
-              must reach the drag code instead of starting a browser pan,
-              which cancels the gesture. Pinch-zoom stays the browser's. */}
-          <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair', userSelect: 'none', touchAction: quad ? 'pinch-zoom' : 'auto' }} />
+          {/* userSelect: dragging across text in the drawing would select it. */}
+          <div ref={containerRef} data-testid="svg-preview" style={{ flexShrink: 0, cursor: 'crosshair', userSelect: 'none' }} />
           <SelectionOverlay quad={quad} coarse={coarsePointer} />
         </div>
       </div>

@@ -183,6 +183,7 @@ const NUMBER = /^\s*[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?\s*(?:px)?\s*$/i;
 const NUMBER_LIST = /^\s*[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?(?:(?:\s*,\s*|\s+)[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)*\s*$/i;
 
 const CSS_POSITIONED = 'This element is positioned by CSS, so it cannot be moved or resized here. Change its style in the code instead.';
+const ORIGIN_SET = 'This element sets its own transform origin, so it cannot be resized here. Change its size in the code instead.';
 const ANIMATED = 'This element is animated, so it cannot be moved or resized here.';
 const NESTED_SVG = 'A nested <svg> cannot be resized here. Change its width and height in the code instead.';
 const UNREADABLE_TRANSFORM = 'This element\'s transform could not be read, so it cannot be moved or resized here.';
@@ -195,17 +196,26 @@ function cssSets(el: Element, property: string): boolean {
 }
 
 /**
- * Why this element cannot be edited at all, or null. A CSS transform replaces
- * the attribute outright, and transform-origin changes what the attribute
- * means; either way an edit would not land where the user put it. Animation
- * would take the attribute back on its next frame.
+ * Why this element cannot be moved, or null. A CSS transform replaces the
+ * attribute outright, so an edit would not land where the user put it.
+ * Animation would take the attribute back on its next frame.
  */
 function blockedReason(el: Element): string | null {
-  if (['transform', 'transform-origin', 'transform-box'].some((p) => cssSets(el, p))) return CSS_POSITIONED;
-  // The same property as an attribute: it moves the point a scale grows
-  // from, so a resize would leap away from the pointer.
-  if (el.hasAttribute('transform-origin') || el.hasAttribute('transform-box')) return CSS_POSITIONED;
+  if (cssSets(el, 'transform')) return CSS_POSITIONED;
   if (Array.from(el.children).some((c) => /^(animate|animatetransform|animatemotion|set)$/i.test(c.tagName))) return ANIMATED;
+  return null;
+}
+
+/**
+ * Why this element cannot be resized, or null: anything that blocks a move,
+ * and a transform origin of its own, from CSS or the attribute of that name.
+ * The origin is the point a scale grows from, so a resize would leap away from
+ * the pointer. A move is unaffected — a shift is the same about any origin.
+ */
+function resizeBlockedReason(el: Element): string | null {
+  const blocked = blockedReason(el);
+  if (blocked) return blocked;
+  if (['transform-origin', 'transform-box'].some((p) => el.hasAttribute(p) || cssSets(el, p))) return ORIGIN_SET;
   return null;
 }
 
@@ -420,7 +430,7 @@ function nativeBox(el: Element): { box: Rect; values: Record<string, number[]> }
  * belongs to, as it would in any drawing program that scales objects.
  */
 export function planResize(el: Element, req: ResizeRequest): EditPlan {
-  const blocked = blockedReason(el);
+  const blocked = resizeBlockedReason(el);
   if (blocked) return { ok: false, reason: blocked };
   const list = readTransform(el);
   if (!list) return { ok: false, reason: UNREADABLE_TRANSFORM };
