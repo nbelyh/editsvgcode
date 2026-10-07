@@ -347,8 +347,9 @@ export function EditorPage() {
       selectedXPath={selectedXPath}
       onDeleteElement={selectedXPath ? handleDeleteElement : undefined}
       // Not over a proposal, which is not the document; not while loading,
-      // when the text on show is a stand-in.
-      editable={!proposedSvg && !readOnly}
+      // when the text on show is a stand-in. Not on a phone either: it has no
+      // code pane, so nothing there could undo a slip of the finger.
+      editable={!proposedSvg && !readOnly && !isPhone}
       onEditElement={handleEditElement}
       onUndo={handleEditorUndo}
       onRedo={handleEditorRedo}
