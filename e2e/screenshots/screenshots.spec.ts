@@ -220,6 +220,42 @@ test.describe('Feature screenshots', () => {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/07-click-to-select.png` });
   });
 
+  test('32 — move and resize in the preview', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <rect width="400" height="300" fill="#dff1fb"/>
+  <rect y="230" width="400" height="70" fill="#9ccc65"/>
+  <g id="house">
+    <rect x="90" y="140" width="150" height="110" fill="#f5deb3" stroke="#8d6e63" stroke-width="3"/>
+    <path d="M75 145 L165 75 L255 145 Z" fill="#c0504d"/>
+    <rect x="150" y="190" width="32" height="60" fill="#8d6e63"/>
+    <rect x="108" y="165" width="30" height="28" fill="#90caf9" stroke="#8d6e63" stroke-width="2"/>
+  </g>
+  <circle id="sun" cx="70" cy="60" r="26" fill="#ffca28"/>
+</svg>`);
+    await page.getByRole('button', { name: 'Zoom in' }).click();
+    await page.waitForTimeout(400);
+    // Drag the sun across the sky, then make it bigger from a corner.
+    const sun = await page.locator('[data-testid="svg-preview"] #sun').boundingBox();
+    const at = { x: sun!.x + sun!.width / 2, y: sun!.y + sun!.height / 2 };
+    await page.mouse.click(at.x, at.y);
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    await page.mouse.move(at.x + 320, at.y - 10, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    const se = await page.locator('[data-testid="selection-overlay"] [data-handle="se"]').boundingBox();
+    await page.mouse.move(se!.x + se!.width / 2, se!.y + se!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(se!.x + 25, se!.y + 25, { steps: 6 });
+    await page.mouse.up();
+    // Off the drawing, so no hover glow competes with the selection box.
+    await page.mouse.move(5, 300);
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/32-move-resize.png` });
+  });
+
   // --- 3. AI Chat ---
 
   test('08 — chat conversation', async ({ page }) => {

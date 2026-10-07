@@ -12,6 +12,7 @@
 - `05-zoom-controls.png` — Zoom controls, zoomed-in SVG showing zoom toolbar
 - `06-background-modes.png` — Background modes, 2×2 grid: same SVG on checkerboard/white/black/dark
 - `07-click-to-select.png` — Click-to-select, element highlighted with dashed outline, code selected in editor
+- `32-move-resize.png` — A circle moved and resized in the preview, with its new attributes selected in the code
 
 ## 3. AI Chat
 

@@ -65,6 +65,28 @@ export interface Update {
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
   {
+    id: 'move-and-resize',
+    date: '2026-10-07',
+    title: 'Move and resize shapes in the preview',
+    summary:
+      'The preview could show you a shape\'s code and delete it, but moving or resizing anything meant editing numbers by hand. Now you can drag a shape to move it and drag its handles to resize it, and the change is written into the code the way you would write it yourself: a circle\'s cx and r, a rectangle\'s x and width, a traced path\'s translate. The rest of the file stays exactly as it was, and one Ctrl+Z undoes a whole drag.',
+    images: [
+      {
+        src: '/screenshots/32-move-resize.png',
+        thumb: '/screenshots/thumbs/32-move-resize.png',
+        alt: 'The sun dragged across the sky and enlarged from a corner handle: it is still selected in the preview, and its line in the code now reads cx="334" cy="60" r="34".',
+      },
+    ],
+    changes: [
+      { kind: 'new', text: 'Drag a selected shape to move it, or one of the eight handles around it to resize it. Hold Shift to keep its proportions, and press Esc during a drag to put it back.' },
+      { kind: 'new', text: 'The arrow keys move the selected shape by one unit, and by ten with Shift.' },
+      { kind: 'new', text: 'Clicking walks into groups: the first click selects the whole group a shape belongs to, and each further click goes one level deeper, down to the shape itself.' },
+      { kind: 'improved', text: 'Shapes without a position of their own, such as paths, groups and text, are moved and resized with a transform, and a second resize updates that transform instead of adding another.' },
+      { kind: 'improved', text: 'Del removes exactly the selected element from the code, even when it shares a line with other elements.' },
+      { kind: 'fixed', text: 'In a file with markup commented out, clicking a shape could select a different element in the code.' },
+    ],
+  },
+  {
     id: 'the-assistant-looks',
     date: '2026-10-07',
     title: 'The assistant can look at your drawing',

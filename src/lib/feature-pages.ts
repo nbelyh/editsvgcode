@@ -631,6 +631,11 @@ export const FEATURE_PAGES: FeaturePage[] = [
           'Drag a shape to move it, or drag one of the handles around it to resize it. Shift keeps its proportions, and Esc during a drag puts it back where it was. The arrow keys move the selection by one unit, ten with Shift.',
           'Each change is written into the code the way you would write it yourself: a rectangle\'s x and width, a circle\'s cx and r, a traced path\'s translate. Nothing else in the file is touched, and one Ctrl+Z undoes a whole drag. Shapes that have no position of their own, such as paths, groups and text, are moved and resized with a transform.',
         ],
+        image: {
+          src: '/screenshots/32-move-resize.png',
+          alt: 'The sun dragged across the sky and enlarged from a corner handle, with its new cx, cy and r in the code.',
+          width: 1400, height: 900,
+        },
       },
       {
         heading: 'Zoom and backgrounds',
