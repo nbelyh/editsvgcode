@@ -83,6 +83,7 @@ export const UPDATES: Update[] = [
       { kind: 'new', text: 'Clicking walks into groups: the first click selects the whole group a shape belongs to, and each further click goes one level deeper, down to the shape itself.' },
       { kind: 'improved', text: 'Shapes without a position of their own, such as paths, groups and text, are moved and resized with a transform, and a second resize updates that transform instead of adding another.' },
       { kind: 'improved', text: 'Del removes exactly the selected element from the code, even when it shares a line with other elements.' },
+      { kind: 'improved', text: 'Ctrl and the scroll wheel zoom toward the pointer, so the spot you are looking at stays under it instead of drifting away.' },
       { kind: 'fixed', text: 'In a file with markup commented out, clicking a shape could select a different element in the code.' },
     ],
   },

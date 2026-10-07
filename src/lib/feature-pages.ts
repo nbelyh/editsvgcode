@@ -640,7 +640,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         heading: 'Zoom and backgrounds',
         paragraphs: [
-          'Zoom with the toolbar or with Ctrl and the scroll wheel, from 1% up to 5000% and beyond, keeping the middle of the view where it was. Fit to window shows the whole drawing, and the right mouse button drags the view around. A drawing larger than the pane is fitted when it opens.',
+          'Zoom with the toolbar or with Ctrl and the scroll wheel, from 1% up to 5000% and beyond. The wheel zooms toward the pointer, keeping the spot under it in place; the toolbar keeps the middle of the view where it was. Fit to window shows the whole drawing, and the right mouse button drags the view around. A drawing larger than the pane is fitted when it opens.',
           'The background can be a light or a dark checkerboard, white or black. The checkerboards show what is transparent; the solid ones show how a drawing looks on a light or a dark page.',
         ],
         image: {

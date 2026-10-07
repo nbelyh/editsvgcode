@@ -186,6 +186,8 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   const scrollRef = useRef<HTMLDivElement>(null);
   const naturalSize = useRef<{ w: number; h: number } | null>(null);
   const prevZoomRef = useRef(100);
+  /** Where a Ctrl+wheel zoom was aimed, as a fraction of the drawing, and the pointer then. */
+  const zoomAnchorRef = useRef<{ fx: number; fy: number; clientX: number; clientY: number } | null>(null);
   const savedScrollRef = useRef<{ left: number; top: number } | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
   const [bgMode, setBgMode] = useState<BgMode>('checkerboard');
@@ -803,7 +805,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
 
     // Preserve scroll: recenter on zoom changes, restore position on content edits
     const prev = prevZoomRef.current;
-    if (prev !== zoomPct) {
+    const anchor = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
+    if (prev !== zoomPct && anchor) {
+      // The wheel: put the spot that was under the pointer back under it.
+      // While the drawing is smaller than the pane there is nothing to scroll,
+      // and it simply grows from the middle, where the layout centres it.
+      const r = svg.getBoundingClientRect();
+      el.scrollLeft += r.left + anchor.fx * r.width - anchor.clientX;
+      el.scrollTop += r.top + anchor.fy * r.height - anchor.clientY;
+    } else if (prev !== zoomPct) {
       requestAnimationFrame(() => {
         el.scrollLeft = cx * el.scrollWidth - el.clientWidth / 2;
         el.scrollTop = cy * el.scrollHeight - el.clientHeight / 2;
@@ -839,6 +850,12 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     const handler = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
+        // Zoom toward the pointer: remember where it is on the drawing, as a
+        // fraction of it, so the zoom effect can scroll that spot back under it.
+        const r = getSvg()?.getBoundingClientRect();
+        zoomAnchorRef.current = r && r.width > 0 && r.height > 0
+          ? { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height, clientX: e.clientX, clientY: e.clientY }
+          : null;
         setZoomPct(e.deltaY < 0 ? stepUp : stepDown);
       }
     };

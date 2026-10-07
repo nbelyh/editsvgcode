@@ -341,3 +341,31 @@ test.describe('The view stays put', () => {
     expect(await pane.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }))).toEqual(scrolled);
   });
 });
+
+test.describe('Wheel zoom', () => {
+  test('Ctrl+wheel zooms toward the pointer once the drawing is larger than the pane', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Zoom in' }).click();
+    await page.waitForTimeout(300);
+    const pane = (await page.locator('[data-testid="svg-preview"]').locator('xpath=../..').boundingBox())!;
+    // Off-centre, where a zoom about the middle would carry the spot away.
+    const at = { x: pane.x + pane.width * 0.25, y: pane.y + pane.height * 0.3 };
+    const spot = () => page.evaluate(({ x, y }) => {
+      const r = document.querySelector('[data-testid="svg-preview"]')!.shadowRoot!.querySelector('svg')!.getBoundingClientRect();
+      return { fx: (x - r.left) / r.width, fy: (y - r.top) / r.height };
+    }, at);
+    const before = await spot();
+    await page.mouse.move(at.x, at.y);
+    for (let i = 0; i < 2; i++) {
+      await page.keyboard.down('Control');
+      await page.mouse.wheel(0, -100);
+      await page.keyboard.up('Control');
+      await page.waitForTimeout(300);
+    }
+    const after = await spot();
+    expect(after.fx).toBeCloseTo(before.fx, 2);
+    expect(after.fy).toBeCloseTo(before.fy, 2);
+  });
+});

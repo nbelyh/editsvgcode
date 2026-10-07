@@ -34,7 +34,7 @@ Inline color swatches with a picker supporting hex, RGB, HSL, and named SVG colo
 ## Live Preview
 
 ### Zoom Controls
-Zoom in/out, reset, fit to window. Ctrl+scroll supported.
+Zoom in/out, reset, fit to window. Ctrl+scroll zooms toward the pointer.
 
 ![Zoom Controls](https://editsvgcode.com/screenshots/05-zoom-controls.png)
 
