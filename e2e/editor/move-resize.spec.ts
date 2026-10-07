@@ -320,3 +320,24 @@ test.describe('Selection edge cases', () => {
     await expect.poll(() => editorValue(page)).toContain('id="door" x="91"');
   });
 });
+
+test.describe('The view stays put', () => {
+  test('dropping a shape in a scrolled, zoomed-in view does not scroll the view', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Zoom in' }).click();
+    const pane = page.locator('[data-testid="svg-preview"]').locator('xpath=../..');
+    await pane.evaluate((el) => { el.scrollLeft = el.scrollWidth / 3; el.scrollTop = el.scrollHeight / 3; });
+    await page.waitForTimeout(300);
+    const scrolled = await pane.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+    expect(scrolled.left).toBeGreaterThan(0);
+
+    await selectById(page, 'door');
+    await drag(page, await centreOf(page, '#door'), 20, 0);
+    await expect.poll(() => editorValue(page)).not.toBe(GROUPED);
+    // Past the render debounce, when the jump used to happen.
+    await page.waitForTimeout(800);
+    expect(await pane.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }))).toEqual(scrolled);
+  });
+});

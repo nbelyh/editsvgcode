@@ -614,13 +614,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   useEffect(() => {
     const shadow = shadowRef.current;
     if (!shadow) return;
+    // Save scroll position before DOM replacement — and before the skip below
+    // too: the zoom effect restores this position whenever the content
+    // changes, rendered or not, and a stale one scrolled the whole view back
+    // to wherever it was at the last real render the moment a drag landed.
+    const el = scrollRef.current;
+    if (el) savedScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
     // An edit made here has already been drawn here. Rendering it again would
     // swap every element out from under a second drag started within the
     // debounce, or a held arrow key, and cut it off half way.
     if (documentReady && renderedSourceRef.current === svgCode && shadow.querySelector('svg')) return;
-    // Save scroll position before DOM replacement
-    const el = scrollRef.current;
-    if (el) savedScrollRef.current = { left: el.scrollLeft, top: el.scrollTop };
     // Before the sanitize, not after: while the document is still loading there
     // is nothing worth parsing, and painting the stand-in string costs a layout
     // shift. Deliberately keyed on the load state rather than on "does this
