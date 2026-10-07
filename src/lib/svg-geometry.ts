@@ -62,12 +62,13 @@ export function pixelsPerUnit(m: Matrix): number {
 
 /**
  * Decimal places worth writing when one screen pixel spans `1 / pxPerUnit`
- * units: whole numbers at 1:1, one place at 10×, none for a zoomed-out poster.
- * Writing more records the jitter of a hand on a mouse, not an intention.
+ * units: whole numbers until a unit is about three pixels wide, then one place,
+ * two from about thirty. So 125% writes whole numbers, not cx="334.1" — a
+ * step of one unit there is still finer than a hand on a mouse is steady.
  */
 export function decimalsFor(pxPerUnit: number): number {
   if (!(pxPerUnit > 0) || !Number.isFinite(pxPerUnit)) return 0;
-  return Math.min(4, Math.max(0, Math.ceil(Math.log10(pxPerUnit) - 0.05)));
+  return Math.min(4, Math.max(0, Math.ceil(Math.log10(pxPerUnit) - 0.5)));
 }
 
 export function roundTo(n: number, decimals: number): number {

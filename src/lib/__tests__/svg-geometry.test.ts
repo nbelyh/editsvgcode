@@ -78,6 +78,8 @@ describe('number formatting', () => {
   it('writes whole numbers at 1:1 and more places only when zoomed in', () => {
     expect(decimalsFor(1)).toBe(0);
     expect(decimalsFor(0.25)).toBe(0);
+    expect(decimalsFor(1.25)).toBe(0);
+    expect(decimalsFor(3)).toBe(0);
     expect(decimalsFor(4)).toBe(1);
     expect(decimalsFor(10)).toBe(1);
     expect(decimalsFor(40)).toBe(2);
