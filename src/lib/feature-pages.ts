@@ -122,6 +122,19 @@ const OVERLAP = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="230
   </g>
 </svg>`;
 
+/** A drawing shaped like a traced one: unnamed paths, a kite in two reds, birds in the same reds. */
+const KITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <path d="M0 0 H400 V300 H0 Z" style="fill: #DDEFFB;"/>
+  <path d="M220 30 L170 100 L220 112 Z" style="fill: #E63946;"/>
+  <path d="M220 30 L270 100 L220 112 Z" style="fill: #A4161A;"/>
+  <path d="M170 100 L220 200 L220 112 Z" style="fill: #A4161A;"/>
+  <path d="M270 100 L220 200 L220 112 Z" style="fill: #E63946;"/>
+  <path d="M210 222 L230 212 L230 232 Z" style="fill: #F4D35E;"/>
+  <path d="M215 258 L235 248 L235 268 Z" style="fill: #F4D35E;"/>
+  <path d="M50 70 C62 56 76 56 88 70 C76 64 62 64 50 70 Z M88 70 C100 56 114 56 126 70 C114 64 100 64 88 70 Z" style="fill: #A4161A;"/>
+  <path d="M300 200 C310 189 322 189 332 200 C322 195 310 195 300 200 Z M332 200 C342 189 354 189 364 200 C354 195 342 195 332 200 Z" style="fill: #E63946;"/>
+</svg>`;
+
 // --- The pages ---------------------------------------------------------------------------------
 
 export const FEATURE_PAGES: FeaturePage[] = [
@@ -268,7 +281,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
     ],
     limits: [
       'The assistant needs a free account. You can type your message before signing in; it is sent as soon as you have.',
-      'It reads the code, not the picture. For "the shape on the left" it works out from coordinates what is on the left, and says so when it had to guess.',
+      'It works from the code. For "the shape on the left" it works out from coordinates what is on the left, and says so when it had to guess. When the code does not say which unnamed shape is the part you mean, models that can see images look at the drawing first.',
       'Exact geometry is where it is weakest: "make the line 25 px longer" or "line these up exactly" can come back close rather than exact. For that, change the numbers in the code.',
       'In a very large drawing the assistant reads the parts it needs rather than the whole file. Embedded images and fonts are passed over and kept exactly as they are; it cannot see inside them.',
       'On the free plan, a conversation that grows very long asks you to start a new chat on the drawing.',
@@ -292,7 +305,60 @@ export const FEATURE_PAGES: FeaturePage[] = [
         a: 'Start with the default. If a change needs more care — a busy drawing, several steps at once — try a larger model or a higher effort.',
       },
     ],
-    related: ['ai-images', 'icon-search', 'code-editor'],
+    related: ['ai-looks', 'ai-images', 'icon-search'],
+  },
+  {
+    slug: 'ai-looks',
+    title: 'The assistant looks at your drawing',
+    lead: 'A traced picture has no names in it. The hat, the coat and the glass of a magnifying glass are unnamed shapes, known only by their colour and position, and "make the hat red" has to be worked out from those. When it is not sure which shapes you mean, the assistant now looks at the drawing: it outlines the shapes it suspects, sees which ones sit on the part you named, and edits those.',
+    tryIt: {
+      label: 'Try it with a kite',
+      svg: KITE,
+      hint: 'Opens a kite drawn like a traced picture, in two reds, with birds in the same reds. Sign in for free, then ask "make the kite purple".',
+    },
+    sections: [
+      {
+        heading: 'How it works',
+        paragraphs: [
+          'Looking is one of the assistant\'s tools, and it decides when to use it. Your browser draws the current drawing as a picture and hands it to the model, with up to four shapes outlined, each in its own colour: magenta, cyan, green and blue. Everything else is faded, so the outlined shapes stand out. Beside the picture, the model is told which element each outline is, the line of the file it starts on, its colour and where it sits.',
+          'It can also look closer. A crop draws one region of the drawing at full size, which helps with small parts such as an eye or a button. When it has looked, the steps listed under its reply include `get_png_image`.',
+        ],
+        image: {
+          src: '/screenshots/31-ai-looks.png',
+          alt: 'What the assistant saw while looking for the glass of a magnifying glass: on the left, the whole drawing with four candidate shapes outlined and everything else faded; on the right, a close-up of the magnifying glass with the lens outlined.',
+          width: 1400, height: 900,
+        },
+      },
+      {
+        heading: 'When it helps',
+        paragraphs: [
+          'It matters most in drawings that came from an image generator or a tracer, where every shape is an unnamed path and one colour often appears in several parts. Asked to recolour the coat, the assistant used to pick shapes by colour and position alone, and could repaint the fur of the same brown with it. Now it can check, before the edit, that the shapes it chose are the coat.',
+          'A part drawn in several shades, such as a ball with a highlight and a shadow, is several shapes. The assistant is told that every piece inside the part\'s outline belongs to it, so the highlight should change colour with the ball. Smaller models still leave a piece behind now and then; when one does, name the piece in your next message.',
+          'A drawing whose shapes have meaningful ids or classes, or whose parts are text, needs no look: the code already says which part is which.',
+        ],
+      },
+    ],
+    limits: [
+      'Only models that can see images can look. Two text-only models, DeepSeek-V4-Flash and Kimi-K2.6, edit from the code alone, as before.',
+      'A model can still misread a picture. In our tests, gpt-5.4-mini took the amber lens of a magnifying glass for a reflection and recoloured only its highlight. If a result is wrong, say which part it missed, or try another model.',
+      'Shapes that touch the part you name can be taken for it. Asked for a red hat on a raccoon, models sometimes painted the ears that stick out from under it.',
+      'A request costs its usual credits, however many times the assistant looks.',
+    ],
+    faq: [
+      {
+        q: 'Is my drawing sent anywhere new?',
+        a: 'No. The picture is drawn in your browser and goes to the same AI provider that already receives your drawing\'s code with each request. It is not kept with the conversation: a turn keeps its two newest pictures, and none are saved with the chat.',
+      },
+      {
+        q: 'Can I make it look?',
+        a: 'Name the part in your request, as in "make the hat red". When the drawing does not say which shapes that is, the assistant looks on its own.',
+      },
+      {
+        q: 'Does it help with icons and generated pictures?',
+        a: 'Those have tools of their own. An icon comes from the icon library as a box the assistant places in your drawing, and a new picture is generated and traced. Looking is for finding and changing parts of the drawing you already have.',
+      },
+    ],
+    related: ['ai-chat', 'icon-search', 'ai-images'],
   },
   {
     slug: 'ai-images',
@@ -387,6 +453,13 @@ export const FEATURE_PAGES: FeaturePage[] = [
           alt: 'Asked for a star icon, the chat offers a grid of stars from different icon sets to pick from.',
           width: 1400, height: 900,
         },
+      },
+      {
+        heading: 'Logos, and icons on their own',
+        paragraphs: [
+          'Well-known brand logos are in the library too. Asked for one, the assistant offers the real logo rather than drawing a look-alike, which would be worse and could get you into trouble with the brand\'s owner.',
+          'An icon added to a drawing comes in at about a quarter of its size unless you say otherwise; beside text it matches the text\'s height, and inside a shape it stays within it. Asked for an icon on an empty canvas, or on the starter drawing the editor opens with, the icon becomes the drawing and fills it.',
+        ],
       },
       {
         heading: 'Licences',

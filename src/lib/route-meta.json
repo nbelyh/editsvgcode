@@ -17,6 +17,11 @@
       "description": "Describe a change — recolour, translate, add a title — and the AI assistant edits your SVG code and shows it in the preview to accept or reject.",
       "image": "/screenshots/23-structural-edits.png"
     },
+    "/features/ai-looks": {
+      "title": "AI That Looks at Your SVG",
+      "description": "In a traced picture of unnamed shapes, the assistant outlines the shapes it suspects and checks which sit on the part you named before it recolours them.",
+      "image": "/screenshots/31-ai-looks.png"
+    },
     "/features/ai-images": {
       "title": "AI Pictures Traced into SVG",
       "description": "Ask for a picture in the chat: it is generated, then traced into editable SVG paths in your browser, with settings for colours, detail and curves.",

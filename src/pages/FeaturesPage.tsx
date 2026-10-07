@@ -41,6 +41,14 @@ const AI_FEATURES: Feature[] = [
     badge: 'Pro',
   },
   {
+    title: 'AI That Looks',
+    page: 'ai-looks',
+    description: 'A traced picture is unnamed shapes, so "make the hat red" used to be worked out from colours and coordinates alone. Now the assistant can look first: it outlines up to four shapes it suspects, each in its own colour, sees which sit on the part you named, and edits those.',
+    image: '/screenshots/31-ai-looks.png',
+    thumb: '/screenshots/thumbs/31-ai-looks.png',
+    badge: 'Pro',
+  },
+  {
     title: 'Image Generation & Vectorizer',
     page: 'ai-images',
     description: 'Describe an image in text and the AI generates a raster PNG. The built-in vectorizer then converts it to SVG paths. You can tune the vectorization: number of colors, speckle filtering threshold, corner threshold, curve optimization, and path simplification. The result is inserted directly into the editor.',

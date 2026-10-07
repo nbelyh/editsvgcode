@@ -14,6 +14,8 @@
  * feature in it is genuinely the thing being announced.
  */
 
+import theAssistantLooks from './articles/the-assistant-looks.md?raw';
+
 export type ChangeKind = 'new' | 'improved' | 'fixed';
 
 export interface UpdateChange {
@@ -62,6 +64,32 @@ export interface Update {
 
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
+  {
+    id: 'the-assistant-looks',
+    date: '2026-10-07',
+    title: 'The assistant can look at your drawing',
+    article: theAssistantLooks,
+    summary:
+      'In a traced picture every shape is an unnamed path, so "make the hat red" had to be worked out from colours and coordinates, and the assistant could repaint the wrong brown. It can now look before it edits: your browser draws the picture with the shapes it suspects outlined in colour, and it changes the ones that sit on the part you named. Icons got a lot better too: they come in at a sensible size, an icon asked for on its own becomes the whole drawing, and brand logos are found rather than redrawn by hand.',
+    images: [
+      {
+        src: '/screenshots/31-ai-looks.png',
+        thumb: '/screenshots/thumbs/31-ai-looks.png',
+        alt: 'What the assistant saw while looking for the glass of a magnifying glass: the whole drawing with four candidate shapes outlined and the rest faded, and a close-up of the lens.',
+      },
+    ],
+    changes: [
+      { kind: 'new', text: 'When the code does not say which unnamed shape is the part you mean, the assistant can look at the drawing: it outlines up to four shapes it suspects, each in its own colour, and edits the ones that sit on that part.' },
+      { kind: 'new', text: 'An edit that leaves the drawing looking empty, such as white lettering left on a white page after the box behind it was removed, now says "Applied, but the drawing may look empty".' },
+      { kind: 'improved', text: 'A picked icon comes in at a sensible size: about a quarter of the drawing in a corner, the height of the text beside a title, and within the shape it was put in.' },
+      { kind: 'improved', text: 'Asked for an icon on an empty canvas or on the starter drawing, the assistant makes the icon the whole drawing.' },
+      { kind: 'improved', text: 'Brand logos are found even when the search is narrowed to one icon style, so the assistant offers the real logo instead of drawing a look-alike.' },
+      { kind: 'improved', text: 'Icon searches ask the icon library for far fewer files, so several searches in a row no longer leave the icons failing to load.' },
+      { kind: 'improved', text: 'A part drawn in several shades, such as a ball with a highlight and a shadow, is more often recoloured as a whole.' },
+      { kind: 'improved', text: 'Qwen 3.8 Flash now acts on requests it often answered with a question about what to change.' },
+      { kind: 'fixed', text: 'Requests to the Qwen models no longer fail with an error.' },
+    ],
+  },
   {
     id: 'export',
     date: '2026-10-03',
