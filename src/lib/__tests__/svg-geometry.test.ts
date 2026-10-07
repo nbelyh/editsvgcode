@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  parseTransform, listMatrix, multiply, invert, applyToPoint, decimalsFor, fmt,
+  parseTransform, listMatrix, multiply, invert, applyToPoint, decimalsFor, fmt, shifted,
   planMove, planResize, axisMaps, resizedBox, type ResizeRequest, type Rect,
 } from '../svg-geometry';
 
@@ -127,6 +127,11 @@ describe('planMove', () => {
   it('updates a leading translate in place, keeping its comma', () => {
     expect(planMove(el('<path d="M0 0" transform="translate(364,94)"/>'), 25, -4))
       .toEqual({ ok: true, attrs: { transform: 'translate(389,90)' } });
+  });
+
+  it('changes a long coordinate by the distance moved and nothing else', () => {
+    expect(planMove(el('<path d="M0 0" transform="translate(121.31122970581055,-0.511744499206543)"/>'), 5, 0))
+      .toEqual({ ok: true, attrs: { transform: 'translate(126.31122970581055,-0.511744499206543)' } });
   });
 
   it('updates the leading translate and keeps what follows it', () => {
@@ -319,5 +324,17 @@ describe('planResize', () => {
 
   it('refuses an element whose transform CSS controls', () => {
     expect(planResize(el('<rect style="transform:none" width="5" height="5"/>'), req({ dx: 1 })).ok).toBe(false);
+  });
+});
+
+describe('shifted', () => {
+  it('keeps as many places as the value had', () => {
+    expect(shifted(121.31122970581055, 5)).toBe('126.31122970581055');
+    expect(shifted(0.1, 0.2)).toBe('0.3');
+    expect(shifted(40, 25)).toBe('65');
+  });
+
+  it('leaves the value as written when nothing moves', () => {
+    expect(shifted(1.5e-7, 0)).toBe('1.5e-7');
   });
 });

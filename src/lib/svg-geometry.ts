@@ -80,6 +80,23 @@ export function fmt(n: number, decimals = 6): string {
   return String(roundTo(n, decimals));
 }
 
+/** Decimal places a number was written with. */
+function placesOf(n: number): number {
+  const m = /\.(\d+)(?:e([-+]\d+))?$/i.exec(String(n));
+  return m ? Math.max(0, m[1].length - Number(m[2] ?? 0)) : 0;
+}
+
+/**
+ * `value + delta`, written as finely as the value was. A move should change a
+ * coordinate by the distance moved and nothing else: a traced path's
+ * `translate(121.31122970581055,…)` keeps its digits rather than being rounded
+ * to six places by a drag that only shifted it by 5.
+ */
+export function shifted(value: number, delta: number): string {
+  if (delta === 0) return String(value);
+  return fmt(value + delta, Math.min(15, Math.max(6, placesOf(value))));
+}
+
 // ---------------------------------------------------------------------------
 // The transform attribute
 // ---------------------------------------------------------------------------
@@ -210,7 +227,7 @@ function plainNumbers(el: Element, names: string[], { lists = false, required = 
   return out;
 }
 
-const listText = (values: number[]) => values.map((v) => fmt(v)).join(' ');
+const shiftedList = (values: number[], delta: number) => values.map((v) => shifted(v, delta)).join(' ');
 
 /** Which attributes carry an element's position along each axis. */
 const MOVE_ATTRS: Record<string, { x: string[]; y: string[] }> = {
@@ -249,13 +266,13 @@ export function planMove(el: Element, dx: number, dy: number): EditPlan {
   if (first?.name === 'translate') {
     const text = value.slice(first.start, first.end);
     const [tx, ty = 0] = first.args;
-    const args = first.args.length === 1 && dy === 0 ? [fmt(tx + dx)] : [fmt(tx + dx), fmt(ty + dy)];
+    const args = first.args.length === 1 && dy === 0 ? [shifted(tx, dx)] : [shifted(tx, dx), shifted(ty, dy)];
     return { ok: true, attrs: { transform: value.slice(0, first.start) + `translate(${joinArgs(text, args)})` + value.slice(first.end) } };
   }
   if (first?.name === 'matrix') {
     const text = value.slice(first.start, first.end);
     const [a, b, c, d, e, f] = first.args;
-    const args = [a, b, c, d, e + dx, f + dy].map((n) => fmt(n));
+    const args = [String(a), String(b), String(c), String(d), shifted(e, dx), shifted(f, dy)];
     return { ok: true, attrs: { transform: value.slice(0, first.start) + `matrix(${joinArgs(text, args)})` + value.slice(first.end) } };
   }
 
@@ -272,7 +289,7 @@ export function planMove(el: Element, dx: number, dy: number): EditPlan {
     const attrs: Record<string, string | null> = {};
     for (const [names, delta] of [[spec.x, local.x], [spec.y, local.y]] as const) {
       if (roundTo(delta, 6) === 0) continue;
-      for (const name of names) attrs[name] = listText(values[name].map((v) => v + delta));
+      for (const name of names) attrs[name] = shiftedList(values[name], delta);
     }
     return { ok: true, attrs };
   }

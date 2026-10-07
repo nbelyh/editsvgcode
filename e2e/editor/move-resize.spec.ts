@@ -1,5 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { waitForEditor, setSvgContent } from '../support/helpers';
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const fixture = (name: string) =>
+  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../fixtures', name), 'utf-8');
 
 /** The text the editor currently has selected. */
 async function editorSelection(page: Page): Promise<string> {
@@ -221,5 +227,49 @@ test.describe('Moving shapes positioned by a transform', () => {
     await selectById(page, 'box');
     await drag(page, await centreOf(page, '#box'), 25, 0);
     await expect.poll(() => editorValue(page)).toContain('<rect id="box" x="30" y="10"');
+  });
+});
+
+test.describe('Moving parts of real drawings', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+  });
+
+  test('a step of a flowchart moves as one group', async ({ page }) => {
+    await setSvgContent(page, fixture('flowchart.svg'));
+    const rect = await page.locator('[data-testid="svg-preview"] #step-idea rect').boundingBox();
+    await drag(page, { x: rect!.x + 10, y: rect!.y + 10 }, 0, 40);
+    await expect.poll(() => editorValue(page)).toMatch(/<g id="step-idea" transform="translate\(0 \d+\)">/);
+  });
+
+  test('a traced shape moves by its translate, and only that changes', async ({ page }) => {
+    const before = fixture('lighthouse.svg');
+    await setSvgContent(page, before);
+    // The first point, scanning from the middle, that lands on a traced path.
+    const box = await page.locator('[data-testid="svg-preview"] svg').boundingBox();
+    const at = await page.evaluate((b) => {
+      const root = document.querySelector('[data-testid="svg-preview"]')!.shadowRoot!;
+      for (let dy = 0; dy < b.height / 2; dy += 7) {
+        for (const y of [b.y + b.height / 2 + dy, b.y + b.height / 2 - dy]) {
+          const x = b.x + b.width / 2;
+          if (root.elementFromPoint(x, y)?.getAttribute('transform')?.startsWith('translate(')) return { x, y };
+        }
+      }
+      return null;
+    }, box!);
+    expect(at).not.toBeNull();
+    await drag(page, at!, 30, 0);
+    await expect.poll(() => editorValue(page)).not.toBe(before);
+
+    const after = await editorValue(page);
+    const was = before.split(/\r?\n/);
+    const now = after.split(/\r?\n/);
+    expect(now.length).toBe(was.length);
+    const changed = now.map((line, i) => [was[i], line]).filter(([a, b]) => a !== b);
+    expect(changed).toHaveLength(1);
+    // Within that line, only the translate.
+    const strip = (line: string) => line.replace(/transform="translate\([^)]*\)"/, 'T');
+    expect(strip(changed[0][1])).toBe(strip(changed[0][0]));
   });
 });
