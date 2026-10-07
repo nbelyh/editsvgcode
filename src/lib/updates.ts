@@ -85,6 +85,7 @@ export const UPDATES: Update[] = [
       { kind: 'improved', text: 'Del removes exactly the selected element from the code, even when it shares a line with other elements.' },
       { kind: 'improved', text: 'Ctrl and the scroll wheel zoom toward the pointer, so the spot you are looking at stays under it instead of drifting away.' },
       { kind: 'fixed', text: 'In a file with markup commented out, clicking a shape could select a different element in the code.' },
+      { kind: 'fixed', text: 'Zooming into a drawing sized 100% with no viewBox, as Visio exports are, now magnifies it instead of only making the canvas bigger.' },
     ],
   },
   {

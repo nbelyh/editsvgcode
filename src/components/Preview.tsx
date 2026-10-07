@@ -716,6 +716,13 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
             // Safe to re-measure inside synthesizeViewBox with the percentage
             // attributes back on: we only get here when the box ignores them.
             size = synthesizeViewBox(svg, pw, ph) ?? size;
+          } else {
+            // Laid out at the pane's size, and given that size as its viewBox
+            // too: at 100% nothing moves, and zooming magnifies the drawing.
+            // Without one, zoom only made the canvas bigger — the shapes kept
+            // their size and slid apart. A Visio export sized 100% with no
+            // viewBox did that whenever it fitted the pane.
+            svg.setAttribute('viewBox', `0 0 ${pw} ${ph}`);
           }
         }
       }

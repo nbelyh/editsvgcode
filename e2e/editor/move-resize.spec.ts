@@ -368,4 +368,23 @@ test.describe('Wheel zoom', () => {
     expect(after.fx).toBeCloseTo(before.fx, 2);
     expect(after.fy).toBeCloseTo(before.fy, 2);
   });
+
+  test('a drawing sized 100% with no viewBox is magnified, not just given a bigger canvas', async ({ page }) => {
+    // The shape of a Visio export: percentage size, absolute coordinates, no viewBox.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <rect id="a" x="20" y="20" width="120" height="60" fill="orange"/>
+  <rect id="b" x="200" y="150" width="120" height="60" fill="green"/>
+</svg>`;
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, svg);
+    const width = async () => (await page.locator('[data-testid="svg-preview"] #b').boundingBox())!.width;
+    const before = await width();
+    const at = await centreOf(page, '#b');
+    await page.mouse.move(at.x, at.y);
+    await page.keyboard.down('Control');
+    await page.mouse.wheel(0, -100);
+    await page.keyboard.up('Control');
+    await expect.poll(width).toBeGreaterThan(before * 1.2);
+  });
 });

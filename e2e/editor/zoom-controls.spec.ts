@@ -62,11 +62,15 @@ test.describe('Zoom Controls', () => {
     await waitForEditor(page);
     await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="#f0e0ff"/><circle cx="50%" cy="50%" r="40" fill="#9b59b6"/></svg>');
 
-    // Nothing reaches outside the viewport, so the pane is the natural size and
-    // no viewBox is invented for it.
+    // Nothing reaches outside the viewport, so the pane is the natural size —
+    // and its viewBox, so that zoom magnifies the drawing rather than only
+    // handing it a bigger canvas. Never one framed around the content.
     const pane = await page.locator('[data-testid="preview-panel"] > div').last().evaluate((el) => ({ w: el.clientWidth, h: el.clientHeight }));
     const size = await previewSize(page);
-    expect(size.viewBox).toBeNull();
+    const [vx, vy, vw, vh] = size.viewBox!.split(/\s+/).map(Number);
+    expect([vx, vy]).toEqual([0, 0]);
+    expect(Math.abs(vw - pane.w)).toBeLessThanOrEqual(20);
+    expect(Math.abs(vh - pane.h)).toBeLessThanOrEqual(20);
     // Not exact equality: the preview draws a 1px border inside the shadow root,
     // so an svg sized to the pane overflows it by 2px and the scroll container
     // takes a scrollbar's width off clientWidth — which headless Chromium hides
@@ -105,8 +109,13 @@ test.describe('Zoom Controls', () => {
     await setSvgContent(page, '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="#f0e0ff"/><circle cx="0" cy="0" r="200" fill="#9b59b6"/></svg>');
 
     // The box reaches past the edge, but it moves with the viewport, so the
-    // drawing belongs to its box and gets no viewBox invented for it.
-    await expect.poll(async () => (await previewSize(page)).viewBox, { timeout: 5000 }).toBeNull();
+    // drawing belongs to its box: its viewBox is the pane, starting at the
+    // origin, not one stretched to take in the part that bleeds off.
+    await expect.poll(async () => (await previewSize(page)).viewBox, { timeout: 5000 }).toMatch(/^0 0 /);
+    const [, , vw, vh] = (await previewSize(page)).viewBox!.split(/\s+/).map(Number);
+    const pane = await page.locator('[data-testid="preview-panel"] > div').last().evaluate((el) => ({ w: el.clientWidth, h: el.clientHeight }));
+    expect(Math.abs(vw - pane.w)).toBeLessThanOrEqual(20);
+    expect(Math.abs(vh - pane.h)).toBeLessThanOrEqual(20);
   });
 
   test('percentage dimensions: content flat on one axis is still framed', async ({ page }) => {
