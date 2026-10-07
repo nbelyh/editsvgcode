@@ -656,7 +656,7 @@ export interface AttributeEdit {
  * purple. Parsed with a regex rather than CSSOM because the rule text is what has
  * to be reported back, and only enough structure is needed to name it.
  */
-function cssRulesOverriding(doc: Document, elements: Element[], property: string): string[] {
+export function cssRulesOverriding(doc: Document, elements: Element[], property: string): string[] {
   const css = Array.from(doc.getElementsByTagName('style')).map((s) => s.textContent ?? '').join('\n');
   if (!css.trim()) return [];
   const hits: string[] = [];

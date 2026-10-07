@@ -8,7 +8,7 @@ import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from '../components/Editor';
 import { MONACO_HOST_CLASS } from '../lib/monaco';
 import { EditorToolbar } from '../components/EditorToolbar';
-import { Preview } from '../components/Preview';
+import { Preview, type EditAction } from '../components/Preview';
 import { Sidebar } from '../components/Sidebar';
 import { ForeignDocNotice } from '../components/ForeignDocNotice';
 import { FOREIGN_DOC_INFO_NOTICE } from '../lib/visibility';
@@ -20,7 +20,8 @@ import { PublishDialog } from '../components/PublishDialog';
 import { useDocument } from '../lib/useDocument';
 import { useCloneDocument } from '../lib/useCloneDocument';
 import { findElementRangeByPath } from '../lib/svg-utils';
-import { planElementRemovals } from '../lib/svg-dom';
+import { planElementRemovals, planAttributeEdits } from '../lib/svg-dom';
+import { trackPreviewEdit } from '../lib/analytics';
 import { applyRanges } from '../lib/svg-ai';
 import { getAuth } from 'firebase/auth';
 import { DESKTOP_QUERY, PHONE_QUERY, TABLET_CHAT_WIDTH } from '../lib/app-shell';
@@ -151,12 +152,14 @@ export function EditorPage() {
   /**
    * Splice edits into the document as one undo step. Through the editor when
    * it holds this text, so the history and the cursor stay its own; the phone
-   * layout has no editor, and there the value is simply replaced.
+   * layout has no editor, and there the value is simply replaced. Returns
+   * the new text.
    */
   const applySourceEdits = useCallback((ranges: { start: number; end: number; replacement: string }[], reselect: string | null) => {
     reselectRef.current = reselect;
-    if (editorRef.current?.applyEdits(svgCode, ranges)) return;
-    setSvgCode(applyRanges(svgCode, ranges));
+    const next = applyRanges(svgCode, ranges);
+    if (!editorRef.current?.applyEdits(svgCode, ranges)) setSvgCode(next);
+    return next;
   }, [svgCode, setSvgCode]);
 
   const handleCursorElement = useCallback((element: string | undefined, lineRange: { start: number; end: number } | undefined, xpath: string | undefined) => {
@@ -175,6 +178,17 @@ export function EditorPage() {
     applySourceEdits(plan.ranges, null);
     clearSelection();
   }, [svgCode, selectedXPath, applySourceEdits, clearSelection]);
+
+  // A move or resize from the preview: attribute edits inside one start tag,
+  // so the rest of the document keeps the formatting it had.
+  const handleEditElement = useCallback((path: string, attrs: Record<string, string | null>, action: EditAction) => {
+    const edits = Object.entries(attrs).map(([name, value]) => ({ selector: path, name, value }));
+    const plan = planAttributeEdits(svgCode, edits);
+    if (!plan.available || plan.outcomes.some((o) => o.status !== 'applied')) return null;
+    const tag = /\/([\w.:-]+)\[\d+\]$/.exec(path)?.[1] ?? '';
+    trackPreviewEdit(action, tag);
+    return applySourceEdits(plan.ranges, path);
+  }, [svgCode, applySourceEdits]);
 
   const handleOpenCommandPalette = useCallback(() => {
     editorRef.current?.openCommandPalette();
@@ -332,6 +346,10 @@ export function EditorPage() {
       onElementSelect={handleElementSelect}
       selectedXPath={selectedXPath}
       onDeleteElement={selectedXPath ? handleDeleteElement : undefined}
+      // Not over a proposal, which is not the document; not while loading,
+      // when the text on show is a stand-in.
+      editable={!proposedSvg && !readOnly}
+      onEditElement={handleEditElement}
       onUndo={handleEditorUndo}
       onRedo={handleEditorRedo}
     />

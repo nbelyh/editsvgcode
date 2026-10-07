@@ -85,6 +85,14 @@ export function trackAiReject(meta: ProposalMeta): void {
   track('ai_reject', meta);
 }
 
+/**
+ * User moved or resized an element by hand in the preview. `tag` is the element's
+ * name, which tells whether the edit landed in its own attributes or in a transform.
+ */
+export function trackPreviewEdit(action: 'move' | 'resize' | 'nudge', tag: string): void {
+  track('preview_edit', { action, tag });
+}
+
 /** User rated an AI response with thumbs up. */
 export function trackAiThumbsUp(meta: { model: string; effort?: string; prompt_len: number }): void {
   track('ai_thumbs_up', meta);
