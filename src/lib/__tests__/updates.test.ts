@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { UPDATES, formatUpdateDate } from '../updates';
+import { UPDATES, formatUpdateDate, updateMeta, updatePath } from '../updates';
+import { SSR_ROUTES, BLOG_META } from '../../entry-server';
 import { metaFor } from '../route-meta';
 
 // ---------------------------------------------------------------------------
@@ -82,5 +83,52 @@ describe('formatUpdateDate', () => {
     // timezone west of Greenwich. The day must not drift.
     expect(formatUpdateDate('2026-08-10')).toBe('10 August 2026');
     expect(formatUpdateDate('2026-01-01')).toBe('1 January 2026');
+  });
+});
+
+// Each update has a page of its own at /blog/<id>, its <head> taken from the entry itself.
+describe('update pages', () => {
+  it('renders every update on its own page at build time', () => {
+    for (const update of UPDATES) {
+      expect(updatePath(update)).toBe(`/blog/${update.id}`);
+      expect(SSR_ROUTES).toContain(updatePath(update));
+      expect(BLOG_META[updatePath(update)]).toEqual(updateMeta(update));
+    }
+  });
+
+  it('gives every page a description that search results show whole', () => {
+    for (const update of UPDATES) {
+      const { title, description } = updateMeta(update);
+      expect(title).toBe(update.title);
+      expect(description.length).toBeGreaterThan(40);
+      expect(description.length).toBeLessThanOrEqual(160);
+    }
+  });
+
+  it('describes a page in whole sentences of its summary when they fit', () => {
+    const meta = updateMeta({ ...UPDATES[0], summary: 'One short sentence. Another one. ' + 'A long one '.repeat(20) + 'ends here.' });
+    expect(meta.description).toBe('One short sentence. Another one.');
+  });
+
+  it('shares the first picture of an update, or none', () => {
+    for (const update of UPDATES) expect(updateMeta(update).image).toBe(update.images?.[0]?.src);
+  });
+});
+
+// An article's pictures point into public/ as plain Markdown, which nothing else checks.
+describe('articles', () => {
+  const SCREENSHOTS = import.meta.glob('/public/screenshots/**/*.png');
+  it('points every picture in an article at a file that exists', () => {
+    const files = Object.keys(SCREENSHOTS);
+    for (const update of UPDATES) {
+      const pictures = [...(update.article ?? '').matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]);
+      for (const src of pictures) expect(files).toContain(`/public${src}`);
+    }
+  });
+
+  it('gives every picture in an article a caption', () => {
+    for (const update of UPDATES) {
+      for (const m of (update.article ?? '').matchAll(/!\[([^\]]*)\]\(/g)) expect(m[1].length).toBeGreaterThan(20);
+    }
   });
 });

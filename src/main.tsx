@@ -20,6 +20,7 @@ import { AboutPage } from './pages/AboutPage';
 import { FeaturesPage } from './pages/FeaturesPage';
 import { FeatureDetailPage } from './pages/FeatureDetailPage';
 import { BlogPage } from './pages/BlogPage';
+import { BlogPostPage } from './pages/BlogPostPage';
 import { SupportPage } from './pages/SupportPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -46,6 +47,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="features" element={<FeaturesPage />} />
             <Route path="features/:slug" element={<FeatureDetailPage />} />
             <Route path="blog" element={<BlogPage />} />
+            <Route path="blog/:id" element={<BlogPostPage />} />
             <Route path="pricing" element={<PricingPage />} />
 
             <Route path="about" element={<AboutPage />} />

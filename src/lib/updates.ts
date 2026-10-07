@@ -52,6 +52,12 @@ export interface Update {
   changes: UpdateChange[];
   /** The full write-up, when one was published on the company blog. */
   readMoreUrl?: string;
+  /**
+   * A longer write-up in Markdown, shown on the update's own page between its summary and its
+   * changes: the story behind a release, with pictures under /screenshots/articles/<id>/. Kept
+   * in a file of its own under ./articles and imported raw.
+   */
+  article?: string;
 }
 
 /** Newest first — the order the page renders them in. */
@@ -385,4 +391,36 @@ export function formatUpdateDate(iso: string): string {
     month: 'long',
     year: 'numeric',
   });
+}
+
+/** The page an update has to itself. /blog lists them; each one opens here. */
+export function updatePath(update: Update): string {
+  return `/blog/${update.id}`;
+}
+
+export function updateById(id: string): Update | undefined {
+  return UPDATES.find(u => u.id === id);
+}
+
+/** Search engines show about this much of a description before cutting it off. */
+const DESCRIPTION_LIMIT = 160;
+
+/**
+ * An update's own page title, description and share picture, taken from the entry itself, so
+ * publishing an update stays one entry here and nothing else. The description is as many whole
+ * sentences of the summary as fit, or the first one cut at a word if even that is too long.
+ */
+export function updateMeta(update: Update): { title: string; description: string; image?: string } {
+  const sentences = update.summary.split(/(?<=[.!?])\s+/);
+  let description = '';
+  for (const sentence of sentences) {
+    const next = description ? `${description} ${sentence}` : sentence;
+    if (next.length > DESCRIPTION_LIMIT) break;
+    description = next;
+  }
+  if (!description) {
+    const cut = update.summary.slice(0, DESCRIPTION_LIMIT - 1);
+    description = `${cut.slice(0, cut.lastIndexOf(' '))}…`;
+  }
+  return { title: update.title, description, image: update.images?.[0]?.src };
 }

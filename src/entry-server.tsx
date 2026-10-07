@@ -27,6 +27,8 @@ import { theme } from './theme';
 import { HomeIntro } from './components/HomeIntro';
 import { AboutPage } from './pages/AboutPage';
 import { BlogPage } from './pages/BlogPage';
+import { BlogPostPage } from './pages/BlogPostPage';
+import { UPDATES, updateMeta, updatePath } from './lib/updates';
 import { FeaturesPage } from './pages/FeaturesPage';
 import { FeatureDetailPage } from './pages/FeatureDetailPage';
 import { FEATURE_PAGES } from './lib/feature-pages';
@@ -49,6 +51,11 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   '/': HomeIntro,
   '/about': AboutPage,
   '/blog': BlogPage,
+  // One per update in updates.ts, which is also what main.tsx's /blog/:id serves.
+  ...Object.fromEntries(UPDATES.map((update) => [
+    updatePath(update),
+    () => <BlogPostPage id={update.id} />,
+  ])),
   '/features': FeaturesPage,
   // One per entry in feature-pages.ts, which is also what main.tsx's /features/:slug serves.
   ...Object.fromEntries(FEATURE_PAGES.map((page) => [
@@ -64,6 +71,13 @@ const PAGES: Record<string, () => React.JSX.Element> = {
 };
 
 export const SSR_ROUTES = Object.keys(PAGES);
+
+/**
+ * The title, description and share picture of each update's own page, for prerender.cjs to bake
+ * into its <head> and list in the sitemap. They come from updates.ts rather than route-meta.json,
+ * so publishing an update stays one entry there.
+ */
+export const BLOG_META = Object.fromEntries(UPDATES.map((update) => [updatePath(update), updateMeta(update)]));
 
 /** Re-exported so the prerender script reads the same number <App> lays out with,
  *  rather than keeping its own copy of it. */

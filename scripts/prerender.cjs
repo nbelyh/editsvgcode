@@ -22,6 +22,24 @@ const path = require('node:path');
 const DIST = 'dist';
 const meta = JSON.parse(fs.readFileSync('src/lib/route-meta.json', 'utf8'));
 
+// Each update on /blog has a page of its own, whose title, description and picture come from
+// updates.ts rather than route-meta.json, so publishing an update stays one entry there. The
+// server bundle (built before this runs, and needed by prerender-content.mjs too) exports them.
+// It is an ES module, and this script is not: a child node reads it, synchronously.
+const SSR_BUNDLE = path.resolve('dist-ssr/entry-server.js');
+if (!fs.existsSync(SSR_BUNDLE)) {
+  throw new Error(`${SSR_BUNDLE} not found — run "npm run build" first; it builds the server bundle.`);
+}
+const blogMeta = JSON.parse(require('node:child_process').execFileSync(process.execPath, [
+  '--input-type=module', '-e',
+  `const m = await import(${JSON.stringify(require('node:url').pathToFileURL(SSR_BUNDLE).href)});` +
+  'process.stdout.write(JSON.stringify(m.BLOG_META));',
+], { encoding: 'utf8' }));
+for (const [route, routeMeta] of Object.entries(blogMeta)) {
+  if (meta.routes[route]) throw new Error(`${route} is both an update and a route in route-meta.json.`);
+  meta.routes[route] = routeMeta;
+}
+
 // Canonical and og:url must name the origin actually being deployed to, or beta
 // claims production's URLs. firebase sets GCLOUD_PROJECT for predeploy hooks —
 // the same signal stamp-config.cjs uses to pick a runtime config.
