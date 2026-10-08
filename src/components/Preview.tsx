@@ -728,8 +728,12 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
       if (hasVb) {
         size = { w: vb[2], h: vb[3] };
       } else if (el) {
-        const pw = el.clientWidth;
-        const ph = el.clientHeight;
+        // The pane less the 1px border the preview draws round the drawing on
+        // each side. Laid out at the full pane, the border overflowed it by
+        // 2px, which brought in both scrollbars — and they took another 15px
+        // off the pane, on a drawing whose whole point is to fit it.
+        const pw = Math.max(0, el.clientWidth - 2);
+        const ph = Math.max(0, el.clientHeight - 2);
         size = { w: pw, h: ph };
         if (pw > 0 && ph > 0) {
           // A percentage needs a viewport to resolve against, so lay the drawing
