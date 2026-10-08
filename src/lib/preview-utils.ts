@@ -47,11 +47,29 @@ export function findBySourcePath(svg: Element, path: string): Element | null {
 
 export const LEVELS = [1, 2, 5, 10, 25, 50, 75, 100, 125, 150, 200, 300, 400, 500, 800, 1000, 1500, 2000, 3000, 5000];
 
-/** Next zoom level up from the given percentage */
-export const stepUp = (z: number) => LEVELS.find((l) => l > z) ?? Math.round(z * 1.5);
+/**
+ * Next zoom level up from the given percentage. Stepped from the figure the
+ * toolbar shows, not the exact value: after a pinch left 124.6% on screen as
+ * "125%", stepping from 124.6 landed on 125 and the button seemed to do nothing.
+ */
+export const stepUp = (z: number) => LEVELS.find((l) => l > Math.round(z)) ?? Math.round(z * 1.5);
 
-/** Next zoom level down from the given percentage */
-export const stepDown = (z: number) => [...LEVELS].reverse().find((l) => l < z) ?? Math.max(1, Math.round(z / 1.5));
+/** Next zoom level down from the given percentage, likewise from the figure shown. */
+export const stepDown = (z: number) => [...LEVELS].reverse().find((l) => l < Math.round(z)) ?? Math.max(1, Math.round(z / 1.5));
+
+/**
+ * How much one Ctrl+wheel event zooms by. A touchpad pinch arrives as a burst
+ * of tiny wheel events — dozens per gesture — and stepping a whole zoom level
+ * on each one turned the lightest touch into a jump of hundreds of percent.
+ * So the zoom follows the size of the movement, e^(−delta/100), the same
+ * mapping the browser uses for its own pinch, so the drawing tracks the
+ * fingers. A mouse notch is a single large event; capped at ×1.25 it stays
+ * one level-sized step, as before.
+ */
+export function wheelZoomFactor(deltaY: number, deltaMode: number): number {
+  const px = deltaY * (deltaMode === 1 ? 33 : deltaMode === 2 ? 800 : 1);
+  return Math.min(1.25, Math.max(0.8, Math.exp(-px / 100)));
+}
 
 /** Check whether a string represents an absolute CSS length (e.g. "100", "100px") */
 export const isAbsoluteLength = (v: string) => /^[\d.]+(?:px)?$/.test(v.trim());

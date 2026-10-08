@@ -1,11 +1,11 @@
-import { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useEffect, useLayoutEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
 import { useDebouncedValue, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconArrowsMaximize, IconTrash, IconZoomIn, IconZoomOut, IconZoomReset } from '@tabler/icons-react';
 import { sanitizeSvg } from '../lib/sanitize';
 import { CHECKERBOARD_LIGHT } from '../lib/checkerboard';
-import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR } from '../lib/preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, synthesizeViewBox, measureBBox, contentOverflowsViewport, bboxTracksViewport, findSvgTarget, resolveXPath, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR, wheelZoomFactor } from '../lib/preview-utils';
 import { pathOf, parseSvg, resolveSelector, isSelectorError } from '../lib/svg-dom';
 import {
   planMove, planResize, invert, applyToVector, pixelsPerUnit, decimalsFor, roundTo,
@@ -69,6 +69,11 @@ const HOVER_FILTER_ID = '__esvg-hover-filter';
 const SELECT_FILTER = `url(#${SELECTION_FILTER_ID})`;
 const HOVER_FILTER = `url(#${HOVER_FILTER_ID})`;
 const DATA_SELECTED = 'data-esvg-selected';
+
+/** Zoom limits, for the wheel and pinch, which zoom by any amount, and for the
+ * toolbar, which steps through LEVELS and on by half again past the last. */
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 10000;
 
 /** How far the pointer must travel before a press becomes a drag, so a click
  * with a slightly unsteady hand still just selects. */
@@ -210,8 +215,9 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   const renderedSourceRef = useRef<string | null>(null);
   const [renderTick, setRenderTick] = useState(0);
 
-  // Attach shadow DOM on mount for CSS isolation
-  useEffect(() => {
+  // Attach shadow DOM on mount for CSS isolation. A layout effect, like the
+  // render that fills it, which would otherwise run first and find nothing.
+  useLayoutEffect(() => {
     if (containerRef.current && !shadowRef.current) {
       shadowRef.current = containerRef.current.attachShadow({ mode: 'open' });
     }
@@ -358,6 +364,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     refreshOverlay();
   }, [currentSelection, sourceFor, commit, refreshOverlay]);
 
+  /** End the gesture, keeping what it did: a drag is written to the code. */
+  const finishGesture = useCallback(() => {
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    if (!g?.drag) return; // a click, which onClick handles
+    suppressClickRef.current = true;
+    commit(g.drag.path, g.drag.attrs, g.mode, g.drag.live);
+    refreshOverlay();
+  }, [commit, refreshOverlay]);
+
   const cancelGesture = useCallback(() => {
     const g = gestureRef.current;
     gestureRef.current = null;
@@ -475,6 +491,16 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
    * pressing elsewhere drags whatever a click there would have selected.
    */
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // A second finger while one is down is the start of a pinch, not a drag of
+    // its own. Taken as a new drag it replaced the first finger's, whose half-
+    // done move was then never finished or undone. The first finger's drag
+    // ends here, kept where it was put — snapping it back made the shape jump
+    // the moment the second finger touched.
+    if (gestureRef.current && gestureRef.current.pointerId !== e.pointerId) {
+      finishGesture();
+      return;
+    }
+    if (!e.isPrimary) return;
     suppressClickRef.current = false;
     if (e.button !== 0 || e.ctrlKey || e.metaKey || !editableRef.current) return;
     const handle = onHandle(e);
@@ -491,7 +517,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     }
     if (!(target instanceof SVGGraphicsElement)) return;
     gestureRef.current = { pointerId: e.pointerId, mode: handle ? 'resize' : 'move', handle, startX: e.clientX, startY: e.clientY, target };
-  }, [chainAt, currentSelection]);
+  }, [chainAt, currentSelection, finishGesture]);
 
   /** The drag begins: find the element in the source and measure its frame. */
   const beginDrag = useCallback((g: Gesture, e: React.PointerEvent): boolean => {
@@ -568,14 +594,8 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   }, [beginDrag, cancelGesture, refreshOverlay]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    const g = gestureRef.current;
-    if (!g || e.pointerId !== g.pointerId) return;
-    gestureRef.current = null;
-    if (!g.drag) return; // a click, which onClick handles
-    suppressClickRef.current = true;
-    commit(g.drag.path, g.drag.attrs, g.mode, g.drag.live);
-    refreshOverlay();
-  }, [commit, refreshOverlay]);
+    if (gestureRef.current?.pointerId === e.pointerId) finishGesture();
+  }, [finishGesture]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     if (gestureRef.current?.pointerId === e.pointerId) cancelGesture();
@@ -606,9 +626,30 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     }
   }, []);
 
+  /** A brief zoom readout over the drawing while the wheel or a pinch zooms,
+   * where the eyes are — the toolbar's figure is easy to miss mid-gesture. */
+  const [zoomBadge, setZoomBadge] = useState(false);
+  const badgeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  /** Zoom by a factor, keeping the spot of the drawing at (clientX, clientY)
+   * under it — the wheel's pointer, or the middle of a pinch. */
+  const zoomAt = useCallback((factor: number, clientX: number, clientY: number) => {
+    // Remember the spot as a fraction of the drawing, so the zoom effect can
+    // scroll it back under the pointer once the drawing has its new size.
+    const r = getSvg()?.getBoundingClientRect();
+    zoomAnchorRef.current = r && r.width > 0 && r.height > 0
+      ? { fx: (clientX - r.left) / r.width, fy: (clientY - r.top) / r.height, clientX, clientY }
+      : null;
+    setZoomPct((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor)));
+    setZoomBadge(true);
+    clearTimeout(badgeTimer.current);
+    badgeTimer.current = setTimeout(() => setZoomBadge(false), 900);
+  }, []);
+  useEffect(() => () => clearTimeout(badgeTimer.current), []);
+
   // The toolbar zooms about the middle. A wheel anchor left over from a notch
   // that changed nothing — at the 1% floor — must not steer it.
-  const zoomIn = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(stepUp); }, []);
+  const zoomIn = useCallback(() => { zoomAnchorRef.current = null; setZoomPct((z) => Math.min(MAX_ZOOM, stepUp(z))); }, []);
   const zoomOut = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(stepDown); }, []);
   const zoomReset = useCallback(() => { zoomAnchorRef.current = null; setZoomPct(100); }, []);
   const zoomFit = useCallback(() => {
@@ -620,7 +661,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   }, []);
 
   // Render sanitized SVG, determine natural size, auto-fit
-  useEffect(() => {
+  useLayoutEffect(() => {
     const shadow = shadowRef.current;
     if (!shadow) return;
     // Save scroll position before DOM replacement — and before the skip below
@@ -794,8 +835,12 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     }
   }, [selectedXPath, debouncedSvg, renderTick, clearAllSelections, applySelectionFilter, currentSelection]);
 
-  // Apply zoom + background + border
-  useEffect(() => {
+  // Apply zoom + background + border.
+  // A layout effect, as is the render above it, so this still runs after it:
+  // a pinch zooms dozens of times a second, and resizing the drawing in a
+  // passive effect let the browser paint it at the new size but the old
+  // scroll — a frame off the spot under the fingers, every step.
+  useLayoutEffect(() => {
     const svg = getSvg();
     const el = scrollRef.current;
     // Taken before anything can return early, so it never outlives the zoom it was for.
@@ -867,17 +912,80 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
   // pointerdown, which sets up the gesture, fires before touchstart. A blanket
   // touch-action on the drawing could not tell the two apart, and stopped every
   // scroll over it while anything was selected.
+  //
+  // Two fingers pinch-zoom the drawing about the point between them. Left to
+  // the browser, a pinch on a touch screen zoomed the whole page; the pane's
+  // touch-action keeps the browser's pinch out, and this does it instead.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const hold = (e: TouchEvent) => { if (gestureRef.current) e.preventDefault(); };
-    el.addEventListener('touchstart', hold, { passive: false });
-    el.addEventListener('touchmove', hold, { passive: false });
-    return () => {
-      el.removeEventListener('touchstart', hold);
-      el.removeEventListener('touchmove', hold);
+    let pinch: number | null = null; // the fingers' distance at the last move
+    const spread = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        // A second finger turns a drag into a pinch; the drag keeps its move.
+        finishGesture();
+        pinch = spread(e.touches);
+        e.preventDefault();
+      } else if (gestureRef.current) {
+        e.preventDefault();
+      }
     };
-  }, []);
+    const onMove = (e: TouchEvent) => {
+      if (pinch !== null && e.touches.length === 2) {
+        e.preventDefault();
+        const now = spread(e.touches);
+        if (pinch > 0 && now > 0) {
+          const [a, b] = [e.touches[0], e.touches[1]];
+          zoomAt(now / pinch, (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+        }
+        pinch = now;
+      } else if (gestureRef.current) {
+        e.preventDefault();
+      }
+    };
+    const onEnd = (e: TouchEvent) => { if (e.touches.length < 2) pinch = null; };
+
+    // Safari's own pinch events. A Mac trackpad pinch arrives only as these —
+    // not as Ctrl+wheel, as in every other browser — and zoomed the page.
+    // On an iPhone or iPad a pinch sends them alongside the touches above,
+    // which already zoom, so they are ignored while a touch pinch is on.
+    type SafariGesture = Event & { scale: number; clientX?: number; clientY?: number };
+    let gestureScale: number | null = null;
+    const onGestureStart = (e: Event) => {
+      e.preventDefault();
+      gestureScale = (e as SafariGesture).scale || 1;
+    };
+    const onGestureChange = (e: Event) => {
+      e.preventDefault();
+      const g = e as SafariGesture;
+      if (pinch !== null || gestureScale === null || !(g.scale > 0)) return;
+      const r = el.getBoundingClientRect();
+      zoomAt(g.scale / gestureScale, g.clientX ?? r.left + r.width / 2, g.clientY ?? r.top + r.height / 2);
+      gestureScale = g.scale;
+    };
+    const onGestureEnd = (e: Event) => {
+      e.preventDefault();
+      gestureScale = null;
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    el.addEventListener('gesturestart', onGestureStart, { passive: false });
+    el.addEventListener('gesturechange', onGestureChange, { passive: false });
+    el.addEventListener('gestureend', onGestureEnd, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+      el.removeEventListener('gesturestart', onGestureStart);
+      el.removeEventListener('gesturechange', onGestureChange);
+      el.removeEventListener('gestureend', onGestureEnd);
+    };
+  }, [finishGesture, zoomAt]);
 
   // Ctrl+scroll zoom (native listener for passive:false)
   useEffect(() => {
@@ -886,21 +994,20 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
     const handler = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        // Zoom toward the pointer: remember where it is on the drawing, as a
-        // fraction of it, so the zoom effect can scroll that spot back under it.
-        const r = getSvg()?.getBoundingClientRect();
-        zoomAnchorRef.current = r && r.width > 0 && r.height > 0
-          ? { fx: (e.clientX - r.left) / r.width, fy: (e.clientY - r.top) / r.height, clientX: e.clientX, clientY: e.clientY }
-          : null;
-        setZoomPct(e.deltaY < 0 ? stepUp : stepDown);
+        zoomAt(wheelZoomFactor(e.deltaY, e.deltaMode), e.clientX, e.clientY);
       }
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
-  }, []);
+  }, [zoomAt]);
 
   return (
-    <div data-testid="preview-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div data-testid="preview-panel" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {zoomBadge && (
+        <div data-testid="zoom-badge" style={{ position: 'absolute', right: 12, bottom: 12, zIndex: 2, padding: '2px 8px', borderRadius: 4, background: 'rgba(0, 0, 0, 0.65)', color: '#fff', fontSize: 12, pointerEvents: 'none' }}>
+          {Math.round(zoomPct)}%
+        </div>
+      )}
       <Group
         justify="space-between"
         px="xs" py={4}
@@ -921,7 +1028,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
           <Tooltip label="Fit to window">
             <ActionIcon variant="subtle" color="gray" size="sm" onClick={zoomFit} aria-label="Fit to window"><IconArrowsMaximize size={16} /></ActionIcon>
           </Tooltip>
-          <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{zoomPct}%</Text>
+          <Text size="xs" c="dimmed" style={{ minWidth: 40, textAlign: 'center' }}>{Math.round(zoomPct)}%</Text>
           <div style={{ width: 1, height: 16, backgroundColor: 'var(--esvg-chrome-border)' }} />
           {BG_OPTIONS.map(({ icon, value, label }) => (
             <Tooltip key={value} label={label}>
@@ -947,7 +1054,7 @@ export const Preview = forwardRef<PreviewHandle, PreviewProps>(function Preview(
         </Group>
       </Group>
 
-      <div ref={scrollRef} tabIndex={0} style={{ flex: 1, overflow: 'auto', outline: 'none' }} onClick={handleClick} onKeyDown={handleKeyDown} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel} onContextMenu={(e) => e.preventDefault()}>
+      <div ref={scrollRef} tabIndex={0} style={{ flex: 1, overflow: 'auto', outline: 'none', touchAction: 'pan-x pan-y' }} onClick={handleClick} onKeyDown={handleKeyDown} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel} onContextMenu={(e) => e.preventDefault()}>
         {/* inline-flex so the wrapper grows past the viewport when zoomed in,
             which block-level flex would not. verticalAlign top because inline
             level also means baseline-aligned, and the descender gap under it is

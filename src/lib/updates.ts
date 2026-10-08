@@ -84,6 +84,7 @@ export const UPDATES: Update[] = [
       { kind: 'improved', text: 'Shapes without a position of their own, such as paths, groups and text, are moved and resized with a transform, and a second resize updates that transform instead of adding another.' },
       { kind: 'improved', text: 'Del removes exactly the selected element from the code, even when it shares a line with other elements.' },
       { kind: 'improved', text: 'Once the drawing is larger than the pane, Ctrl and the scroll wheel zoom toward the pointer, so the spot you are looking at stays under it instead of drifting away.' },
+      { kind: 'fixed', text: 'Pinching on a touchpad zooms the drawing as far as your fingers move, instead of hundreds of percent at the lightest touch, and two fingers on a touch screen zoom the drawing rather than the whole page.' },
       { kind: 'fixed', text: 'In a file with markup commented out, clicking a shape could select a different element in the code.' },
       { kind: 'fixed', text: 'Zooming into a drawing sized 100% with no viewBox, as Visio exports are, now magnifies it instead of only making the canvas bigger.' },
     ],

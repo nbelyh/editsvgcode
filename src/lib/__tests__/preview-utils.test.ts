@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeSvg } from '../sanitize';
-import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR, LEVELS } from '../preview-utils';
+import { stepUp, stepDown, isAbsoluteLength, resolveXPath, contentOverflowsViewport, bboxTracksViewport, selectionChain, nextInChain, stampSourcePaths, findBySourcePath, SOURCE_PATH_ATTR, wheelZoomFactor, LEVELS } from '../preview-utils';
 
 // ---------------------------------------------------------------------------
 // stepUp / stepDown (zoom levels)
@@ -345,5 +345,56 @@ describe('stampSourcePaths', () => {
 
   it('is null when the source does not parse', () => {
     expect(stampSourcePaths('<svg><rect></svg>')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// wheelZoomFactor
+// ---------------------------------------------------------------------------
+describe('wheelZoomFactor', () => {
+  it('zooms a mouse notch by one level-sized step, no more', () => {
+    expect(wheelZoomFactor(-100, 0)).toBe(1.25);
+    expect(wheelZoomFactor(100, 0)).toBe(0.8);
+    // A fast spin on a free-wheeling mouse is still one step per event.
+    expect(wheelZoomFactor(-600, 0)).toBe(1.25);
+  });
+
+  it('treats Firefox line and page deltas as notches', () => {
+    expect(wheelZoomFactor(-3, 1)).toBe(1.25);
+    expect(wheelZoomFactor(1, 2)).toBe(0.8);
+  });
+
+  it('zooms a touchpad pinch by the size of each little event', () => {
+    expect(wheelZoomFactor(-2, 0)).toBeCloseTo(Math.exp(0.02), 9);
+    expect(wheelZoomFactor(3, 0)).toBeCloseTo(Math.exp(-0.03), 9);
+  });
+
+  it('makes a whole pinch a modest zoom rather than hundreds of percent', () => {
+    // Thirty events of -2 — a light pinch — come to about ×1.8.
+    let zoom = 100;
+    for (let i = 0; i < 30; i++) zoom *= wheelZoomFactor(-2, 0);
+    expect(zoom).toBeGreaterThan(170);
+    expect(zoom).toBeLessThan(190);
+  });
+
+  it('pinching out and back in returns to where it started', () => {
+    let zoom = 100;
+    for (let i = 0; i < 10; i++) zoom *= wheelZoomFactor(-4, 0);
+    for (let i = 0; i < 10; i++) zoom *= wheelZoomFactor(4, 0);
+    expect(zoom).toBeCloseTo(100, 9);
+  });
+});
+
+describe('stepUp / stepDown from a zoom a pinch left between levels', () => {
+  it('steps from the figure shown, so the button always moves it', () => {
+    // 124.6% shows as "125%": the next step up is 150, not 125.
+    expect(stepUp(124.6)).toBe(150);
+    expect(stepDown(100.4)).toBe(75);
+    expect(stepUp(1.6)).toBe(5);
+  });
+
+  it('steps from between levels as before', () => {
+    expect(stepUp(137)).toBe(150);
+    expect(stepDown(137)).toBe(125);
   });
 });

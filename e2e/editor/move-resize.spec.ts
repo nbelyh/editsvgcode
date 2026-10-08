@@ -469,3 +469,132 @@ test.describe('Touch', () => {
     expect(await pane.evaluate((el) => el.scrollTop)).toBe(scrolled);
   });
 });
+
+test.describe('Pinch zoom', () => {
+  const zoomLabel = async (page: Page) => parseInt(
+    (await page.locator('[data-testid="preview-panel"]').getByText(/^\d+%$/).first().innerText()), 10);
+
+  test('a touchpad pinch zooms by how far the fingers moved, not a level per event', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    await page.getByLabel('Reset zoom').click();
+    await expect.poll(() => zoomLabel(page)).toBe(100);
+    const at = await centreOf(page, '#door');
+    await page.mouse.move(at.x, at.y);
+    // A light pinch: thirty tiny Ctrl+wheel events, the way a touchpad sends them.
+    await page.keyboard.down('Control');
+    for (let i = 0; i < 30; i++) await page.mouse.wheel(0, -2);
+    await page.keyboard.up('Control');
+    await expect.poll(() => zoomLabel(page)).toBeGreaterThan(160);
+    expect(await zoomLabel(page)).toBeLessThan(200);
+    // The figure shows over the drawing while it zooms.
+    await expect(page.getByTestId('zoom-badge')).toBeVisible();
+  });
+
+  test('a mouse notch is still one step', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    await page.getByLabel('Reset zoom').click();
+    await expect.poll(() => zoomLabel(page)).toBe(100);
+    const at = await centreOf(page, '#door');
+    await page.mouse.move(at.x, at.y);
+    await page.keyboard.down('Control');
+    await page.mouse.wheel(0, -100);
+    await page.keyboard.up('Control');
+    await expect.poll(() => zoomLabel(page)).toBe(125);
+  });
+
+  test.describe('on a touch screen', () => {
+    test.use({ hasTouch: true });
+    test.skip(({ browserName }) => browserName !== 'chromium', 'touch is driven through the Chrome DevTools Protocol');
+
+    test('two fingers zoom the drawing, not the page', async ({ page, context }) => {
+      await page.goto('/');
+      await waitForEditor(page);
+      await setSvgContent(page, GROUPED);
+      await page.getByLabel('Reset zoom').click();
+      await expect.poll(() => zoomLabel(page)).toBe(100);
+      const c = await centreOf(page, '#wall');
+      const cdp = await context.newCDPSession(page);
+      const fingers = (d: number) => [{ x: c.x - d, y: c.y, id: 0 }, { x: c.x + d, y: c.y, id: 1 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers(40) });
+      for (let d = 45; d <= 80; d += 5) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: fingers(d) });
+        await page.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      // Fingers twice as far apart: about twice the zoom, and the page itself untouched.
+      await expect.poll(() => zoomLabel(page)).toBeGreaterThan(170);
+      expect(await zoomLabel(page)).toBeLessThan(230);
+      expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+      expect(await editorValue(page)).toBe(GROUPED);
+    });
+
+    test('a second finger during a drag ends it where it is, without the shape jumping', async ({ page, context }) => {
+      await page.goto('/');
+      await waitForEditor(page);
+      await setSvgContent(page, GROUPED);
+      await selectById(page, 'wall');
+      const w = (await page.locator('[data-testid="svg-preview"] #wall').boundingBox())!;
+      const start = { x: w.x + w.width / 4, y: w.y + w.height / 4 };
+      const cdp = await context.newCDPSession(page);
+      const touch = (type: string, touchPoints: { x: number; y: number; id: number }[]) =>
+        cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+      // One finger drags the wall a little way...
+      await touch('touchStart', [{ ...start, id: 0 }]);
+      for (let i = 1; i <= 6; i++) {
+        await touch('touchMove', [{ x: start.x + 5 * i, y: start.y, id: 0 }]);
+        await page.waitForTimeout(16);
+      }
+      const wall = page.locator('[data-testid="svg-preview"] #wall');
+      await expect(wall).not.toHaveAttribute('x', '40');
+      const moved = await wall.getAttribute('x');
+      // ...then a second finger lands on it, turning the gesture into a pinch.
+      const at = { x: start.x + 30, y: start.y };
+      await touch('touchStart', [{ ...at, id: 0 }, { x: at.x + 40, y: at.y + 10, id: 1 }]);
+      // The wall stays where the first finger put it — no snapping back...
+      expect(await wall.getAttribute('x')).toBe(moved);
+      await touch('touchMove', [{ x: at.x - 10, y: at.y, id: 0 }, { x: at.x + 60, y: at.y + 10, id: 1 }]);
+      await touch('touchEnd', []);
+      // ...and the move is in the code, preview and code agreeing.
+      await expect.poll(() => editorValue(page)).toContain(`<rect id="wall" x="${moved}"`);
+      await expect(wall).toHaveAttribute('x', moved!);
+    });
+  });
+
+  test('the toolbar stops at the same limit the wheel does', async ({ page }) => {
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+    for (let i = 0; i < 16; i++) await zoomIn.click();
+    await expect.poll(() => zoomLabel(page)).toBe(10000);
+  });
+
+  test('Safari\'s own pinch events zoom the drawing', async ({ page }) => {
+    // A Mac trackpad pinch in Safari arrives as gesture events, never as
+    // Ctrl+wheel. Sent by hand here, the way Safari would.
+    await page.goto('/');
+    await waitForEditor(page);
+    await setSvgContent(page, GROUPED);
+    await page.getByLabel('Reset zoom').click();
+    await expect.poll(() => zoomLabel(page)).toBe(100);
+    const prevented = await page.evaluate(() => {
+      const pane = document.querySelector('[data-testid="svg-preview"]')!.parentElement!.parentElement!;
+      const send = (type: string, scale: number) => {
+        const e = Object.assign(new Event(type, { bubbles: true, cancelable: true }), { scale, clientX: 300, clientY: 300 });
+        pane.dispatchEvent(e);
+        return e.defaultPrevented;
+      };
+      const all = [send('gesturestart', 1)];
+      for (const s of [1.2, 1.4, 1.6, 1.8, 2]) all.push(send('gesturechange', s));
+      all.push(send('gestureend', 2));
+      return all.every(Boolean);
+    });
+    // Kept from the browser, which would otherwise zoom the page.
+    expect(prevented).toBe(true);
+    await expect.poll(() => zoomLabel(page)).toBe(200);
+  });
+});
