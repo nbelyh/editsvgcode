@@ -1,9 +1,15 @@
+import type { ImageStyle } from '../../lib/models';
+import { PictureStyleOptions } from './PictureStyleOptions';
+
 interface ImageConfirmProps {
   summary: string;
   /** What generating or changing the picture costs, at the image model the user has picked. */
   imageCredits: number;
   onConfirm: () => void;
   onDecline: () => void;
+  /** How the picture will be drawn, chosen here. */
+  imageStyle: ImageStyle;
+  onImageStyleChange: (value: ImageStyle) => void;
 }
 
 /**
@@ -22,7 +28,7 @@ interface ImageConfirmProps {
  * Every sentence is whole — generate and modify each have their own, never a shared opening
  * with a varying ending — so each can be translated as written.
  */
-export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline }: ImageConfirmProps) {
+export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline, imageStyle, onImageStyleChange }: ImageConfirmProps) {
   const kind = summary.startsWith('modify:') ? 'modify' : summary.startsWith('picture:') ? 'picture' : 'generate';
   const displaySummary = kind === 'generate' ? summary : summary.slice(kind.length + 1);
   return (
@@ -38,6 +44,7 @@ export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline }: Im
             ? 'The image model works from your picture, and the result is traced into SVG shapes you can edit. Drawn by hand with shapes instead, it will be much simpler.'
             : 'A generated picture is traced into SVG shapes, so you can edit it like any other drawing. Drawn by hand with shapes instead, it will be much simpler.'}
       </div>
+      <PictureStyleOptions value={imageStyle} onChange={onImageStyleChange} />
       <div className="aui-image-confirm-actions">
         <button className="aui-action-btn aui-action-btn-primary" onClick={onConfirm}>
           {kind === 'modify' ? `Change picture (${imageCredits} credits)` : kind === 'picture' ? `Redraw picture (${imageCredits} credits)` : `Generate picture (${imageCredits} credits)`}

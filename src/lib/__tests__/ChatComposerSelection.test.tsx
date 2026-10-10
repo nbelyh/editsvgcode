@@ -24,8 +24,6 @@ const props = {
   onModelChange: () => {},
   imageModel: 'gpt-image-1-mini',
   onImageModelChange: () => {},
-  imageStyle: 'outlined' as const,
-  onImageStyleChange: () => {},
   effort: undefined,
   supportedEfforts: undefined,
   onEffortChange: () => {},

@@ -10,8 +10,9 @@ import { ImageConfirm } from '../../components/aichat/ImageConfirm';
 const show = (summary: string, imageCredits = 10) => {
   const onConfirm = vi.fn();
   const onDecline = vi.fn();
-  render(<MantineProvider><ImageConfirm summary={summary} imageCredits={imageCredits} onConfirm={onConfirm} onDecline={onDecline} /></MantineProvider>);
-  return { onConfirm, onDecline };
+  const onImageStyleChange = vi.fn();
+  render(<MantineProvider><ImageConfirm summary={summary} imageCredits={imageCredits} imageStyle={{ outlines: true, detail: false }} onImageStyleChange={onImageStyleChange} onConfirm={onConfirm} onDecline={onDecline} /></MantineProvider>);
+  return { onConfirm, onDecline, onImageStyleChange };
 };
 
 describe('ImageConfirm', () => {
@@ -45,5 +46,13 @@ describe('ImageConfirm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Draw it with shapes/ }));
     expect(onConfirm).toHaveBeenCalledOnce();
     expect(onDecline).toHaveBeenCalledOnce();
+  });
+
+  it('offers outlines and detail as separate options, and reports a change to either', () => {
+    const { onImageStyleChange } = show('A cute kitten');
+    expect(screen.getByRole('checkbox', { name: 'Bold outlines' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'More detail' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'More detail' }));
+    expect(onImageStyleChange).toHaveBeenCalledWith({ outlines: true, detail: true });
   });
 });

@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
 import { ModelPicker } from './ModelPicker';
 import type { Credits, ReasoningEffort } from './types';
-import type { ImageStyle } from '../../lib/models';
 import { pictureFileFrom } from '../../lib/pasted-image';
 
 interface ChatComposerProps {
@@ -28,8 +27,6 @@ interface ChatComposerProps {
   onModelChange: (value: string) => void;
   imageModel: string;
   onImageModelChange: (value: string) => void;
-  imageStyle: ImageStyle;
-  onImageStyleChange: (value: ImageStyle) => void;
   effort: ReasoningEffort | undefined;
   supportedEfforts: ReasoningEffort[] | undefined;
   onEffortChange: (value: ReasoningEffort) => void;
@@ -49,7 +46,7 @@ interface ChatComposerProps {
 export function ChatComposer({
   input, onInputChange, onSend, onStop,
   isRunning, hasPending, selectedElement, selectedAddress,
-  model, onModelChange, imageModel, onImageModelChange, imageStyle, onImageStyleChange,
+  model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange,
   credits, isModelDisabled, history, inputRef, attachment, onAttach, onRemoveAttachment,
 }: ChatComposerProps) {
@@ -224,8 +221,6 @@ export function ChatComposer({
             onModelChange={onModelChange}
             imageModel={imageModel}
             onImageModelChange={onImageModelChange}
-            imageStyle={imageStyle}
-            onImageStyleChange={onImageStyleChange}
             effort={effort}
             supportedEfforts={supportedEfforts}
             onEffortChange={onEffortChange}

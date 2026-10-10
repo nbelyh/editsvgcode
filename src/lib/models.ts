@@ -108,15 +108,24 @@ export function resolveImageModel(value: string | null): string {
   return IMAGE_MODELS.some(m => m.value === value) ? value! : DEFAULT_IMAGE_MODEL;
 }
 
-/** How generated and edited pictures are drawn; see image-style in the API. Bold outlines are
- *  the default: most pictures looked better with them when the two were compared. */
-export type ImageStyle = 'outlined' | 'flat';
-export const IMAGE_STYLES: { value: ImageStyle; label: string }[] = [
-  { value: 'outlined', label: 'Bold outlines' },
-  { value: 'flat', label: 'No outlines' },
-];
-export function resolveImageStyle(value: string | null | undefined): ImageStyle {
-  return value === 'flat' ? 'flat' : 'outlined';
+/** How generated and edited pictures are drawn; see image-style in the API. Two independent
+ *  choices: bold outlines round the shapes, and more detail than cel-shading in 2-3 tones. The
+ *  default, outlines without extra detail, is how pictures were always asked for: most looked
+ *  better that way when styles were compared. */
+export interface ImageStyle {
+  outlines: boolean;
+  detail: boolean;
+}
+export const DEFAULT_IMAGE_STYLE: ImageStyle = { outlines: true, detail: false };
+
+/** The style kept in the browser, or the default when there is none or it cannot be read. */
+export function resolveImageStyle(stored: string | null | undefined): ImageStyle {
+  try {
+    const v = JSON.parse(stored ?? 'null') as Partial<ImageStyle> | null;
+    return { outlines: v?.outlines !== false, detail: v?.detail === true };
+  } catch {
+    return { ...DEFAULT_IMAGE_STYLE };
+  }
 }
 
 export const IMAGE_MODELS: ModelOption[] = [

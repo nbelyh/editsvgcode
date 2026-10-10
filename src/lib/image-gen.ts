@@ -39,6 +39,11 @@ import type { CreditsError } from './api-client';
 
 const API_URL = config.API_URL;
 
+/** The style as the image endpoints take it: the two fields by name, nothing else of the type. */
+function styleFields(style?: ImageStyle): { outlines?: boolean; detail?: boolean } {
+  return style ? { outlines: style.outlines, detail: style.detail } : {};
+}
+
 /**
  * Generate an SVG from a text prompt.
  * Server generates raster image (binary PNG), client vectorizes with vtracer in browser.
@@ -62,7 +67,7 @@ export async function generateImage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ prompt, model: imageModel, style }),
+    body: JSON.stringify({ prompt, model: imageModel, ...styleFields(style) }),
     signal,
   });
 
@@ -75,7 +80,7 @@ export async function generateImage(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ prompt, model: imageModel, style }),
+      body: JSON.stringify({ prompt, model: imageModel, ...styleFields(style) }),
       signal,
     });
   }
@@ -141,7 +146,7 @@ export async function modifyImage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ prompt, image: base64, model: imageModel, style }),
+    body: JSON.stringify({ prompt, image: base64, model: imageModel, ...styleFields(style) }),
     signal,
   });
 
@@ -154,7 +159,7 @@ export async function modifyImage(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ prompt, image: base64, model: imageModel, style }),
+      body: JSON.stringify({ prompt, image: base64, model: imageModel, ...styleFields(style) }),
       signal,
     });
   }

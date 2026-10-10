@@ -143,6 +143,10 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const [model, setModel] = useState(() => resolveEditModel(localStorage.getItem('esvg-model')));
   const [imageModel, setImageModel] = useState(() => resolveImageModel(localStorage.getItem('esvg-image-model')));
   const [imageStyle, setImageStyle] = useState<ImageStyle>(() => resolveImageStyle(localStorage.getItem('esvg-image-style')));
+  // Read whenever a picture is made: the style is chosen on the card that asks, which for a
+  // generated picture comes mid-turn, after the message was sent. Set where the choice is made,
+  // so it is right the moment the box is ticked.
+  const imageStyleRef = useRef(imageStyle);
   const [effortByModel, setEffortByModel] = useState<Record<string, ReasoningEffort>>(() => {
     try { return JSON.parse(localStorage.getItem('esvg-effort-by-model') || '{}'); } catch { return {}; }
   });
@@ -573,11 +577,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       return;
     }
     void runPictureAction('illustrate', async (picture, signal, onProgress) => {
-      const result = await modifyImage(ILLUSTRATE_PROMPT, picture, imageModel, signal, onProgress, imageStyle);
+      const result = await modifyImage(ILLUSTRATE_PROMPT, picture, imageModel, signal, onProgress, imageStyleRef.current);
       trackImageGen(imageModel);
       return result;
     });
-  }, [isAnonymous, imageModel, imageStyle, runPictureAction]);
+  }, [isAnonymous, imageModel, runPictureAction]);
 
   const handlePictureChoiceClose = useCallback(() => setPictureChoice(false), []);
 
@@ -746,7 +750,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         },
         picture ?? undefined,
         reference,
-        imageStyle,
+        () => imageStyleRef.current,
       );
 
       const assistantMsg: DisplayMessage = {
@@ -824,7 +828,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageConfirmResolveRef.current = null;
       }
     }
-  }, [input, attachment, currentModelDef, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, imageStyle, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg, openPastedSvg]);
+  }, [input, attachment, currentModelDef, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg, openPastedSvg]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -1091,8 +1095,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   }, []);
 
   const handleImageStyleChange = useCallback((v: ImageStyle) => {
+    imageStyleRef.current = v;
     setImageStyle(v);
-    localStorage.setItem('esvg-image-style', v);
+    try { localStorage.setItem('esvg-image-style', JSON.stringify(v)); } catch { /* storage unavailable: the choice lasts the session */ }
   }, []);
 
   const handleIconSelect = useCallback((icon: IconResult) => {
@@ -1167,6 +1172,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onIconNone={handleIconNone}
           imageConfirmSummary={imageConfirmSummary}
           imageCredits={IMAGE_MODELS.find((m) => m.value === imageModel)?.credits ?? 0}
+          imageStyle={imageStyle}
+          onImageStyleChange={handleImageStyleChange}
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
           onSamplePrompt={handleSamplePrompt}
@@ -1201,8 +1208,6 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             onModelChange={handleModelChange}
             imageModel={imageModel}
             onImageModelChange={handleImageModelChange}
-            imageStyle={imageStyle}
-            onImageStyleChange={handleImageStyleChange}
             effort={effort}
             supportedEfforts={supportedEfforts}
             onEffortChange={setEffort}

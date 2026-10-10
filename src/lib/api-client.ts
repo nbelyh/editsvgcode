@@ -362,8 +362,9 @@ export async function sendChatRequest(
   picture?: string,
   /** The picture the user attached most recently, on an earlier message, shown again. */
   reference?: string,
-  /** How generated and edited pictures are drawn. */
-  imageStyle?: ImageStyle,
+  /** How generated and edited pictures are drawn. Read when a picture is made, not when the
+   *  message is sent: it is chosen on the card that asks before the picture is made, mid-turn. */
+  getImageStyle?: () => ImageStyle,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -725,8 +726,8 @@ export async function sendChatRequest(
           // back as a different anime girl. So the picture goes to the image model as the
           // starting point, the way modify_image sends one.
           result = picture
-            ? await modifyImage(args.prompt, picture, imageModel, signal, (s) => onProgress?.(s), imageStyle)
-            : await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s), imageStyle);
+            ? await modifyImage(args.prompt, picture, imageModel, signal, (s) => onProgress?.(s), getImageStyle?.())
+            : await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s), getImageStyle?.());
         } catch (err) {
           if (isCreditsError(err)) throw err;
           throw err instanceof Error ? err : new Error(String(err));
@@ -748,7 +749,7 @@ export async function sendChatRequest(
           onProgress?.('modifying-image');
           let result;
           try {
-            result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s), imageStyle);
+            result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s), getImageStyle?.());
           } catch (err) {
             if (isCreditsError(err)) throw err;
             throw err instanceof Error ? err : new Error(String(err));

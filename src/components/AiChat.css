@@ -1021,3 +1021,8 @@
   height: 96px;
   cursor: pointer;
 }
+
+/* The picture style options on the cards that ask before a picture is made. */
+.aui-picture-style {
+  margin-top: 2px;
+}

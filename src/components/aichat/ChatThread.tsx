@@ -17,6 +17,7 @@ import { IconPicker } from './IconPicker';
 import { ImageConfirm } from './ImageConfirm';
 import { PictureChoice } from './PictureChoice';
 import type { DisplayMessage, ProgressStatus } from './types';
+import type { ImageStyle } from '../../lib/models';
 import type { IconResult, ReadToolCall } from '../../lib/api-client';
 import type { LiveReplyStore } from '../../lib/live-reply';
 
@@ -57,6 +58,9 @@ interface ChatThreadProps {
   imageConfirmSummary: string | null;
   /** What a generated picture costs at the chosen image model, for the confirmation to say. */
   imageCredits: number;
+  /** How the next picture is drawn, chosen on the cards that ask before one is made. */
+  imageStyle: ImageStyle;
+  onImageStyleChange: (value: ImageStyle) => void;
   onImageConfirm: () => void;
   onImageDecline: () => void;
   onSamplePrompt: (text: string) => void;
@@ -274,7 +278,7 @@ export const ChatThread = memo(function ChatThread({
   onThumbsUp, onThumbsDown, onContinue, onRetry, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
-  imageConfirmSummary, imageCredits, onImageConfirm, onImageDecline,
+  imageConfirmSummary, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline,
   onSamplePrompt, onPasteSvg, canPaste, isAnonymous, isViewer,
   pictureChoice, pictureLikenessHint, onTrace, onIllustrate, onPictureChoiceClose,
 }: ChatThreadProps) {
@@ -569,7 +573,7 @@ export const ChatThread = memo(function ChatThread({
 
       {imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
-          <ImageConfirm summary={imageConfirmSummary} imageCredits={imageCredits} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+          <ImageConfirm summary={imageConfirmSummary} imageCredits={imageCredits} imageStyle={imageStyle} onImageStyleChange={onImageStyleChange} onConfirm={onImageConfirm} onDecline={onImageDecline} />
         </div>
       )}
 
@@ -578,6 +582,8 @@ export const ChatThread = memo(function ChatThread({
           <PictureChoice
             illustrationCredits={imageCredits}
             likenessHint={pictureLikenessHint}
+            imageStyle={imageStyle}
+            onImageStyleChange={onImageStyleChange}
             onTrace={onTrace}
             onIllustrate={onIllustrate}
             onClose={onPictureChoiceClose}

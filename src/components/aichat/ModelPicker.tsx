@@ -1,6 +1,6 @@
 import { Fragment, memo, useMemo, useState } from 'react';
 import { Anchor, Tooltip, Popover, Radio, Text, Stack } from '@mantine/core';
-import { EDIT_MODELS, IMAGE_MODELS, IMAGE_STYLES, groupModels, shortModelName, visibleEditModels, type ImageStyle, type ModelOption } from '../../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, groupModels, shortModelName, visibleEditModels, type ModelOption } from '../../lib/models';
 import type { ReasoningEffort } from './types';
 
 /** "gpt-5.4-mini · 3" — credits dimmed so the model name stays the thing you scan. */
@@ -17,8 +17,6 @@ interface ModelPickerProps {
   onModelChange: (value: string) => void;
   imageModel: string;
   onImageModelChange: (value: string) => void;
-  imageStyle: ImageStyle;
-  onImageStyleChange: (value: ImageStyle) => void;
   effort: ReasoningEffort | undefined;
   supportedEfforts: ReasoningEffort[] | undefined;
   onEffortChange: (value: ReasoningEffort) => void;
@@ -36,7 +34,7 @@ interface ModelPickerProps {
  * fails if one stops being stable.
  */
 export const ModelPicker = memo(function ModelPicker({
-  model, onModelChange, imageModel, onImageModelChange, imageStyle, onImageStyleChange,
+  model, onModelChange, imageModel, onImageModelChange,
   effort, supportedEfforts, onEffortChange, isModelDisabled,
 }: ModelPickerProps) {
   const [showAllModels, setShowAllModels] = useState(false);
@@ -111,16 +109,6 @@ export const ModelPicker = memo(function ModelPicker({
                   <Tooltip key={m.value} label="Pro subscription required" disabled={!isModelDisabled(m)} position="right">
                     <div><Radio value={m.value} label={modelLabel(m)} size="xs" disabled={isModelDisabled(m)} /></div>
                   </Tooltip>
-                ))}
-              </Stack>
-            </Radio.Group>
-          </div>
-          <div>
-            <Text size="xs" fw={600} mb={4}>Picture style</Text>
-            <Radio.Group value={imageStyle} onChange={v => onImageStyleChange(v as ImageStyle)}>
-              <Stack gap={4}>
-                {IMAGE_STYLES.map(s => (
-                  <Radio key={s.value} value={s.value} label={s.label} size="xs" />
                 ))}
               </Stack>
             </Radio.Group>

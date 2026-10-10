@@ -96,7 +96,10 @@ test.describe('A picture sent alone', () => {
     await pastePicture(page);
     await composer(page).press('Enter');
 
-    await expect(card(page).getByRole('button')).toHaveText([/^Redraw as an illustration \(\d+ credits\)$/, 'Trace to SVG (free)', 'Cancel']);
+    await expect(card(page).locator('.aui-image-confirm-actions button')).toHaveText([/^Redraw as an illustration \(\d+ credits\)$/, 'Trace to SVG (free)', 'Cancel']);
+    // How the picture will be drawn is chosen right there: bold outlines, no extra detail, unless changed.
+    await expect(card(page).getByRole('checkbox', { name: 'Bold outlines' })).toBeChecked();
+    await expect(card(page).getByRole('checkbox', { name: 'More detail' })).not.toBeChecked();
     await card(page).getByRole('button', { name: 'Trace to SVG (free)' }).click();
 
     // The trace is proposed with the sliders, at the tracer's own defaults.
@@ -148,13 +151,15 @@ test.describe('A picture sent alone', () => {
 
     await pastePicture(page);
     await composer(page).press('Enter');
+    await card(page).getByRole('checkbox', { name: 'More detail' }).check();
     await card(page).getByRole('button', { name: /^Redraw as an illustration/ }).click();
 
     await expect(page.getByText('Could not redraw that picture')).toBeVisible({ timeout: 15000 });
     expect(bodies).toHaveLength(1);
     expect(bodies[0].image).toEqual(expect.any(String));
     expect(bodies[0].prompt).toContain('SAME picture');
-    expect(bodies[0].style).toBe('outlined');
+    expect(bodies[0].outlines).toBe(true);
+    expect(bodies[0].detail).toBe(true);
     // Nothing reached the chat, nothing asked a second question, and the picture is still there.
     await expect(page.locator('.aui-msg-user')).toHaveCount(0);
     await expect(page.locator('.aui-image-confirm:not(.aui-picture-choice)')).toHaveCount(0);
@@ -219,6 +224,38 @@ test.describe('A picture sent with words', () => {
     // The second message carries the same picture again, marked as one attached earlier.
     expect(imageOf(inputs[1])).toBeTruthy();
     expect(notes(inputs[1]).some((n) => n.startsWith('The picture with this message is one the user attached EARLIER'))).toBe(true);
+  });
+});
+
+test.describe('The style of a generated picture', () => {
+  test('is chosen on the card that asks, after the message was sent, and reaches the image model', async ({ page }) => {
+    await boot(page);
+    const png = Buffer.from(await pictureBytes(page), 'base64');
+    // The model offers a picture; the card that asks comes up mid-turn.
+    await page.route('**/api/chat', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        output: [{ type: 'function_call', name: 'generate_image', call_id: 'g1', arguments: JSON.stringify({ prompt: 'a cute kitten', summary: 'A cute kitten' }) }],
+        credits: CREDITS,
+      }),
+    }));
+    const bodies: Record<string, unknown>[] = [];
+    await page.route('**/api/generate-image', async (route) => {
+      bodies.push(route.request().postDataJSON());
+      await route.fulfill({ status: 200, contentType: 'image/png', headers: { 'X-Credits-Remaining': '80', 'X-Credits-Limit': '100' }, body: png });
+    });
+
+    await composer(page).fill('draw me a cute kitten');
+    await composer(page).press('Enter');
+    const confirm = page.locator('.aui-image-confirm');
+    await expect(confirm.getByRole('checkbox', { name: 'Bold outlines' })).toBeChecked({ timeout: 15000 });
+    await confirm.getByRole('checkbox', { name: 'Bold outlines' }).uncheck();
+    await confirm.getByRole('button', { name: /^Generate picture/ }).click();
+
+    await expect(page.locator('.aui-vectorizer')).toBeVisible({ timeout: 20000 });
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]).toMatchObject({ prompt: 'a cute kitten', outlines: false, detail: false });
   });
 });
 
