@@ -83,7 +83,7 @@ interface StoredMessage {
   seq: number;
   role: 'user' | 'assistant';
   content: string;       // kept top-level (readable for review)
-  payload: string;       // JSON of { toolCalls?, rawItems?, selectedIcon?, readToolCalls?, outOfToolRounds? }, png externalized
+  payload: string;       // JSON of { pictureRef?, action?, toolCalls?, rawItems?, selectedIcon?, readToolCalls?, outOfToolRounds? }, png externalized
 }
 
 const seqId = (seq: number) => String(seq).padStart(6, '0');
@@ -110,12 +110,25 @@ export async function toStored(msg: DisplayMessage, seq: number): Promise<Stored
       return tc;
     }));
   }
+  // An attached picture is kept in blob storage, by reference. One that cannot be uploaded is
+  // left out rather than kept inline, as a generated one is: a photo is megabytes, past
+  // Firestore's 1 MiB per message, and one message over it stops the whole chat saving.
+  let pictureRef = msg.pictureRef;
+  if (msg.picture) {
+    try {
+      pictureRef = await uploadPng(msg.picture);
+    } catch (err) {
+      console.warn('[chat-history] picture upload failed; saving the message without it', err);
+    }
+  }
   // JSON.stringify drops `undefined` fields, so the payload is always valid.
   //
   // What the model reasoned is left out on purpose — the message's `reasoning`, and the
   // summary text inside the replay items. A shared document's chat is readable by anyone
   // with the link, and reasoning can restate the server's instructions.
   const payload = JSON.stringify({
+    pictureRef,
+    action: msg.action,
     toolCalls,
     // A picture from get_png_image is never meant to reach rawItems; if one did, it would
     // push the document toward Firestore's 1 MiB limit and be copied into every fork.
@@ -129,6 +142,8 @@ export async function toStored(msg: DisplayMessage, seq: number): Promise<Stored
 
 export async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
   const parsed = JSON.parse(s.payload) as {
+    pictureRef?: string;
+    action?: DisplayMessage['action'];
     toolCalls?: Array<Record<string, unknown>>;
     rawItems?: unknown[];
     selectedIcon?: unknown;
@@ -157,6 +172,17 @@ export async function fromStored(s: StoredMessage): Promise<DisplayMessage> {
     }));
   }
   const msg: DisplayMessage = { role: s.role, content: s.content };
+  if (parsed.action) msg.action = parsed.action;
+  if (parsed.pictureRef) {
+    uploadedPaths.add(parsed.pictureRef);
+    // Like a generated picture's blob: an unreachable one costs the picture, not the chat, and
+    // its reference is kept so the next save does not drop it for good.
+    try { msg.picture = await fetchPngDataUrl(parsed.pictureRef); }
+    catch (err) {
+      console.warn('[chat-history] picture fetch failed; keeping message without it', err);
+      msg.pictureRef = parsed.pictureRef;
+    }
+  }
   if (toolCalls) msg.toolCalls = toolCalls as unknown as DisplayMessage['toolCalls'];
   if (parsed.rawItems !== undefined) msg.rawItems = parsed.rawItems;
   if (parsed.selectedIcon !== undefined) msg.selectedIcon = parsed.selectedIcon as DisplayMessage['selectedIcon'];

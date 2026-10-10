@@ -972,3 +972,52 @@
   gap: 6px;
   margin-top: 4px;
 }
+
+/* A picture attached to the message being written. `contain`, not `cover`: a wide screenshot
+   cropped to a square would hide what was attached. The checkerboard shows transparency. */
+.aui-attachment {
+  position: relative;
+  align-self: flex-start;
+  margin-bottom: 4px;
+  line-height: 0;
+}
+
+.aui-attachment img,
+.aui-msg-picture img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  background: repeating-conic-gradient(light-dark(#eee, #333) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+}
+
+.aui-attachment-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  cursor: pointer;
+}
+
+/* The picture a sent message came with. */
+.aui-msg-picture {
+  display: inline-block;
+  margin-top: 6px;
+  line-height: 0;
+}
+
+.aui-msg-picture img {
+  width: 96px;
+  height: 96px;
+  cursor: pointer;
+}

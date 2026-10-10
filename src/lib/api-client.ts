@@ -10,6 +10,8 @@ import { getElementBounds } from './svg-bounds';
 import { renderSnapshot } from './svg-snapshot';
 import { fadedOutWarning } from './faded-out';
 import { pictureItem, withPictures, type TurnPicture } from './chat-pictures';
+import { pictureForModel } from './pasted-image';
+import type { ImageStyle } from './models';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
 import { readChatStream, withoutReasoningSummaries, type ChatStreamUpdate } from './chat-stream';
@@ -214,6 +216,24 @@ function describeEditArgs(name: string, args: any): Record<string, unknown> {
   return {};
 }
 
+/**
+ * What the model is told when the user's message comes with a picture. The picture can be
+ * meant several ways, and each wants a different tool, so the note names them; without it a
+ * model asked to "make this an SVG" can only try to draw it from memory of the request.
+ */
+const ATTACHED_PICTURE_NOTE = 'The user attached a picture to this message; you can see it. Read the request to know what it is for. In this turn the image tools start FROM THIS PICTURE: generate_image and modify_image both hand it to the image model as the picture to work on, so either may be used even though no picture was generated earlier, and the prompt is an instruction about this picture, not a description of a new one. (1) To recreate the picture as SVG — "convert this", "make this an SVG", "redraw this": for a logo, an icon, a diagram or other flat artwork of a few shapes, write clean SVG yourself with replace_svg, with the same shapes, colours and proportions, sized to the picture. For anything more detailed — a character, a scene, a photo, an illustration with shading — use modify_image with a prompt such as "Redraw this picture as a flat vector illustration, keeping the subject, pose, composition, colours and details", adding anything the user asked to change; the result is traced to SVG. Do not draw a detailed picture by hand: the likeness is lost — unless the user asks for simple shapes or says not to use the image model, and then draw it by hand as well as shapes allow. (2) To change WHAT THE PICTURE SHOWS — remove the background, change a colour scheme, add or remove an object — use modify_image and say what to change. (3) Otherwise the picture is a reference for an edit to the current drawing below — match its colours, copy a shape from it, add what it shows — and you edit the drawing as usual. A white background in the picture may stand for a transparent one: leave it out rather than drawing a white rectangle, unless the request asks for a background. Later messages show this picture again for reference, until the user attaches another.';
+
+/**
+ * What the model is told when the picture the user attached earlier is shown again. A
+ * follow-up such as "redraw it closer to the original" is about that picture, and without it
+ * the model could only ask for the original — it was sent with one message and never again.
+ */
+const REFERENCE_PICTURE_NOTE = 'The picture with this message is one the user attached EARLIER in this conversation, shown again for reference; it is not a new attachment. The current drawing may have been made from it — traced, or redrawn by the image model and then traced — so when the user asks for the result to be closer to the original, or refers to "the picture", compare the drawing with this picture and say concretely what differs. modify_image edits the most recent generated picture when there is one, and the image model does not see this reference picture: to bring a redraw closer to it, describe the differences precisely in the modify_image prompt — faces, hair or fur, clothing, colours, proportions, missing details. When nothing was generated yet, modify_image starts from this picture.';
+
+/** What a picture confirmation asks: to generate a new one, change the one generated earlier,
+ *  or work from a picture the user attached. */
+export type ImageConfirmKind = 'generate' | 'modify' | 'picture';
+
 /** The line edits in one replace_lines call, in either accepted shape. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lineEditsOf(args: any): LineEdit[] {
@@ -335,9 +355,15 @@ export async function sendChatRequest(
   effort?: string,
   onIconPick?: (icons: IconResult[]) => Promise<IconResult | 'more' | 'none'>,
   onToolCall?: (tc: ReadToolCall) => void,
-  onImageConfirm?: (summary: string, isModify: boolean) => Promise<boolean>,
+  onImageConfirm?: (summary: string, kind: ImageConfirmKind) => Promise<boolean>,
   lastPngDataUrl?: string,
   onLiveUpdate?: (update: ChatLiveUpdate) => void,
+  /** A picture the user attached to this message, as a PNG data URL. */
+  picture?: string,
+  /** The picture the user attached most recently, on an earlier message, shown again. */
+  reference?: string,
+  /** How generated and edited pictures are drawn. */
+  imageStyle?: ImageStyle,
 ): Promise<ChatResponse> {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -381,12 +407,17 @@ export async function sendChatRequest(
     ...(conversationHistory.length > 0
       ? [{ role: 'developer', content: 'The SVG document has been updated since the earlier messages. Line numbers from previous tool calls and search results are now stale — do NOT reuse them. Attribute VALUES from earlier turns are stale in the same way: anything you changed no longer carries the value it had then, so a selector written around that old value now matches nothing, and one written around the NEW value may also match elements that already had it and were never part of your change. Always rely on the current SVG context below, and re-run search_svg or read_svg_lines if you need line numbers.' }]
       : []),
-    // When a previously generated image exists, tell the model so it knows modify_image is available
-    ...(lastPngDataUrl
-      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was traced from an AI-generated image (generate_image or modify_image was used earlier in this conversation), and a source PNG is available for further editing. Two different kinds of request, two different tools. (1) To change WHAT THE PICTURE SHOWS — add a hat, change the pose, put it somewhere else — prefer modify_image: the traced paths are machine-generated and hopeless to redraw by hand. (2) To change a PROPERTY OF THE MARKUP — above all COLOUR, and also size, opacity or position — edit the SVG directly with set_attribute, and do NOT regenerate the image for it. Every traced element is a <path> with no id and no class, carrying its colour in a style attribute: <path d="M0 0 C5 3 ..." transform="translate(364,94)" style="fill: #1C1817;"/>. So address them by that value — selector `path[style="fill: #1C1817;"]`, name "style", value "fill: #0E0C0B;" — and one edit recolours every path wearing that colour. Copy each hex EXACTLY as it appears, upper-case included; a lower-cased or reformatted value matches nothing. SCOPE THIS BY WHAT WAS ASKED. Addressing by value is right for the picture as a whole — "make it darker", "change the colours". If instead the user points at one path — "this one", "the selected shape" — take the address from the Selected element block below and change that path alone: recolouring every path of its shade would repaint parts of the picture nobody mentioned, and once two shades are merged nothing can tell them apart again. Setting "fill" instead of "style" is reported as applied but changes nothing on screen, because the inline style wins. Do NOT use replace_lines here: the path data fills the line, so re-emitting it to change six characters of colour will exhaust the response long before the drawing is done.' }]
+    // When a previously generated image exists, tell the model so it knows modify_image is available.
+    // An attached picture takes its place: modify_image then edits that one.
+    ...(lastPngDataUrl && !picture
+      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was traced from a picture (made with generate_image or modify_image earlier in this conversation, or attached by the user and traced), and its source PNG is available for further editing. Two different kinds of request, two different tools. (1) To change WHAT THE PICTURE SHOWS — add a hat, change the pose, put it somewhere else — prefer modify_image: the traced paths are machine-generated and hopeless to redraw by hand. (2) To change a PROPERTY OF THE MARKUP — above all COLOUR, and also size, opacity or position — edit the SVG directly with set_attribute, and do NOT regenerate the image for it. Every traced element is a <path> with no id and no class, carrying its colour in a style attribute: <path d="M0 0 C5 3 ..." transform="translate(364,94)" style="fill: #1C1817;"/>. So address them by that value — selector `path[style="fill: #1C1817;"]`, name "style", value "fill: #0E0C0B;" — and one edit recolours every path wearing that colour. Copy each hex EXACTLY as it appears, upper-case included; a lower-cased or reformatted value matches nothing. SCOPE THIS BY WHAT WAS ASKED. Addressing by value is right for the picture as a whole — "make it darker", "change the colours". If instead the user points at one path — "this one", "the selected shape" — take the address from the Selected element block below and change that path alone: recolouring every path of its shade would repaint parts of the picture nobody mentioned, and once two shades are merged nothing can tell them apart again. Setting "fill" instead of "style" is reported as applied but changes nothing on screen, because the inline style wins. Do NOT use replace_lines here: the path data fills the line, so re-emitting it to change six characters of colour will exhaust the response long before the drawing is done.' }]
       : []),
+    ...(picture ? [{ role: 'developer', content: ATTACHED_PICTURE_NOTE }] : []),
+    ...(!picture && reference ? [{ role: 'developer', content: REFERENCE_PICTURE_NOTE }] : []),
     { role: 'developer', content: svgContext },
-    { role: 'user', content: userText },
+    picture || reference
+      ? { role: 'user', content: [{ type: 'input_text', text: userText }, { type: 'input_image', image_url: await pictureForModel((picture ?? reference)!) }] }
+      : { role: 'user', content: userText },
   ];
 
   // First call
@@ -421,13 +452,19 @@ export async function sendChatRequest(
       );
       if (genImageCall && onImageConfirm) {
         const genArgs = JSON.parse(genImageCall.arguments!);
-        imageApproved = await onImageConfirm(genArgs.summary || genArgs.prompt, genImageCall.name === 'modify_image');
+        // With a picture attached, both image tools start from it (see the execution below), and
+        // modify_image starts from the reference picture when nothing was generated yet.
+        const fromPicture = !!picture || (genImageCall.name === 'modify_image' && !lastPngDataUrl && !!reference);
+        const kind: ImageConfirmKind = fromPicture ? 'picture' : genImageCall.name === 'modify_image' ? 'modify' : 'generate';
+        imageApproved = await onImageConfirm(genArgs.summary || genArgs.prompt, kind);
         if (!imageApproved) {
           // User declined — send rejection back and ask model to use SVG tools
           allRawOutput.push(...withoutReasoningSummaries(response.output));
-          const rejectionMsg = genImageCall.name === 'modify_image'
-            ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (replace_lines or replace_svg) instead.'
-            : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
+          const rejectionMsg = fromPicture
+            ? 'User declined having the image model redraw the attached picture. Draw it yourself as SVG with replace_svg instead, following the attached picture as closely as simple shapes allow.'
+            : genImageCall.name === 'modify_image'
+              ? 'User declined AI image modification. Try to make the requested change using SVG editing tools (replace_lines or replace_svg) instead.'
+              : 'User declined AI image generation. Draw the image yourself using SVG code with replace_svg instead. Create it using manual SVG paths, shapes, and elements. Do your best to produce a good result.';
           allRawOutput.push({
             type: 'function_call_output',
             call_id: genImageCall.call_id,
@@ -561,7 +598,7 @@ export async function sendChatRequest(
   // Track running SVG state so multiple tool calls chain correctly
   let runningSvg = normalizedSvg;
   // Track the latest generated PNG for modify_image chaining within a single turn
-  let currentPngDataUrl = lastPngDataUrl;
+  let currentPngDataUrl = picture ?? lastPngDataUrl ?? reference;
 
   for (const item of response.output) {
     if (item.type === 'message') {
@@ -679,16 +716,24 @@ export async function sendChatRequest(
           documentReplaced = true;
         }
       } else if (item.name === 'generate_image') {
-        onProgress?.('generating-image');
+        onProgress?.(picture ? 'modifying-image' : 'generating-image');
         let result;
         try {
-          result = await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s));
+          // generate_image takes words alone. With a picture attached, the model reaches for it
+          // to redraw that picture — the prompt says so, and the server prompt sends detailed
+          // pictures there — and a picture made from a description of an anime drawing came
+          // back as a different anime girl. So the picture goes to the image model as the
+          // starting point, the way modify_image sends one.
+          result = picture
+            ? await modifyImage(args.prompt, picture, imageModel, signal, (s) => onProgress?.(s), imageStyle)
+            : await generateImage(args.prompt, imageModel, signal, (s) => onProgress?.(s), imageStyle);
         } catch (err) {
           if (isCreditsError(err)) throw err;
           throw err instanceof Error ? err : new Error(String(err));
         }
         args.svg = result.svg;
         args.pngDataUrl = result.pngDataUrl;
+        args.vectorizerParams = result.params;
         runningSvg = result.svg;
         documentReplaced = true;
         latestCredits = result.credits;
@@ -703,13 +748,14 @@ export async function sendChatRequest(
           onProgress?.('modifying-image');
           let result;
           try {
-            result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s));
+            result = await modifyImage(args.prompt, currentPngDataUrl, imageModel, signal, (s) => onProgress?.(s), imageStyle);
           } catch (err) {
             if (isCreditsError(err)) throw err;
             throw err instanceof Error ? err : new Error(String(err));
           }
           args.svg = result.svg;
           args.pngDataUrl = result.pngDataUrl;
+          args.vectorizerParams = result.params;
           runningSvg = result.svg;
           documentReplaced = true;
           latestCredits = result.credits;

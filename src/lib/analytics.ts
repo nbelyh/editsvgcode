@@ -53,10 +53,24 @@ export function trackImageDeclined(meta: { model: string; modify: boolean }): vo
 
 /**
  * User pasted a whole SVG document into the chat, and it was opened without a model call.
- * `source` tells a sent message from the phone's Paste SVG button.
+ * `source` tells a sent message from the phone's Paste SVG button and an SVG file attached.
  */
-export function trackPastedSvg(source: 'message' | 'button'): void {
+export function trackPastedSvg(source: 'message' | 'button' | 'file'): void {
   track('ai_pasted_svg', { source });
+}
+
+/**
+ * A picture attached to the chat, and what became of it: `attached` (with how), `failed` when
+ * the browser could not read it, `trace` or `illustrate` chosen on the card when it was sent
+ * alone, `sent` with a message, and the first accept or the reject of a trace or an
+ * illustration. Those are kept apart from ai_accept and ai_reject, which count the chat
+ * model's proposals.
+ */
+export type PictureAction =
+  | 'attached' | 'failed' | 'trace' | 'illustrate' | 'sent'
+  | 'trace_accepted' | 'trace_rejected' | 'illustrate_accepted' | 'illustrate_rejected';
+export function trackPicture(action: PictureAction, source?: 'paste' | 'drop' | 'button'): void {
+  track('ai_picture', { action, ...(source ? { source } : {}) });
 }
 
 /**

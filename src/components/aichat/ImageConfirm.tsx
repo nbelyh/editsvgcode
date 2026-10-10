@@ -23,25 +23,27 @@ interface ImageConfirmProps {
  * with a varying ending — so each can be translated as written.
  */
 export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline }: ImageConfirmProps) {
-  const isModify = summary.startsWith('modify:');
-  const displaySummary = isModify ? summary.slice('modify:'.length) : summary;
+  const kind = summary.startsWith('modify:') ? 'modify' : summary.startsWith('picture:') ? 'picture' : 'generate';
+  const displaySummary = kind === 'generate' ? summary : summary.slice(kind.length + 1);
   return (
     <div className="aui-image-confirm">
       <div className="aui-image-confirm-text">
-        {isModify ? 'Change the generated picture?' : 'This looks like a picture. Generate it?'}
+        {kind === 'modify' ? 'Change the generated picture?' : kind === 'picture' ? 'Redraw your picture with the image model?' : 'This looks like a picture. Generate it?'}
       </div>
       {displaySummary && <div className="aui-image-confirm-summary">{displaySummary}</div>}
       <div className="aui-image-confirm-hint">
-        {isModify
+        {kind === 'modify'
           ? 'The picture is edited and traced into SVG shapes again, so it stays editable. Changing the shapes by hand instead suits small changes, not new details.'
-          : 'A generated picture is traced into SVG shapes, so you can edit it like any other drawing. Drawn by hand with shapes instead, it will be much simpler.'}
+          : kind === 'picture'
+            ? 'The image model works from your picture, and the result is traced into SVG shapes you can edit. Drawn by hand with shapes instead, it will be much simpler.'
+            : 'A generated picture is traced into SVG shapes, so you can edit it like any other drawing. Drawn by hand with shapes instead, it will be much simpler.'}
       </div>
       <div className="aui-image-confirm-actions">
         <button className="aui-action-btn aui-action-btn-primary" onClick={onConfirm}>
-          {isModify ? `Change picture (${imageCredits} credits)` : `Generate picture (${imageCredits} credits)`}
+          {kind === 'modify' ? `Change picture (${imageCredits} credits)` : kind === 'picture' ? `Redraw picture (${imageCredits} credits)` : `Generate picture (${imageCredits} credits)`}
         </button>
         <button className="aui-action-btn" onClick={onDecline}>
-          {isModify ? 'Edit the shapes instead (no extra credits)' : 'Draw it with shapes instead (no extra credits)'}
+          {kind === 'modify' ? 'Edit the shapes instead (no extra credits)' : 'Draw it with shapes instead (no extra credits)'}
         </button>
       </div>
     </div>

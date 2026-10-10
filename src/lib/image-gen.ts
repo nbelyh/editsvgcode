@@ -13,12 +13,18 @@ export interface VectorizerParams {
   pathPrecision: number;     // 0–16
 }
 
+/**
+ * vtracer's own defaults for speckle and colour precision. The tracer used to filter specks
+ * under 10x10 pixels and keep 4 bits of colour, which on a detailed portrait kept 43 shapes and
+ * lost the hat's ribs, the eyes and the shading; at these settings the SVG is hard to tell from
+ * the picture. Most pictures stay small at them; traceToFit steps back for the few that do not.
+ */
 export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
   mode: 'spline',
   clusteringMode: 'color',
   hierarchical: 'stacked',
-  filterSpeckle: 10,
-  colorPrecision: 4,
+  filterSpeckle: 4,
+  colorPrecision: 6,
   layerDifference: 16,
   cornerThreshold: 60,
   lengthThreshold: 4,
@@ -27,6 +33,7 @@ export const DEFAULT_VECTORIZER_PARAMS: VectorizerParams = {
 };
 
 import { getAuth } from 'firebase/auth';
+import type { ImageStyle } from './models';
 import { config } from './config';
 import type { CreditsError } from './api-client';
 
@@ -41,7 +48,8 @@ export async function generateImage(
   imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
-): Promise<{ svg: string; pngDataUrl: string; credits: { remaining: number; limit: number } }> {
+  style?: ImageStyle,
+): Promise<{ svg: string; pngDataUrl: string; params: VectorizerParams; credits: { remaining: number; limit: number } }> {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
@@ -54,7 +62,7 @@ export async function generateImage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ prompt, model: imageModel }),
+    body: JSON.stringify({ prompt, model: imageModel, style }),
     signal,
   });
 
@@ -67,7 +75,7 @@ export async function generateImage(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ prompt, model: imageModel }),
+      body: JSON.stringify({ prompt, model: imageModel, style }),
       signal,
     });
   }
@@ -102,8 +110,8 @@ export async function generateImage(
 
   // Vectorize in the browser using vtracer-webapp (same as visioncortex.org/vtracer)
   onProgress?.('vectorizing');
-  const svg = await vectorize(pngDataUrl);
-  return { svg, pngDataUrl, credits };
+  const { svg, params } = await traceToFit(pngDataUrl);
+  return { svg, pngDataUrl, params, credits };
 }
 
 /**
@@ -116,7 +124,8 @@ export async function modifyImage(
   imageModel?: string,
   signal?: AbortSignal,
   onProgress?: (status: ImageProgressStatus) => void,
-): Promise<{ svg: string; pngDataUrl: string; credits: { remaining: number; limit: number } }> {
+  style?: ImageStyle,
+): Promise<{ svg: string; pngDataUrl: string; params: VectorizerParams; credits: { remaining: number; limit: number } }> {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
@@ -132,7 +141,7 @@ export async function modifyImage(
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ prompt, image: base64, model: imageModel }),
+    body: JSON.stringify({ prompt, image: base64, model: imageModel, style }),
     signal,
   });
 
@@ -145,7 +154,7 @@ export async function modifyImage(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ prompt, image: base64, model: imageModel }),
+      body: JSON.stringify({ prompt, image: base64, model: imageModel, style }),
       signal,
     });
   }
@@ -180,8 +189,42 @@ export async function modifyImage(
 
   // Vectorize in the browser
   onProgress?.('vectorizing');
-  const svg = await vectorize(pngDataUrl);
-  return { svg, pngDataUrl, credits };
+  const { svg, params } = await traceToFit(pngDataUrl);
+  return { svg, pngDataUrl, params, credits };
+}
+
+/**
+ * The most SVG a traced picture may come to. A chat message is one Firestore document, limited
+ * to 1 MiB, it holds the traced SVG, and the whole chat is saved in one batch: past this the
+ * chat would stop saving. Measured: a detailed gpt-image-1.5 portrait came to 755 KB at the
+ * default settings and 449 KB one step back; a typical mini picture is under 100 KB either way.
+ */
+export const MAX_TRACE_CHARS = 700_000;
+
+/** The settings the tracer used before the defaults moved to vtracer's own. Pictures traced
+ *  then were traced at these, and their sliders open at them. */
+export const LEGACY_VECTORIZER_PARAMS: VectorizerParams = { ...DEFAULT_VECTORIZER_PARAMS, filterSpeckle: 10, colorPrecision: 4 };
+
+/** Coarser settings to fall back on, in order, when a trace is over the limit. */
+const FALLBACK_PARAMS: VectorizerParams[] = [
+  { ...DEFAULT_VECTORIZER_PARAMS, filterSpeckle: 6, colorPrecision: 5 },
+  LEGACY_VECTORIZER_PARAMS,
+];
+
+/**
+ * Trace at the default settings, stepping back to coarser ones while the SVG is over the
+ * limit. Returns the settings used, so the sliders can open at them. The coarsest trace is
+ * returned even if it is still over: the caller decides what to do with it.
+ */
+export async function traceToFit(imageUrl: string): Promise<{ svg: string; params: VectorizerParams }> {
+  let params = DEFAULT_VECTORIZER_PARAMS;
+  let svg = await vectorize(imageUrl, params);
+  for (const fallback of FALLBACK_PARAMS) {
+    if (svg.length <= MAX_TRACE_CHARS) break;
+    params = fallback;
+    svg = await vectorize(imageUrl, params);
+  }
+  return { svg, params };
 }
 
 /**
@@ -278,7 +321,7 @@ async function vectorizeInBrowser(imageUrl: string, params: VectorizerParams = D
   }
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);

@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { ActionIcon, Tooltip, Text } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconEraser } from '@tabler/icons-react';
-import { sendChatRequest, isCreditsError, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type ChatLiveUpdate } from '../../lib/api-client';
+import { sendChatRequest, isCreditsError, type ImageConfirmKind, type ProgressStatus, type Credits, type IconResult, type ReadToolCall, type ChatLiveUpdate } from '../../lib/api-client';
 import { subscribeCredits } from '../../lib/credits-listener';
 import { createLiveReplyStore } from '../../lib/live-reply';
 import { recordAiFeedback, failureOf, drawingShownFor, type FeedbackInput } from '../../lib/ai-feedback';
@@ -12,15 +12,17 @@ import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatA
 import { friendlyError } from '../../lib/firebase';
 import { addressForLineRange } from '../../lib/svg-dom';
 import { DEFAULT_PRICING } from '../../lib/pricing';
-import { EDIT_MODELS, IMAGE_MODELS, resolveEditModel, resolveImageModel, type ReasoningEffort } from '../../lib/models';
+import { EDIT_MODELS, IMAGE_MODELS, resolveEditModel, resolveImageModel, resolveImageStyle, type ImageStyle, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
 import { openSignInModal } from '../SignInModal';
 import { ForeignDocNotice } from '../ForeignDocNotice';
 import { FOREIGN_DOC_CHAT_NOTICE } from '../../lib/visibility';
 import type { DisplayMessage, AiChatProps } from './types';
-import { type ProposalMeta, trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg, trackImageDeclined } from '../../lib/analytics';
+import { type ProposalMeta, trackAiChat, trackAiAccept, trackAiReject, trackAiThumbsUp, trackAiThumbsDown, trackCreditsExhausted, trackImageGen, trackPastedSvg, trackPicture, trackImageDeclined } from '../../lib/analytics';
 import { pastedSvgDocument } from '../../lib/pasted-svg';
+import { rasterToPngDataUrl, TRACE_IMAGE_TOOL, REDRAW_IMAGE_TOOL, isPictureTool, isSvgFile, type PictureCardAction } from '../../lib/pasted-image';
+import { traceToFit, modifyImage, MAX_TRACE_CHARS, type VectorizerParams } from '../../lib/image-gen';
 import { docOrigin } from '../../lib/doc-origin';
 import { describeChatError } from '../../lib/chat-errors';
 import '../AiChat.css';
@@ -38,6 +40,41 @@ const PENDING_SEND_KEY = 'esvg-pending-send';
 // findings are already replayed as history, so the point is to stop it starting
 // the search from scratch.
 const CONTINUE_TEXT = 'Continue from where you stopped. Use what you already found instead of searching again, and make the edit now.';
+
+// What the image model is asked by "Redraw as an illustration". The server adds its own rules
+// for flat fills and keeping what the instruction does not change.
+//
+// Worded as a conversion of the same picture, not a redraw: "redraw" invited the model to
+// restyle it, and an attached character came back as a generic one. Tested on a Tenniel
+// illustration, this wording with gpt-image-1.5 at high fidelity kept the face, the hair and
+// the drawing's own style.
+const ILLUSTRATE_PROMPT = 'Convert this picture into flat-colour vector art of the SAME picture. Follow its linework faithfully: keep every character exactly as drawn — identity, face, expression, hair or fur, clothing, accessories — and keep the pose, composition, proportions and all the details. Do not restyle it, do not simplify it, do not invent features. Keep the colours it has. Only replace soft shading, hatching and texture with flat areas of colour.';
+
+// The picture card's two buttons, which run without the chat model. `history` is what later
+// turns are told the button did — without it "redraw it closer to the original" was answered
+// with a request for the original.
+const PICTURE_CARD: Record<PictureCardAction, { tool: string; request: string; reply: string; history: string; done: string; failed: string }> = {
+  trace: {
+    tool: TRACE_IMAGE_TOOL,
+    request: 'Trace this picture to SVG',
+    reply: 'Here is your picture traced to SVG. Adjust the sliders until it looks right, then Accept to open it in the editor. Tracing runs in your browser and uses no credits.',
+    history: '[The user attached a picture and traced it to SVG in the browser; the traced drawing is the current document if they accepted it. You were not involved.]',
+    done: 'Traced the picture to SVG.',
+    failed: 'Could not trace that picture',
+  },
+  illustrate: {
+    tool: REDRAW_IMAGE_TOOL,
+    request: 'Redraw this picture as an illustration',
+    reply: 'Here is your picture redrawn by the image model and traced to SVG. Adjust the sliders until it looks right, then Accept to open it in the editor.',
+    history: '[The user attached a picture and had the image model redraw it as a flat-colour illustration, which was then traced to SVG; it is the current document if they accepted it. You were not involved.]',
+    done: 'Redrew the picture with the image model and traced it to SVG.',
+    failed: 'Could not redraw that picture',
+  },
+};
+
+// What later turns are told about a message that came with a picture. The picture itself is
+// sent on its own turn only.
+const PICTURE_IN_HISTORY = '\n\n[A picture was attached to this message. Later messages show it again for reference, until another is attached.]';
 
 /**
  * Heuristic: detect prompts that primarily request raster image generation.
@@ -83,6 +120,10 @@ function proposalMeta(msg: DisplayMessage | undefined, tool: string, userMsg: Di
 export function AiChat({ svgCode, fileId, documentReady, selectedElement, selectedLineRange, visible = true, onPreviewSvg, onAcceptSvg, onRestore, onChatLoaded, onAccessResolved, onStartFrom, cloning }: AiChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
+  // A picture attached to the message being written, as a PNG data URL, and whether the
+  // question of what to do with it is showing — asked when it is sent without a message.
+  const [attachment, setAttachment] = useState<string | null>(null);
+  const [pictureChoice, setPictureChoice] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>('thinking');
   // What the model is writing and thinking while a call runs, streamed. Kept out of React
@@ -101,6 +142,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const [credits, setCredits] = useState<Credits | null>(null);
   const [model, setModel] = useState(() => resolveEditModel(localStorage.getItem('esvg-model')));
   const [imageModel, setImageModel] = useState(() => resolveImageModel(localStorage.getItem('esvg-image-model')));
+  const [imageStyle, setImageStyle] = useState<ImageStyle>(() => resolveImageStyle(localStorage.getItem('esvg-image-style')));
   const [effortByModel, setEffortByModel] = useState<Record<string, ReasoningEffort>>(() => {
     try { return JSON.parse(localStorage.getItem('esvg-effort-by-model') || '{}'); } catch { return {}; }
   });
@@ -295,11 +337,12 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         try {
           const raw = sessionStorage.getItem(PENDING_SEND_KEY);
           if (raw) {
-            const pending = JSON.parse(raw) as { fileId?: string; text?: string };
+            const pending = JSON.parse(raw) as { fileId?: string; text?: string; picture?: string | null };
             if (pending.fileId === fileId) {
               sessionStorage.removeItem(PENDING_SEND_KEY);
               if (pending.text && !inputRef.current.trim()) {
                 setInput(pending.text);
+                if (pending.picture) setAttachment(pending.picture);
                 pendingSendRef.current = true;
               }
             }
@@ -357,17 +400,17 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // An empty chat is read from the top. Pinned to the bottom like a thread,
     // a short phone panel scrolled the first thing in it — the Paste SVG code
     // button — out of sight.
-    if (messages.length === 0) {
+    if (messages.length === 0 && !pictureChoice) {
       if (viewportRef.current) viewportRef.current.scrollTop = 0;
       return;
     }
     followBottom();
-  }, [messages, isRunning, followBottom]);
+  }, [messages, isRunning, pictureChoice, followBottom]);
 
   // A message that is nothing but an SVG document is opened in the editor, with no model call:
   // the person wants to see it, not have it changed. Restore above the message puts the
   // drawing back, like after any accepted edit.
-  const openPastedSvg = useCallback((text: string, pasted: string, source: 'message' | 'button') => {
+  const openPastedSvg = useCallback((text: string, pasted: string, source: 'message' | 'button' | 'file') => {
     const prevSvg = svgRef.current;
     onPreviewSvg(null);
     onAcceptSvg(pasted);
@@ -423,16 +466,145 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     openPastedSvg(text.trim(), pasted, 'button');
   }, [openPastedSvg]);
 
+  // A picture pasted, dropped or picked with the attach button. An SVG file opens like pasted
+  // SVG code; anything else is attached to the message being written, at the size it would be
+  // traced at. Refused while the chat cannot take a message, with a word why — the paste or
+  // drop was already taken from the browser.
+  const handleAttach = useCallback(async (file: File, source: 'paste' | 'drop' | 'button') => {
+    if (!canPasteRef.current) {
+      notifications.show({ title: 'Not ready for a picture yet', message: 'Wait for the document to load, then add the picture again.', color: 'yellow' });
+      return;
+    }
+    if (isSvgFile(file)) {
+      const text = await file.text().catch(() => '');
+      const svg = pastedSvgDocument(text);
+      if (!svg) {
+        notifications.show({ title: 'Could not open that SVG file', message: 'It does not hold an SVG document the browser can read.', color: 'red' });
+        return;
+      }
+      if (canPasteRef.current) openPastedSvg(text.trim(), svg, 'file');
+      return;
+    }
+    let picture: string;
+    try {
+      picture = await rasterToPngDataUrl(file);
+    } catch {
+      trackPicture('failed', source);
+      notifications.show({ title: 'Could not read that picture', message: 'Try it as a PNG or JPEG image.', color: 'red' });
+      return;
+    }
+    setAttachment(picture);
+    setPictureChoice(false);
+    trackPicture('attached', source);
+    composerRef.current?.focus();
+  }, [openPastedSvg]);
+
+  const handleRemoveAttachment = useCallback(() => {
+    setAttachment(null);
+    setPictureChoice(false);
+  }, []);
+
+  // The picture card's buttons. The picture stays in the message box while they run, so a
+  // stop or a failure leaves nothing to undo; on success the request and its proposal are
+  // added together. Tracing ignores Stop, so a stopped run finishes unseen: the turn counter
+  // tells.
+  const runPictureAction = useCallback(async (
+    action: PictureCardAction,
+    work: (picture: string, signal: AbortSignal, onProgress: (s: ProgressStatus) => void) => Promise<{ svg: string; pngDataUrl: string; params: VectorizerParams }>,
+  ) => {
+    const picture = attachment;
+    if (!picture || !canPasteRef.current) return;
+    const card = PICTURE_CARD[action];
+    trackPicture(action);
+    setPictureChoice(false);
+    const turn = ++turnRef.current;
+    const abort = new AbortController();
+    abortRef.current = abort;
+    live.reset();
+    setIsRunning(true);
+    setProgressStatus(action === 'trace' ? 'vectorizing' : 'modifying-image');
+    pinnedRef.current = true;
+    try {
+      const result = await work(picture, abort.signal, (s) => { if (turnRef.current === turn) setProgressStatus(s); });
+      if (turnRef.current !== turn) return;
+      if (result.svg.length > MAX_TRACE_CHARS) {
+        notifications.show({ title: 'This picture is too detailed to trace', message: 'Try a simpler picture, such as a logo or an icon.', color: 'yellow' });
+        return;
+      }
+      setAttachment(null);
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: card.request, picture, action },
+        {
+          role: 'assistant',
+          content: card.reply,
+          toolCalls: [{ name: card.tool, arguments: { svg: result.svg, pngDataUrl: result.pngDataUrl, vectorizerParams: result.params, summary: card.request }, status: 'pending' }],
+          rawItems: [{ role: 'user', content: `${card.request}\n\n${card.history}` }, { role: 'assistant', content: card.done }],
+        },
+      ]);
+      onPreviewSvg(result.svg);
+    } catch (err: unknown) {
+      if ((err as Error).name === 'AbortError' || turnRef.current !== turn) return;
+      if (isCreditsError(err)) {
+        trackCreditsExhausted();
+        setMessages(prev => [...prev, { role: 'assistant', content: (err as Error).message, buyCredits: true }]);
+      } else {
+        notifications.show({ title: card.failed, message: 'The picture is still in the message box. Try again, or choose another way.', color: 'red' });
+      }
+    } finally {
+      if (turnRef.current === turn) {
+        setIsRunning(false);
+        abortRef.current = null;
+      }
+    }
+  }, [attachment, live, onPreviewSvg]);
+
+  // "Trace to SVG": in the browser, no model call, no credit.
+  const handleTrace = useCallback(() => runPictureAction('trace', async (picture) => {
+    const { svg, params } = await traceToFit(picture);
+    return { svg, pngDataUrl: picture, params };
+  }), [runPictureAction]);
+
+  // "Redraw as an illustration": straight to the image model, with no chat model to decide
+  // anything and so no second question.
+  const handleIllustrate = useCallback(() => {
+    if (isAnonymous !== false) {
+      if (isAnonymous) openSignInModal(`Redrawing a picture needs a free account, with ${DEFAULT_PRICING.freeMonthlyCredits} AI credits included every month. Tracing it works without one.`);
+      return;
+    }
+    void runPictureAction('illustrate', async (picture, signal, onProgress) => {
+      const result = await modifyImage(ILLUSTRATE_PROMPT, picture, imageModel, signal, onProgress, imageStyle);
+      trackImageGen(imageModel);
+      return result;
+    });
+  }, [isAnonymous, imageModel, imageStyle, runPictureAction]);
+
+  const handlePictureChoiceClose = useCallback(() => setPictureChoice(false), []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
+    const picture = attachment;
     // hasPending guards programmatic callers (deferred sends) — interactive
     // paths are already blocked by the composer's disabled state.
-    if (!text || isRunning || hasPending) return;
+    if ((!text && !picture) || isRunning || hasPending) return;
 
-    const pasted = pastedSvgDocument(text);
+    // A picture sent with no words: ask what to do with it.
+    if (!text) {
+      setPictureChoice(true);
+      return;
+    }
+
+    const pasted = !picture && pastedSvgDocument(text);
     if (pasted) {
       openPastedSvg(text, pasted, 'message');
       setInput('');
+      return;
+    }
+
+    // The API drops a picture sent to a model that takes text only, and the reply would then
+    // talk about a picture it never saw.
+    if (picture && currentModelDef?.vision === false) {
+      notifications.show({ title: 'This model cannot see pictures', message: 'Pick another model in the menu below the message box to send a picture.', color: 'yellow' });
       return;
     }
 
@@ -446,19 +618,27 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // than mistake a signed-in user for a guest.
     if (isAnonymous !== false) {
       if (isAnonymous) {
-        try { sessionStorage.setItem(PENDING_SEND_KEY, JSON.stringify({ fileId, text })); } catch { /* storage unavailable — modal still opens */ }
+        // A picture is megabytes, and session storage may not hold it. Then nothing is kept and
+        // the modal does not promise that it is.
+        let kept = true;
+        try { sessionStorage.setItem(PENDING_SEND_KEY, JSON.stringify({ fileId, text, picture })); } catch { kept = false; }
         openSignInModal(
-          `AI needs a free account. Your message is kept and will be sent automatically after you sign in — ${DEFAULT_PRICING.freeMonthlyCredits} AI credits included every month.`,
+          kept
+            ? `AI needs a free account. Your message is kept and will be sent automatically after you sign in — ${DEFAULT_PRICING.freeMonthlyCredits} AI credits included every month.`
+            : `AI needs a free account, with ${DEFAULT_PRICING.freeMonthlyCredits} AI credits included every month. Sign in, then send your message again.`,
           { onClose: () => sessionStorage.removeItem(PENDING_SEND_KEY) },
         );
       }
       return;
     }
 
-    const userMsg: DisplayMessage = { role: 'user', content: text };
+    const userMsg: DisplayMessage = picture ? { role: 'user', content: text, picture } : { role: 'user', content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
+    setAttachment(null);
+    setPictureChoice(false);
+    if (picture) trackPicture('sent');
     setIsRunning(true);
     setProgressStatus('thinking');
     const turn = ++turnRef.current;
@@ -505,9 +685,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         });
       };
 
-      const handleImageConfirm = (summary: string, isModify: boolean): Promise<boolean> => {
+      const handleImageConfirm = (summary: string, kind: ImageConfirmKind): Promise<boolean> => {
         return new Promise<boolean>(resolve => {
-          setImageConfirmSummary(isModify ? `modify:${summary}` : summary);
+          setImageConfirmSummary(kind === 'generate' ? summary : `${kind}:${summary}`);
           imageConfirmResolveRef.current = (confirmed) => {
             setImageConfirmSummary(null);
             imageConfirmResolveRef.current = null;
@@ -528,12 +708,21 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         if (m.toolCalls) {
           for (let j = m.toolCalls.length - 1; j >= 0; j--) {
             const tc = m.toolCalls[j];
-            if ((tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted' && tc.arguments.pngDataUrl) {
+            if (isPictureTool(tc.name) && tc.status === 'accepted' && tc.arguments.pngDataUrl) {
               lastPngDataUrl = tc.arguments.pngDataUrl as string;
               break;
             }
           }
           if (lastPngDataUrl) break;
+        }
+      }
+
+      // With no picture on this message, the one attached most recently is shown again, so a
+      // follow-up about it can be answered. Not to a model that cannot see it.
+      let reference: string | undefined;
+      if (!picture && currentModelDef?.vision !== false) {
+        for (let i = messages.length - 1; i >= 0 && !reference; i--) {
+          if (messages[i].role === 'user') reference = messages[i].picture;
         }
       }
 
@@ -555,6 +744,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         (update) => {
           if (turnRef.current === turn) handleLiveUpdate(update);
         },
+        picture ?? undefined,
+        reference,
+        imageStyle,
       );
 
       const assistantMsg: DisplayMessage = {
@@ -571,7 +763,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             : tc.arguments.notExecuted ? 'rejected' as const : 'accepted' as const,
         })),
         rawItems: [
-          { role: 'user', content: text },
+          { role: 'user', content: picture ? text + PICTURE_IN_HISTORY : text },
           ...response.rawOutput,
         ],
         selectedIcon: selectedIcon ?? undefined,
@@ -632,7 +824,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
         imageConfirmResolveRef.current = null;
       }
     }
-  }, [input, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg, openPastedSvg]);
+  }, [input, attachment, currentModelDef, isRunning, hasPending, isAnonymous, fileId, messages, svgCode, selectedElement, selectedLineRange, model, imageModel, imageStyle, effort, handleLiveUpdate, live, feedbackTier, keepFailure, onAcceptSvg, onPreviewSvg, openPastedSvg]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -673,8 +865,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const target = restoreTarget(messages.slice(msgIdx));
 
     const userMsg = messages[msgIdx];
-    if (userMsg?.role === 'user' && userMsg.content) {
-      setInput(userMsg.content);
+    if (userMsg?.role === 'user') {
+      if (userMsg.content && !userMsg.action) setInput(userMsg.content);
+      if (userMsg.picture) setAttachment(userMsg.picture);
     }
 
     const kept = messages.slice(0, msgIdx);
@@ -691,7 +884,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
   const handleEditStart = useCallback((msgIdx: number) => {
     const msg = messages[msgIdx];
-    if (msg?.role === 'user') {
+    if (msg?.role === 'user' && !msg.action) {
       setEditingIndex(msgIdx);
       setEditingText(msg.content);
     }
@@ -719,6 +912,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setEditingIndex(null);
     setEditingText('');
     setInput(text);
+    setAttachment(messages[msgIdx]?.picture ?? null);
     // We need to trigger send after state updates, so use a ref flag
     pendingSendRef.current = true;
   }, [isRunning, messages, fileId, onPreviewSvg, onRestore, restoreTarget]);
@@ -736,6 +930,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setMessages(kept);
     scheduleSaveChatMessages(fileId, kept);
     setInput(userMsg.content);
+    setAttachment(userMsg.picture ?? null);
     pendingSendRef.current = true;
   }, [messages, isRunning, hasPending, fileId]);
 
@@ -767,7 +962,10 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     // Snapshot the pre-accept document as the undo target BEFORE applying.
     const prevSvg = svgRef.current;
     if (svg) onAcceptSvg(svg);
-    trackAiAccept(proposalMeta(msg, tc?.name ?? '', messages[msgIndex - 1], model, effort));
+    // Counted once: Restore puts an accepted proposal back to pending, keeping its prevSvg.
+    const action = messages[msgIndex - 1]?.action;
+    if (action) { if (!tc.prevSvg) trackPicture(`${action}_accepted`); }
+    else trackAiAccept(proposalMeta(msg, tc?.name ?? '', messages[msgIndex - 1], model, effort));
     onPreviewSvg(null);
 
     setMessages(prev => prev.map((m, i) =>
@@ -821,6 +1019,21 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const tc = msg?.toolCalls?.[tcIndex];
     const userMsg = messages[msgIndex - 1];
 
+    // Both messages go, and the chat is saved here: rejecting the only turn empties it, and an
+    // empty chat is not saved by the effect that saves the others.
+    const kept = messages.filter((_, i) => i !== msgIndex - 1 && i !== msgIndex);
+
+    // A picture card button's result is not the chat model's answer: nothing to record. The
+    // picture goes back to the message box, to be tried another way or sent with a message.
+    if (userMsg?.action) {
+      trackPicture(`${userMsg.action}_rejected`);
+      onPreviewSvg(null);
+      setMessages(kept);
+      scheduleSaveChatMessages(fileId, kept);
+      if (userMsg.picture) setAttachment(userMsg.picture);
+      return;
+    }
+
     trackAiReject(proposalMeta(msg, tc?.name ?? '', userMsg, model, effort));
     // The turn is removed from the chat just below, so this is the last chance to keep it.
     if (msg) {
@@ -834,11 +1047,12 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
 
     onPreviewSvg(null);
 
-    const userMsgIndex = msgIndex - 1;
     const restoredText = userMsg?.role === 'user' ? userMsg.content : '';
 
-    setMessages(prev => prev.filter((_, i) => i !== userMsgIndex && i !== msgIndex));
+    setMessages(kept);
+    scheduleSaveChatMessages(fileId, kept);
     setInput(restoredText);
+    setAttachment(userMsg?.role === 'user' ? userMsg.picture ?? null : null);
   }, [messages, onPreviewSvg, model, effort, fileId, feedbackTier, keepFailure]);
 
   const handleThumbsUp = useCallback((msgIndex: number) => {
@@ -876,6 +1090,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     localStorage.setItem('esvg-image-model', v);
   }, []);
 
+  const handleImageStyleChange = useCallback((v: ImageStyle) => {
+    setImageStyle(v);
+    localStorage.setItem('esvg-image-style', v);
+  }, []);
+
   const handleIconSelect = useCallback((icon: IconResult) => {
     iconPickResolveRef.current?.(icon);
   }, []);
@@ -897,7 +1116,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   const handleImageConfirmNo = useCallback(() => {
     // Counted, because a third of these offers were turned down and the only other trace of
     // a decline is the length of a message sent to the model.
-    trackImageDeclined({ model: imageModel, modify: !!imageConfirmSummary?.startsWith('modify:') });
+    trackImageDeclined({ model: imageModel, modify: !!imageConfirmSummary && /^(modify|picture):/.test(imageConfirmSummary) });
     imageConfirmResolveRef.current?.(false);
   }, [imageModel, imageConfirmSummary]);
 
@@ -953,6 +1172,11 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onSamplePrompt={handleSamplePrompt}
           onPasteSvg={handlePasteSvg}
           canPaste={canPaste}
+          pictureChoice={pictureChoice && !!attachment && !input.trim() && !isRunning}
+          pictureLikenessHint={!IMAGE_MODELS.find((m) => m.value === imageModel)?.fidelity}
+          onTrace={handleTrace}
+          onIllustrate={handleIllustrate}
+          onPictureChoiceClose={handlePictureChoiceClose}
         />
         {accessPending ? null : isViewer ? (
           // Somebody else's document: the conversation is readable but not
@@ -977,6 +1201,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             onModelChange={handleModelChange}
             imageModel={imageModel}
             onImageModelChange={handleImageModelChange}
+            imageStyle={imageStyle}
+            onImageStyleChange={handleImageStyleChange}
             effort={effort}
             supportedEfforts={supportedEfforts}
             onEffortChange={setEffort}
@@ -984,6 +1210,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
             isModelDisabled={isModelDisabled}
             history={isAnonymous === false ? inputHistory : []}
             inputRef={composerRef}
+            attachment={attachment}
+            onAttach={handleAttach}
+            onRemoveAttachment={handleRemoveAttachment}
           />
         )}
       </div>

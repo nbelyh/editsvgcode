@@ -1,10 +1,13 @@
 import { useRef, useCallback, useState } from 'react';
 import { Badge, ActionIcon, Tooltip } from '@mantine/core';
-import { IconArrowUp, IconPlayerStop, IconAlertTriangle } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { IconArrowUp, IconPlayerStop, IconAlertTriangle, IconPaperclip, IconX } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { CreditsIndicator, BUY_CREDITS_URL } from '../CreditsIndicator';
 import { ModelPicker } from './ModelPicker';
 import type { Credits, ReasoningEffort } from './types';
+import type { ImageStyle } from '../../lib/models';
+import { pictureFileFrom } from '../../lib/pasted-image';
 
 interface ChatComposerProps {
   input: string;
@@ -25,6 +28,8 @@ interface ChatComposerProps {
   onModelChange: (value: string) => void;
   imageModel: string;
   onImageModelChange: (value: string) => void;
+  imageStyle: ImageStyle;
+  onImageStyleChange: (value: ImageStyle) => void;
   effort: ReasoningEffort | undefined;
   supportedEfforts: ReasoningEffort[] | undefined;
   onEffortChange: (value: ReasoningEffort) => void;
@@ -34,14 +39,19 @@ interface ChatComposerProps {
   history: string[];
   /** Filled with the composer's textarea, so the panel can hand it the caret. */
   inputRef?: { current: HTMLTextAreaElement | null };
+  /** The picture attached to the message, as a data URL, shown above the message box. */
+  attachment?: string | null;
+  /** A picture was pasted, dropped or picked with the attach button. */
+  onAttach?: (file: File, source: 'paste' | 'drop' | 'button') => void;
+  onRemoveAttachment?: () => void;
 }
 
 export function ChatComposer({
   input, onInputChange, onSend, onStop,
   isRunning, hasPending, selectedElement, selectedAddress,
-  model, onModelChange, imageModel, onImageModelChange,
+  model, onModelChange, imageModel, onImageModelChange, imageStyle, onImageStyleChange,
   effort, supportedEfforts, onEffortChange,
-  credits, isModelDisabled, history, inputRef,
+  credits, isModelDisabled, history, inputRef, attachment, onAttach, onRemoveAttachment,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // One element, two holders: this component sizes it, and the panel focuses it.
@@ -108,6 +118,32 @@ export function ChatComposer({
     }
   }, [onSend, history, historyIdx, input, onInputChange, autoGrow]);
 
+  // A textarea ignores a pasted picture, and a file dropped on it opens in place of the app —
+  // so every dropped file is held here, and one that is not a picture is turned away.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const file = onAttach && pictureFileFrom(e.clipboardData, 'paste');
+    if (!file) return;
+    e.preventDefault();
+    onAttach(file, 'paste');
+  }, [onAttach]);
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (onAttach && e.dataTransfer.types.includes('Files')) e.preventDefault();
+  }, [onAttach]);
+  const handleDrop = useCallback((e: React.DragEvent<HTMLTextAreaElement>) => {
+    if (!onAttach || !e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    const file = pictureFileFrom(e.dataTransfer, 'drop');
+    if (file) onAttach(file, 'drop');
+    else notifications.show({ title: 'Only pictures can be added', message: 'Drop a PNG, JPEG or SVG file.', color: 'yellow' });
+  }, [onAttach]);
+  const handleFilePicked = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Cleared, so picking the same file again still reports a change.
+    e.target.value = '';
+    if (file && onAttach) onAttach(file, 'button');
+  }, [onAttach]);
+
   const LOW_CREDITS_THRESHOLD = 5;
   const showLowCredits = credits && credits.remaining > 0 && credits.remaining <= LOW_CREDITS_THRESHOLD;
 
@@ -139,31 +175,63 @@ export function ChatComposer({
           </Badge>
         </div>
       )}
+      {attachment && (
+        <div className="aui-attachment">
+          <img src={attachment} alt="Attached picture" />
+          <button className="aui-attachment-remove" onClick={onRemoveAttachment} aria-label="Remove the picture" title="Remove the picture">
+            <IconX size={12} />
+          </button>
+        </div>
+      )}
       <div className="aui-composer">
         <textarea
           ref={setTextarea}
           className="aui-composer-input"
-          placeholder="Ask AI to edit your SVG, or paste SVG code…"
+          placeholder="Ask AI to edit your SVG, or paste SVG code or a picture…"
           value={input}
           onChange={e => {
             onInputChange(e.target.value);
             requestAnimationFrame(autoGrow);
           }}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           disabled={isRunning || hasPending}
         />
       </div>
       <div className="aui-composer-footer">
-        <ModelPicker
-          model={model}
-          onModelChange={onModelChange}
-          imageModel={imageModel}
-          onImageModelChange={onImageModelChange}
-          effort={effort}
-          supportedEfforts={supportedEfforts}
-          onEffortChange={onEffortChange}
-          isModelDisabled={isModelDisabled}
-        />
+        <div className="aui-composer-footer-actions">
+          {onAttach && (
+            <>
+              <input ref={fileInputRef} type="file" accept="image/*,.svg" hidden onChange={handleFilePicked} />
+              <Tooltip label="Add a picture">
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isRunning || hasPending}
+                  aria-label="Add a picture"
+                >
+                  <IconPaperclip size={16} />
+                </ActionIcon>
+              </Tooltip>
+            </>
+          )}
+          <ModelPicker
+            model={model}
+            onModelChange={onModelChange}
+            imageModel={imageModel}
+            onImageModelChange={onImageModelChange}
+            imageStyle={imageStyle}
+            onImageStyleChange={onImageStyleChange}
+            effort={effort}
+            supportedEfforts={supportedEfforts}
+            onEffortChange={onEffortChange}
+            isModelDisabled={isModelDisabled}
+          />
+        </div>
         <div className="aui-composer-footer-actions">
           {credits && (
             <CreditsIndicator remaining={credits.remaining} limit={credits.limit} packCredits={credits.packCredits} creditsByModel={credits.creditsByModel} rechargeAt={credits.rechargeAt} />
@@ -174,7 +242,7 @@ export function ChatComposer({
               color="gray"
               size="sm"
               onClick={isRunning ? onStop : onSend}
-              disabled={!isRunning && (!input.trim() || hasPending)}
+              disabled={!isRunning && ((!input.trim() && !attachment) || hasPending)}
               aria-label={isRunning ? 'Stop' : 'Send'}
             >
               {isRunning ? <IconPlayerStop size={16} /> : <IconArrowUp size={16} />}

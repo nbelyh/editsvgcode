@@ -2,10 +2,21 @@ import type { StoredToolCall } from '../ToolCallProposal';
 import type { ProgressStatus, Credits, IconResult, ReadToolCall } from '../../lib/api-client';
 import type { ReasoningEffort } from '../../lib/models';
 import type { DocOrigin } from '../../lib/doc-origin';
+import type { PictureCardAction } from '../../lib/pasted-image';
 
 export interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
+  /** A picture the user attached to this message, as a PNG data URL. Shown with the message
+   * and sent to the model with it — on its own turn only, as replaying it on every later turn
+   * would pay for it again each time. */
+  picture?: string;
+  /** Where a picture that could not be loaded is stored, kept so saving does not drop it. */
+  pictureRef?: string;
+  /** This user message is a button on the picture card, not words sent to the chat model:
+   *  its text names the button, so it cannot be edited and sent again or put back in the
+   *  message box. Set on the message itself, so nothing has to be worked out from the reply. */
+  action?: PictureCardAction;
   toolCalls?: StoredToolCall[];
   /** User ran out of credits — show the upgrade ladder ($5 pack / Pro). */
   buyCredits?: true;

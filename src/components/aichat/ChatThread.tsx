@@ -6,14 +6,16 @@ import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, Ic
 import { Link } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { sanitizeSvg } from '../../lib/sanitize';
-import { ToolCallProposal } from '../ToolCallProposal';
+import { ToolCallProposal, openImageInNewTab } from '../ToolCallProposal';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { buildCheckoutUrl, type PpgProductKey } from '../../lib/ppg-checkout';
 import { DEFAULT_PRICING } from '../../lib/pricing';
 import { trackBeginCheckout } from '../../lib/analytics';
+import { isPictureTool, isPictureActionTool } from '../../lib/pasted-image';
 
 import { IconPicker } from './IconPicker';
 import { ImageConfirm } from './ImageConfirm';
+import { PictureChoice } from './PictureChoice';
 import type { DisplayMessage, ProgressStatus } from './types';
 import type { IconResult, ReadToolCall } from '../../lib/api-client';
 import type { LiveReplyStore } from '../../lib/live-reply';
@@ -62,6 +64,13 @@ interface ChatThreadProps {
   onPasteSvg: () => void;
   /** False until the chat and document have loaded, and during a run: the button is not offered. */
   canPaste: boolean;
+  /** A picture was sent without a message: ask whether to trace it or have it redrawn. */
+  pictureChoice: boolean;
+  /** The chosen image model does not keep a picture's likeness, so the card suggests one that does. */
+  pictureLikenessHint: boolean;
+  onTrace: () => void;
+  onIllustrate: () => void;
+  onPictureChoiceClose: () => void;
   isAnonymous: boolean;
   /** Somebody else's document — no composer, so nothing to prompt into. */
   isViewer: boolean;
@@ -267,6 +276,7 @@ export const ChatThread = memo(function ChatThread({
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, imageCredits, onImageConfirm, onImageDecline,
   onSamplePrompt, onPasteSvg, canPaste, isAnonymous, isViewer,
+  pictureChoice, pictureLikenessHint, onTrace, onIllustrate, onPictureChoiceClose,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
 
@@ -340,7 +350,9 @@ export const ChatThread = memo(function ChatThread({
           const isEditing = editingIndex === msgIdx;
           // A viewer is reading somebody else's conversation: no rewriting it
           // (edit-and-resubmit) and no rolling their document back to it.
-          const editable = !isEditing && !isRunning && !isViewer;
+          // A picture card button's message names the button; sent again, it would reach the
+          // chat model as a request for what the button did.
+          const editable = !isEditing && !isRunning && !isViewer && !msg.action;
           return (<Fragment key={msgIdx}>
             {canUndo && !isViewer && (
               <div className="aui-checkpoint">
@@ -366,13 +378,31 @@ export const ChatThread = memo(function ChatThread({
               ) : (
                 <div className="aui-markdown" style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
               )}
+              {/* A traced picture is shown by its proposal, which is the same picture. */}
+              {msg.picture && msg.action !== 'trace' && (
+                <a
+                  className="aui-msg-picture"
+                  href="#"
+                  title="Open full size"
+                  onClick={e => {
+                    // The bubble itself opens the message for editing.
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openImageInNewTab(msg.picture!);
+                  }}
+                >
+                  <img src={msg.picture} alt="Attached picture" />
+                </a>
+              )}
             </div>
           </Fragment>);
         }
 
         // Assistant message
         const hasAcceptedGenImage = !isViewer
-          && msg.toolCalls?.some(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
+          && msg.toolCalls?.some(tc => isPictureTool(tc.name) && tc.status === 'accepted');
+        // A picture card button's result is not the chat model's answer, so there is none to rate.
+        const traced = msg.toolCalls?.some(tc => isPictureActionTool(tc.name));
 
         if (msg.toolCalls?.length && !msg.content && !msg.readToolCalls?.length && !msg.selectedIcon && !msg.outOfToolRounds) {
           const rated = ratedMsgs[msgIdx];
@@ -381,7 +411,7 @@ export const ChatThread = memo(function ChatThread({
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => {
-                  const tcIdx = msg.toolCalls!.findIndex(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
+                  const tcIdx = msg.toolCalls!.findIndex(tc => isPictureTool(tc.name) && tc.status === 'accepted');
                   if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
                 }}>Restore</button>
                 <div className="aui-checkpoint-line" />
@@ -479,7 +509,7 @@ export const ChatThread = memo(function ChatThread({
               <div className="aui-checkpoint">
                 <div className="aui-checkpoint-line" />
                 <button className="aui-checkpoint-restore" onClick={() => {
-                  const tcIdx = msg.toolCalls!.findIndex(tc => (tc.name === 'generate_image' || tc.name === 'modify_image') && tc.status === 'accepted');
+                  const tcIdx = msg.toolCalls!.findIndex(tc => isPictureTool(tc.name) && tc.status === 'accepted');
                   if (tcIdx >= 0) onUndoAccept(msgIdx, tcIdx);
                 }}>Restore</button>
                 <div className="aui-checkpoint-line" />
@@ -494,7 +524,7 @@ export const ChatThread = memo(function ChatThread({
                 onUpdateSvg={(svg) => onUpdateToolCallSvg(msgIdx, tcIdx, svg)}
               />
             ))}
-            {!isRunning && !isViewer && (msg.content || msg.toolCalls?.length) && (
+            {!isRunning && !isViewer && !traced && (msg.content || msg.toolCalls?.length) && (
               <div className="aui-thumbs">
                 {sharePromptIdx === msgIdx ? (
                   <div className="aui-share-prompt">
@@ -540,6 +570,18 @@ export const ChatThread = memo(function ChatThread({
       {imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
           <ImageConfirm summary={imageConfirmSummary} imageCredits={imageCredits} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+        </div>
+      )}
+
+      {pictureChoice && (
+        <div className="aui-msg aui-msg-assistant">
+          <PictureChoice
+            illustrationCredits={imageCredits}
+            likenessHint={pictureLikenessHint}
+            onTrace={onTrace}
+            onIllustrate={onIllustrate}
+            onClose={onPictureChoiceClose}
+          />
         </div>
       )}
 

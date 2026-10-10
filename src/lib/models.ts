@@ -12,6 +12,12 @@ export interface ModelOption {
    *  reason to pick it; or one of several from the same family, where showing them all
    *  would crowd the list without telling anyone anything — see the notes below. */
   hidden?: boolean;
+  /** Takes text only; the API drops any picture sent to it. Must match `vision` in the API's
+   *  MODEL_CONFIG. Set, an attached picture cannot be sent with this model. */
+  vision?: false;
+  /** An image model that keeps a picture's likeness when editing it (input_fidelity "high").
+   *  Must match HIGH_FIDELITY_MODELS in the API's modify-image. */
+  fidelity?: true;
 }
 
 export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
@@ -42,13 +48,13 @@ const EFFORTS_LMHXM: ReasoningEffort[] = ['low', 'medium', 'high', 'xhigh', 'max
 export const EDIT_MODELS: ModelOption[] = [
   // --- Free tier ---
   { label: 'gpt-4.1-mini', value: 'gpt-4.1-mini', credits: 1, pro: false, hidden: true },
-  { label: 'DeepSeek-V4-Flash', value: 'DeepSeek-V4-Flash', credits: 1, pro: false, hidden: true },
+  { label: 'DeepSeek-V4-Flash', value: 'DeepSeek-V4-Flash', credits: 1, pro: false, hidden: true, vision: false },
   { label: 'gpt-5.4-nano', value: 'gpt-5.4-nano', credits: 1, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   // Served through OpenRouter, like qwen3.8-27b below.
   { label: 'qwen3.8-flash', value: 'qwen3.8-flash', credits: 1, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   { label: 'gpt-5-mini', value: 'gpt-5-mini', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'high', hidden: true },
   { label: 'gpt-5.4-mini', value: 'gpt-5.4-mini', credits: 3, pro: false, efforts: EFFORTS_LMHX, defaultEffort: 'medium' },
-  { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false },
+  { label: 'Kimi-K2.6', value: 'Kimi-K2.6', credits: 3, pro: false, vision: false },
   // Served through OpenRouter rather than Azure — the one exception to the rule above.
   { label: 'qwen3.8-27b', value: 'qwen3.8-27b', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   // --- Pro ---
@@ -102,11 +108,22 @@ export function resolveImageModel(value: string | null): string {
   return IMAGE_MODELS.some(m => m.value === value) ? value! : DEFAULT_IMAGE_MODEL;
 }
 
+/** How generated and edited pictures are drawn; see image-style in the API. Bold outlines are
+ *  the default: most pictures looked better with them when the two were compared. */
+export type ImageStyle = 'outlined' | 'flat';
+export const IMAGE_STYLES: { value: ImageStyle; label: string }[] = [
+  { value: 'outlined', label: 'Bold outlines' },
+  { value: 'flat', label: 'No outlines' },
+];
+export function resolveImageStyle(value: string | null | undefined): ImageStyle {
+  return value === 'flat' ? 'flat' : 'outlined';
+}
+
 export const IMAGE_MODELS: ModelOption[] = [
   { label: 'gpt-image-1-mini', value: 'gpt-image-1-mini', credits: 10, pro: false },
-  { label: 'gpt-image-1.5', value: 'gpt-image-1.5', credits: 30, pro: true },
+  { label: 'gpt-image-1.5', value: 'gpt-image-1.5', credits: 30, pro: true, fidelity: true },
   // Kept despite costing the most: the only image model with working transparency.
-  { label: 'gpt-image-1', value: 'gpt-image-1', credits: 50, pro: true },
+  { label: 'gpt-image-1', value: 'gpt-image-1', credits: 50, pro: true, fidelity: true },
 ];
 
 export function shortModelName(value: string): string {

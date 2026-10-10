@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { IconPencil, IconCode, IconCheck, IconX, IconPhoto, IconChevronDown, IconChevronRight, IconDownload } from '@tabler/icons-react';
 import type { ChatToolCall } from '../lib/api-client';
-import { vectorize, DEFAULT_VECTORIZER_PARAMS, type VectorizerParams } from '../lib/image-gen';
+import { vectorize, LEGACY_VECTORIZER_PARAMS, MAX_TRACE_CHARS, type VectorizerParams } from '../lib/image-gen';
+import { isPictureTool, TRACE_IMAGE_TOOL } from '../lib/pasted-image';
 
 /**
  * Notes attached to a proposal — edits that missed, edits that changed nothing
@@ -82,11 +83,11 @@ interface ToolCallProposalProps {
 // Build the popup via DOM properties rather than HTML interpolation: no markup context
 // means no injection, regardless of where pngDataUrl comes from (stored transcripts will
 // cross user boundaries once threads are shared/cloud-synced) or what scheme it uses later.
-function openImageInNewTab(pngDataUrl: string) {
+export function openImageInNewTab(pngDataUrl: string) {
   const w = window.open('', '_blank');
   if (!w) return;
   const d = w.document;
-  d.title = 'Generated Image';
+  d.title = 'Picture';
   d.body.style.cssText = 'margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a1a';
   const img = d.createElement('img');
   img.src = pngDataUrl;
@@ -124,8 +125,13 @@ function SliderRow({ label, value, min, max, step, onChange }: { label: string; 
   );
 }
 
-function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: string; onUpdateSvg?: (svg: string) => void }) {
-  const [params, setParams] = useState<VectorizerParams>(DEFAULT_VECTORIZER_PARAMS);
+function ImageGenerationControls({ pngDataUrl, initialParams, onUpdateSvg }: { pngDataUrl: string; initialParams?: VectorizerParams; onUpdateSvg?: (svg: string) => void }) {
+  // Opens at the settings the picture was traced with: a detailed one may have been traced
+  // coarser than the default to stay small enough to save, and one with none recorded was
+  // traced before the defaults changed.
+  const [params, setParams] = useState<VectorizerParams>(initialParams ?? LEGACY_VECTORIZER_PARAMS);
+  // A retrace past the size limit is not applied: saved, it would stop the chat saving.
+  const [tooDetailed, setTooDetailed] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const set = <K extends keyof VectorizerParams>(key: K, val: VectorizerParams[K]) =>
@@ -145,9 +151,9 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
     const id = ++revectorizeRef.current;
     const timer = setTimeout(async () => {
       const svg = await vectorize(pngDataUrl, params);
-      if (revectorizeRef.current === id) {
-        onUpdateSvgRef.current?.(svg);
-      }
+      if (revectorizeRef.current !== id) return;
+      setTooDetailed(svg.length > MAX_TRACE_CHARS);
+      if (svg.length <= MAX_TRACE_CHARS) onUpdateSvgRef.current?.(svg);
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -210,6 +216,9 @@ function ImageGenerationControls({ pngDataUrl, onUpdateSvg }: { pngDataUrl: stri
             <SliderRow label="Precision" value={params.pathPrecision} min={0} max={16} step={1} onChange={v => set('pathPrecision', v)} />
           </div>
         )}
+        {tooDetailed && (
+          <div className="aui-image-confirm-hint">Too detailed to keep at these settings. Raise Speckle or lower Colors.</div>
+        )}
 
       </div>
     </div>
@@ -228,18 +237,20 @@ const EDIT_TOOL_LABELS: Record<string, string> = {
 };
 
 export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCallProposalProps) {
-  const pngDataUrl = (tc.name === 'generate_image' || tc.name === 'modify_image') ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
+  const pngDataUrl = isPictureTool(tc.name) ? (tc.arguments.pngDataUrl as string | undefined) : undefined;
+  // A traced picture is the user's own, so there is nothing new to save.
+  const traced = tc.name === TRACE_IMAGE_TOOL;
 
   return (
     <div className="aui-proposal" style={{ marginBottom: 2 }}>
       <div className="aui-proposal-header">
-        {EDIT_TOOL_LABELS[tc.name] ? <IconPencil size={14} /> : (tc.name === 'generate_image' || tc.name === 'modify_image') ? <IconPhoto size={14} /> : <IconCode size={14} />}
+        {EDIT_TOOL_LABELS[tc.name] ? <IconPencil size={14} /> : isPictureTool(tc.name) ? <IconPhoto size={14} /> : <IconCode size={14} />}
         <span className="aui-proposal-summary">
           {(tc.arguments.summary as string) || EDIT_TOOL_LABELS[tc.name] || (tc.name === 'generate_image' ? 'Generate image' : tc.name === 'modify_image' ? 'Modify image' : 'Replace SVG')}
         </span>
       </div>
       {pngDataUrl && tc.status === 'pending' && (
-        <ImageGenerationControls pngDataUrl={pngDataUrl} onUpdateSvg={onUpdateSvg} />
+        <ImageGenerationControls pngDataUrl={pngDataUrl} initialParams={tc.arguments.vectorizerParams as VectorizerParams | undefined} onUpdateSvg={onUpdateSvg} />
       )}
       {pngDataUrl && tc.status !== 'pending' && (
         <div className="aui-vectorizer-preview aui-vectorizer-preview-row" style={{ marginTop: 8 }}>
@@ -253,9 +264,9 @@ export function ToolCallProposal({ tc, onAccept, onReject, onUpdateSvg }: ToolCa
           >
             <img src={pngDataUrl} alt="Generated PNG" />
           </a>
-          <a className="aui-vectorizer-save-png" href={pngDataUrl} download="generated.png" title="Save generated raster image">
+          {!traced && <a className="aui-vectorizer-save-png" href={pngDataUrl} download="generated.png" title="Save generated raster image">
             <IconDownload size={12} /> Save raster image
-          </a>
+          </a>}
         </div>
       )}
       {tc.status === 'pending' && (
