@@ -760,3 +760,73 @@ test.describe('Release screenshots, September', () => {
     await fitAndShoot(page, '27-streamed-reasoning.png');
   });
 });
+
+test.describe('Release screenshots, October', () => {
+  useEmulatorSuite();
+
+  test.use({
+    viewport: { width: 1400, height: 760 },
+    colorScheme: 'dark',
+  });
+
+  test.skip(({ browserName }) => browserName !== 'chromium', 'screenshots: chromium only');
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('cookie-consent', 'declined');
+      localStorage.setItem('esvg-teaching-bubble-dismissed', '1');
+      localStorage.setItem('esvg-sidebar-tab', 'ai');
+      sessionStorage.setItem('esvg-sidebar-tab', 'ai');
+    });
+  });
+
+  /** Tenniel's Alice (1865, public domain), as the picture someone pastes, and its redraw. */
+  const ALICE = resolve(__dirname, '../../public/screenshots/articles/pictures-in-the-chat/alice-original.png');
+  const ALICE_REDRAWN = resolve(__dirname, '../../public/screenshots/articles/pictures-in-the-chat/alice-redrawn.png');
+
+  async function pasteAlice(page: Page) {
+    await page.goto('/');
+    await waitForEditor(page);
+    await signInTestUser(page, 'Sam');
+    await page.reload();
+    await waitForEditor(page);
+    const composer = page.locator('textarea.aui-composer-input');
+    await expect(composer).toBeVisible({ timeout: 15000 });
+    await composer.evaluate((ta, b64) => {
+      const bytes = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
+      const dt = new DataTransfer();
+      dt.items.add(new File([bytes], 'alice.png', { type: 'image/png' }));
+      ta.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, readFileSync(ALICE).toString('base64'));
+    await expect(page.locator('.aui-attachment img')).toBeVisible();
+    await composer.press('Enter');
+    await expect(page.locator('.aui-picture-choice')).toBeVisible();
+  }
+
+  test('33 — a picture sent to the chat', async ({ page }) => {
+    await pasteAlice(page);
+    await page.mouse.move(700, 700);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/33-picture-choice.png` });
+  });
+
+  test('34 — a picture redrawn as an illustration', async ({ page }) => {
+    // The redraw shown is the one gpt-image-1.5 made of this picture, so that is the model
+    // picked; the image model is stubbed with it, and no credits are spent.
+    await page.addInitScript(() => localStorage.setItem('esvg-image-model', 'gpt-image-1.5'));
+    await page.route('**/api/modify-image', (route) => route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      headers: { 'X-Credits-Remaining': '20', 'X-Credits-Limit': '30' },
+      body: readFileSync(ALICE_REDRAWN),
+    }));
+    await pasteAlice(page);
+    await page.locator('.aui-picture-choice').getByRole('button', { name: /^Redraw as an illustration/ }).click();
+    await expect(page.locator('.aui-vectorizer')).toBeVisible({ timeout: 20000 });
+    await page.getByRole('button', { name: 'Fit to window' }).click();
+    await page.mouse.move(700, 700);
+    await expect(page.getByText('Fit to window')).toBeHidden({ timeout: 5000 });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/34-picture-redrawn.png` });
+  });
+});

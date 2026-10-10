@@ -24,7 +24,7 @@
     },
     "/features/ai-images": {
       "title": "AI Pictures Traced into SVG",
-      "description": "Ask for a picture in the chat: it is generated, then traced into editable SVG paths in your browser, with settings for colours, detail and curves.",
+      "description": "Ask for a picture in the chat, or paste your own: it is traced into editable SVG paths in your browser, or redrawn as an illustration first.",
       "image": "/screenshots/11-image-generation.png"
     },
     "/features/icon-search": {

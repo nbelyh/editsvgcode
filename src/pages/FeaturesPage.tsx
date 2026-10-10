@@ -51,7 +51,7 @@ const AI_FEATURES: Feature[] = [
   {
     title: 'Image Generation & Vectorizer',
     page: 'ai-images',
-    description: 'Describe an image in text and the AI generates a raster PNG. The built-in vectorizer then converts it to SVG paths. You can tune the vectorization: number of colors, speckle filtering threshold, corner threshold, curve optimization, and path simplification. The result is inserted directly into the editor.',
+    description: 'Describe an image in text and the AI generates a raster PNG. The built-in vectorizer then converts it to SVG paths. Or paste a picture of your own into the chat: trace it for free, or have it redrawn as an illustration first. You can tune the vectorization: number of colors, speckle filtering threshold, corner threshold, curve optimization, and path simplification. The result is inserted directly into the editor.',
     image: '/screenshots/11-image-generation.png',
     thumb: '/screenshots/thumbs/11-image-generation.png',
     badge: 'Pro',

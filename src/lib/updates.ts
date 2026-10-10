@@ -15,6 +15,7 @@
  */
 
 import theAssistantLooks from './articles/the-assistant-looks.md?raw';
+import picturesInTheChat from './articles/pictures-in-the-chat.md?raw';
 
 export type ChangeKind = 'new' | 'improved' | 'fixed';
 
@@ -64,6 +65,34 @@ export interface Update {
 
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
+  {
+    id: 'pictures-in-the-chat',
+    date: '2026-10-11',
+    title: 'Paste a picture into the chat',
+    article: picturesInTheChat,
+    images: [
+      {
+        src: '/screenshots/33-picture-choice.png',
+        thumb: '/screenshots/thumbs/33-picture-choice.png',
+        alt: 'Tenniel\'s Alice pasted into the chat and sent without a message: the card asks whether to redraw it as an illustration or trace it, with Bold outlines ticked and More detail not.',
+      },
+      {
+        src: '/screenshots/34-picture-redrawn.png',
+        thumb: '/screenshots/thumbs/34-picture-redrawn.png',
+        alt: 'The same picture redrawn by gpt-image-1.5 and traced: the SVG is in the preview, the original stays on the message, and the tracing sliders are ready.',
+      },
+    ],
+    summary:
+      'Pasting a screenshot or a logo into the chat used to do nothing at all. Now a picture can be pasted, dropped on the message box or added with the paperclip button. Send it on its own and you choose how it becomes SVG: redrawn as an illustration by the image model, or traced in your browser for free. Send it with a message and the assistant sees it, so you can ask for colours to match it or a logo like it. Traced pictures also keep far more of their detail than before.',
+    changes: [
+      { kind: 'new', text: 'Paste a picture into the message box, drop it there, or add it with the paperclip button next to the model menu. An SVG file opens in the editor, the same as pasted SVG code.' },
+      { kind: 'new', text: 'Sent on its own, a picture gets one question: redraw it as an illustration with the image model, or trace it to SVG in your browser, which is free and works without an account.' },
+      { kind: 'new', text: 'Sent with a message, the picture goes to the assistant with your words, and later messages show it again, so "make it closer to the original" has the original to compare with.' },
+      { kind: 'new', text: 'The card that asks before a picture is made has two options: Bold outlines, on by default as before, and More detail, for more shades and small details than two or three tones per colour.' },
+      { kind: 'improved', text: 'The tracer keeps much more detail, such as fine lines, strands of hair and the ribs of a knitted hat. A very detailed picture is traced a little coarser so the drawing stays small enough to save, and the sliders open at the settings it used.' },
+      { kind: 'improved', text: 'Changing a picture with the image model keeps what you did not ask to change, and keeps its proportions instead of squeezing it into a square. With gpt-image-1.5 and gpt-image-1 it also holds on to faces and small details.' },
+    ],
+  },
   {
     id: 'move-and-resize',
     date: '2026-10-07',

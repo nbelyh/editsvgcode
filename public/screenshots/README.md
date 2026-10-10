@@ -25,6 +25,8 @@
 - `11-image-generation.png` — "draw a cat", raster + vectorized SVG side by side
 - `12-vectorizer-controls.png` — Parameter sliders (color precision, speckle filter etc.)
 - `16-image-modification.png` — Iterative image editing: generate a kitten, then modify it to add a bow
+- `33-picture-choice.png` — Tenniel's Alice pasted into the chat and sent alone: the redraw-or-trace card with its style options
+- `34-picture-redrawn.png` — The same picture redrawn by gpt-image-1.5 (stubbed, no credits) and traced, sliders open
 
 ## 5. Icon Search
 

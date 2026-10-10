@@ -363,7 +363,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
   {
     slug: 'ai-images',
     title: 'Generate a picture and trace it into SVG',
-    lead: 'Some drawings are easier to describe than to build from shapes: a fox asleep in ferns, a mascot, a sticker. Ask for one in the chat and the assistant generates a picture, then traces it into SVG paths in your browser — a real vector drawing, whose shapes you can recolour, move or delete like any other.',
+    lead: 'Some drawings are easier to describe than to build from shapes: a fox asleep in ferns, a mascot, a sticker. Ask for one in the chat and the assistant generates a picture, then traces it into SVG paths in your browser — a real vector drawing, whose shapes you can recolour, move or delete like any other. Already have the picture? Paste it into the chat, and it is traced or redrawn the same way.',
     tryIt: {
       label: 'Open an empty canvas',
       svg: CANVAS,
@@ -386,9 +386,27 @@ export const FEATURE_PAGES: FeaturePage[] = [
         },
       },
       {
+        heading: 'Your own picture',
+        paragraphs: [
+          'Sent on its own, a picture gets one question. Redraw as an illustration sends it to the image model, which draws it again in flat colours, and traces the result: clean shapes that still look like your picture, for the image model\'s credits. Trace to SVG turns the picture into shapes directly in your browser: free, without an account, and exact, which means many small shapes.',
+          'Sent with a message, the picture goes to the assistant with your words: "match the colours of this", "add this icon to the corner", "redraw this logo as a few clean shapes". Later messages show it to the assistant again until you attach another, so "closer to the original" knows what the original is.',
+        ],
+        steps: [
+          'Paste a picture into the chat\'s message box, drop it there, or add it with the paperclip button next to the model menu.',
+          'Send it without a message and choose Redraw as an illustration or Trace to SVG (free), or write what you want and send it with the picture.',
+          'Adjust the tracing if you like, then Accept to put the drawing into the editor. Reject puts the picture back in the message box, to try another way.',
+        ],
+        image: {
+          src: '/screenshots/33-picture-choice.png',
+          alt: 'A picture pasted into the chat and sent without a message: the card asks whether to redraw it as an illustration or trace it, with options for bold outlines and more detail.',
+          width: 1400, height: 760,
+        },
+      },
+      {
         heading: 'Tuning the trace',
         paragraphs: [
           'The tracer turns each area of colour into a path. Colors sets how many colour levels it keeps, from 1 to 8: fewer gives a cleaner, flatter drawing, more keeps detail. Speckle drops patches smaller than it, which clears away noise. Curve chooses between smooth splines, straight-edged polygons and pixel-exact outlines.',
+          'Pictures are traced at Colors 6 and Speckle 4, which keeps fine lines and small details. A very detailed picture would be too big to save with the chat at those settings, so it is traced a step coarser, and the sliders open at the settings it was traced with.',
           'More settings has the finer controls: the corner and splice angles, the segment length, colour precision, and whether shapes are stacked or cut out of one another. Every change traces the picture again in a moment, so it costs nothing to try. Once accepted, the card also offers Save raster image, which keeps the original picture.',
         ],
       },
@@ -407,8 +425,11 @@ export const FEATURE_PAGES: FeaturePage[] = [
     ],
     limits: [
       'Pictures need a free account, and the image credits come on top of the chat request: 10 for the free image model, 30 or 50 for the Pro ones.',
-      'The tracer keeps flat areas of colour, so photographs, soft gradients and fine texture come out posterised. Pictures are asked for in a flat, cel-shaded style, because that is what traces well.',
-      'Pictures are generated at 1024 × 1024, with a transparent background.',
+      'The tracer keeps flat areas of colour, so photographs, soft gradients and fine texture come out posterised. Pictures are asked for in a flat style with bold outlines, because that traces well; untick Bold outlines on the card that asks before a picture is made for shapes without outlines, and tick More detail for more shades and smaller details.',
+      'Pictures are generated at 1024 × 1024, with a transparent background. A picture redrawn from yours keeps its proportions.',
+      'Tracing your own picture is free and works without an account. Redrawing it costs the image model\'s credits, and sending it with a message costs the chat request as usual.',
+      'gpt-image-1-mini redraws a picture in its own style, so a character may come back as someone else. gpt-image-1.5 keeps faces and details, and the question suggests it when the mini model is selected.',
+      'DeepSeek-V4-Flash and Kimi-K2.6 cannot see pictures. Pick another model to send one with a message.',
       'A traced picture is many paths, not a hand-built drawing with named parts. Recolouring regions works well; for "the tail" the assistant has to work out which shapes are which from where they are and how big.',
       'The image provider\'s content filter refuses some requests, well-known characters and brands most often. Describe what you want differently.',
     ],
@@ -423,7 +444,11 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
       {
         q: 'Why are the colours flatter than I expected?',
-        a: 'Colors starts at 4 levels. Raise it, and lower Speckle, to keep more detail; lower it for a cleaner, poster-like drawing.',
+        a: 'The tracer keeps a limited number of colour levels, 6 by default. Raise Colors, and lower Speckle, to keep more detail; lower Colors for a cleaner, poster-like drawing.',
+      },
+      {
+        q: 'Should I trace my picture or have it redrawn?',
+        a: 'Trace a picture that is already flat, such as a logo, an icon or a screenshot of one: it is free and exact. Redraw a photo, a sketch or a detailed illustration: the image model turns it into clean areas of colour first, which trace into far fewer, neater shapes. For a simple logo, a message such as "redraw this as a few clean shapes" often gives the tidiest SVG of all.',
       },
     ],
     related: ['ai-chat', 'icon-search', 'export'],
