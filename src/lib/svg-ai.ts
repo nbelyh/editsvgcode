@@ -5,7 +5,7 @@ import {
   type TextEdit, type AttributeEdit, type StyleRuleEdit, type TextEditOutcome,
   type ElementInsert, type ElementRemoval, type InsertPosition,
 } from './svg-dom';
-import { elideEmbeddedData, EMBEDDED_NOTE } from './embedded-data';
+import { elideEmbeddedData, restoreEmbeddedArgs, unknownEmbeddedRefusal, EMBEDDED_NOTE } from './embedded-data';
 import { describePathParts, planPathSplits, type PathSplit } from './path-parts';
 
 /**
@@ -729,6 +729,66 @@ export function planStructuralEdits(
 /** These planners already label their own outcomes, so the label passes through. */
 function toPlanned(o: TextEditOutcome): PlannedEdit {
   return { label: o.selector, status: o.status, detail: o.detail, ...(o.ineffective ? { ineffective: true as const } : {}), ranges: o.ranges };
+}
+
+/** The line edits in one replace_lines call, in either accepted shape. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function lineEditsOf(args: any): LineEdit[] {
+  if (Array.isArray(args?.edits)) return args.edits as LineEdit[];
+  // The single-range shape this tool used to take. The two repos deploy
+  // separately, so a browser running the new client can be talking to an API
+  // still advertising the old schema; accepting both means the deploy order
+  // cannot silently turn every edit into a no-op.
+  if (typeof args?.start === 'number') return [{ start: args.start, end: args.end, content: args.content }];
+  return [];
+}
+
+/** What the model is told an empty call should have carried. */
+export function emptyCallHint(name: string): string {
+  if (name === 'set_text') return 'Each edit needs "selector" and "text" inside the "edits" array.';
+  if (name === 'set_attribute') return 'Each edit needs "selector", "name" and "value" inside the "edits" array.';
+  if (name === 'set_style_rule') return 'Each edit needs "selector", "property" and "value" inside the "edits" array.';
+  if (name === 'insert_element') return 'Each edit needs "selector", "position" and "svg" inside the "edits" array.';
+  if (name === 'remove_element') return 'Each edit needs a "selector" inside the "edits" array.';
+  if (name === 'split_path') return 'Each edit needs "selector" and "fills" inside the "edits" array.';
+  return 'Each edit needs "start", "end" and "content" inside the "edits" array.';
+}
+
+/** What one edit call comes to, before anything is applied. */
+export type EditCallPlan =
+  | { kind: 'refused'; reason: string }
+  /** replace_svg, with embedded data restored: it rewrites the whole document. */
+  | { kind: 'replace'; svg: string }
+  | { kind: 'planned'; planned: PlannedEdit[] };
+
+/**
+ * Resolve one edit call (replace_svg, replace_lines or a structural tool) against the
+ * snapshot, refusing what must not be applied. Shared by the editor's chat, which plans every
+ * call in a response against one snapshot, and the MCP server, which applies one call at a time.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function planEditCall(snapshot: string, toolName: string, args: any): EditCallPlan {
+  // Markup copied from a clipped line lacks the rest of that line; applied, it would discard
+  // what was never shown.
+  if (JSON.stringify(args ?? {}).includes(CLIP_MARKER)) {
+    return { kind: 'refused', reason: `Not executed: it contains "${CLIP_MARKER}", copied from a line that was clipped, so writing it would discard the rest of that line. Address the element with set_attribute, set_text, insert_element or remove_element instead, or read the line in full with read_svg_lines first.` };
+  }
+
+  // The model read embedded images as tokens (embedded-data.ts); what it copied back goes back
+  // to the data before anything is planned. A token the document does not hold refuses the
+  // call: applied, it would write a label where an image was.
+  const restored = restoreEmbeddedArgs(args, snapshot);
+  if (restored.unknown.length > 0) return { kind: 'refused', reason: unknownEmbeddedRefusal(restored.unknown) };
+  const parsed = restored.args;
+
+  if (toolName === 'replace_svg') return { kind: 'replace', svg: String(parsed?.svg ?? '') };
+  if (isStructuralEditTool(toolName)) {
+    const { planned, available, reason } = planStructuralEdits(snapshot, toolName, parsed);
+    if (!available) return { kind: 'refused', reason: `Not executed: ${reason}` };
+    return { kind: 'planned', planned };
+  }
+  if (toolName === 'replace_lines') return { kind: 'planned', planned: lineEditsToPlanned(snapshot, lineEditsOf(parsed)) };
+  return { kind: 'refused', reason: `Not executed: "${toolName}" is not an edit tool.` };
 }
 
 /**

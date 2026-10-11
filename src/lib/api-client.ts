@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase/auth';
 import {
-  buildSvgContext, executeReadTool, applyPlannedBatches, lineEditsToPlanned, editsOf,
-  planStructuralEdits, isStructuralEditTool, summarizeEdits, validityRegression, CLIP_MARKER,
-  type LineEdit, type LineEditOutcome, type PlannedEdit,
+  buildSvgContext, executeReadTool, applyPlannedBatches, editsOf, planEditCall, emptyCallHint,
+  isStructuralEditTool, summarizeEdits, validityRegression,
+  type LineEditOutcome, type PlannedEdit,
 } from './svg-ai';
 import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
@@ -15,7 +15,7 @@ import type { ImageStyle } from './models';
 import { sanitizeHistory } from './chat-sanitize';
 import { config } from './config';
 import { readChatStream, withoutReasoningSummaries, type ChatStreamUpdate } from './chat-stream';
-import { restoreEmbeddedArgs, restoreEmbeddedData, unknownEmbeddedRefusal } from './embedded-data';
+import { restoreEmbeddedData, unknownEmbeddedRefusal } from './embedded-data';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -234,29 +234,6 @@ const REFERENCE_PICTURE_NOTE = 'The picture with this message is one the user at
  *  or work from a picture the user attached. */
 export type ImageConfirmKind = 'generate' | 'modify' | 'picture';
 
-/** The line edits in one replace_lines call, in either accepted shape. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function lineEditsOf(args: any): LineEdit[] {
-  if (Array.isArray(args?.edits)) return args.edits as LineEdit[];
-  // The single-range shape this tool used to take. The two repos deploy
-  // separately, so a browser running the new client can be talking to an API
-  // still advertising the old schema; accepting both means the deploy order
-  // cannot silently turn every edit into a no-op.
-  if (typeof args?.start === 'number') return [{ start: args.start, end: args.end, content: args.content }];
-  return [];
-}
-
-/** What the model is told an empty call should have carried. */
-function emptyCallHint(name: string): string {
-  if (name === 'set_text') return 'Each edit needs "selector" and "text" inside the "edits" array.';
-  if (name === 'set_attribute') return 'Each edit needs "selector", "name" and "value" inside the "edits" array.';
-  if (name === 'set_style_rule') return 'Each edit needs "selector", "property" and "value" inside the "edits" array.';
-  if (name === 'insert_element') return 'Each edit needs "selector", "position" and "svg" inside the "edits" array.';
-  if (name === 'remove_element') return 'Each edit needs a "selector" inside the "edits" array.';
-  if (name === 'split_path') return 'Each edit needs "selector" and "fills" inside the "edits" array.';
-  return 'Each edit needs "start", "end" and "content" inside the "edits" array.';
-}
-
 /**
  * Read every edit call out of one response and resolve them all against the same
  * snapshot, keyed by call_id.
@@ -302,36 +279,15 @@ function planResponseEdits(
       continue;
     }
 
-    // Markup copied from a clipped line lacks the rest of that line; applied, it would discard
-    // what was never shown.
-    if (JSON.stringify(parsed).includes(CLIP_MARKER)) {
-      refusals.set(item.call_id!, `Not executed: it contains "${CLIP_MARKER}", copied from a line that was clipped, so writing it would discard the rest of that line. Address the element with set_attribute, set_text, insert_element or remove_element instead, or read the line in full with read_svg_lines first.`);
-      continue;
-    }
-
-    // The model read embedded images as tokens (embedded-data.ts); what it copied back goes back
-    // to the data before anything is planned. A token the document does not hold refuses the
-    // call: applied, it would write a label where an image was.
-    const restored = restoreEmbeddedArgs(parsed, snapshot);
-    if (restored.unknown.length > 0) {
-      refusals.set(item.call_id!, unknownEmbeddedRefusal(restored.unknown));
+    const plan = planEditCall(snapshot, item.name!, parsed);
+    if (plan.kind === 'refused') {
+      refusals.set(item.call_id!, plan.reason);
       continue;
     }
     // A refused replace_svg rewrites nothing, so the calls after it still describe the snapshot
     // and are planned as usual; only one that will be applied ends the run.
-    if (item.name === 'replace_svg') break;
-    parsed = restored.args;
-
-    if (structural) {
-      const { planned, available, reason } = planStructuralEdits(snapshot, item.name!, parsed);
-      if (!available) {
-        refusals.set(item.call_id!, `Not executed: ${reason}`);
-        continue;
-      }
-      batches.push(planned);
-    } else {
-      batches.push(lineEditsToPlanned(snapshot, lineEditsOf(parsed)));
-    }
+    if (plan.kind === 'replace') break;
+    batches.push(plan.planned);
     ids.push(item.call_id!);
   }
 
