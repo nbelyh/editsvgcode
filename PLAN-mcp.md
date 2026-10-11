@@ -42,9 +42,13 @@ npm test           # MCP tests, through a real MCP client
 npm run build      # typecheck + bundle to lib/index.js
 ```
 
-Locally, `firebase emulators:start --only functions,firestore,auth,hosting` serves it at
-`http://127.0.0.1:5001/<project>/us-central1/mcp/mcp` (and `:5000/mcp` through Hosting).
-Deploy to beta with `npm run deploy:mcp:beta` — and only with the user's go-ahead (CLAUDE.md).
+Locally, `npm run dev` builds the function and runs it in the functions emulator with the
+rest; Vite forwards `/mcp`, `/oauth/*` and `/.well-known/oauth-*` to it, so the MCP server is at
+`http://localhost:3000/mcp` and `/connect` signs in through the Auth emulator — one origin, as
+Hosting gives it in production. After changing `functions/src`, `npm --prefix functions run
+build`; the emulator reloads `functions/lib`. To try it from Claude Code:
+`claude mcp add --transport http editsvgcode-local http://localhost:3000/mcp`, then `/mcp` to
+sign in. Deploy to beta with `npm run deploy:mcp:beta` — and only with the user's go-ahead (CLAUDE.md).
 
 **Deploy order once this is merged:** deploy the function (`deploy:mcp`) before the next
 `npm run deploy`; Hosting can refuse a rewrite to a function that does not exist yet, and

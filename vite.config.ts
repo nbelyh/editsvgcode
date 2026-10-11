@@ -71,6 +71,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // The MCP server and its OAuth endpoints, from the functions emulator — on this same origin,
+    // as the Hosting rewrites in firebase.json put them in production. xfwd passes on the host,
+    // which the function takes as its own address (functions/src/handler.ts originOf).
+    proxy: Object.fromEntries(['/mcp', '/oauth', '/.well-known/oauth-'].map((prefix) => [prefix, {
+      target: 'http://127.0.0.1:5001',
+      xfwd: true,
+      rewrite: (path: string) => `/editsvgcode-dev/us-central1/mcp${path}`,
+    }])),
   },
   test: {
     environment: 'jsdom',
