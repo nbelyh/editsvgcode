@@ -8,3 +8,11 @@
   would land (the diff / commits and the message) and wait.
 - **Feature branches are free.** On any other branch, commit and push without
   asking.
+
+## Deploying
+
+- **Ask before every deploy**, of anything, anywhere — hosting, functions,
+  rules, indexes. Say what would be deployed and where, and wait.
+- **Beta only.** Deploy to the beta project (`-P beta`, e.g. `npm run
+  deploy:beta`, `npm run deploy:mcp:beta`) unless the user explicitly asks
+  for production.
