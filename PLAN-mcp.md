@@ -35,7 +35,7 @@ or publish it.
 
 ## Working on it
 
-```
+```sh
 cd functions
 npm install        # .npmrc sets legacy-peer-deps: npm 10 crashes on vitest's jsdom peer
 npm test           # MCP tests, through a real MCP client
