@@ -43,25 +43,39 @@ npm run build      # typecheck + bundle to lib/index.js
 ```
 
 Locally, `firebase emulators:start --only functions,firestore,auth,hosting` serves it at
-`http://127.0.0.1:5001/<project>/us-central1/mcp` (and `:5000/mcp` through Hosting). Deploy
-with `npm run deploy:mcp` (`:beta` for the beta project).
+`http://127.0.0.1:5001/<project>/us-central1/mcp/mcp` (and `:5000/mcp` through Hosting).
+Deploy to beta with `npm run deploy:mcp:beta` — and only with the user's go-ahead (CLAUDE.md).
 
 **Deploy order once this is merged:** deploy the function (`deploy:mcp`) before the next
 `npm run deploy`; Hosting can refuse a rewrite to a function that does not exist yet, and
 `/mcp` would fail until it does.
-Functions need the Blaze plan. The region (`us-central1`, in `functions/src/index.ts` and the
+Functions need the Blaze plan. The `/connect` page ships with the editor (hosting deploy).
+The region (`us-central1`, in `functions/src/index.ts` and the
 rewrite in `firebase.json`) should match the Firestore database's location.
 
 ## Steps
 
-1. **Server + tools** — done. Auth is a Firebase ID token for now (MCP Inspector, testing).
-   Checked end to end in the emulators: sign-in, create, edit in a transaction, read back, list.
-2. **OAuth 2.1** — what claude.ai custom connectors need: protected-resource metadata
-   (`WWW-Authenticate: Bearer resource_metadata=…`), authorization-server metadata at
-   `editsvgcode.com/.well-known/oauth-authorization-server` (another Hosting rewrite), dynamic
-   client registration, `/authorize` → an editor page (`/connect`) that signs in with Firebase
-   and approves, `/token` with PKCE and refresh tokens. Clients, codes and token hashes in
-   Firestore; access tokens resolve to the Firebase `uid`.
+1. **Server + tools** — done. Checked end to end in the emulators: create, edit in a
+   transaction, read back, list.
+2. **OAuth 2.1** — done (`functions/src/oauth.ts`, consent page `src/pages/ConnectPage.tsx`).
+   A 401 points at protected-resource metadata (RFC 9728); authorization-server metadata
+   (RFC 8414) at `/.well-known/oauth-authorization-server`; open dynamic client registration
+   (RFC 7591, public clients, https or loopback redirects); `/oauth/authorize` → the editor's
+   `/connect` page, where the user signs in with their editsvgcode account and allows or
+   denies; `/oauth/token` with PKCE (S256 only) and rotating refresh tokens. Access tokens last
+   an hour, refresh tokens 30 days. Codes and tokens are stored hashed in Firestore
+   (`mcpOAuth*` collections, closed to browsers by the rules); a replayed code or refresh token
+   revokes the whole grant. `/connect` cannot be framed, and approvals are accepted only from
+   the editor's origin. MCP takes only these access tokens — not Firebase ID tokens. Checked
+   end to end with the MCP SDK's own OAuth client against the emulators.
+
+   **To connect** once deployed: in Claude, Settings → Connectors → Add custom connector, URL
+   `https://<site>/mcp`; Claude opens `/connect` to sign in.
+
+   **Before the first deploy:** set a Firestore TTL policy on `expiresAt` for the four
+   `mcpOAuth*` collections (Console → Firestore → TTL), or expired records pile up. Production
+   pins its address in `functions/.env.editsvgcode-db`; beta takes it from the site the
+   request came through — pin it in `functions/.env.editsvgcode-beta` once its address is known.
 3. **Live view in the editor** — `onSnapshot` on the open `files/{id}` so Claude's edits appear
    as they land (and go on the undo stack); hold remote updates while the user is typing.
 4. **Seeing the drawing** — `get_png_image` and `get_element_bounds` via `@resvg/resvg-js`
@@ -76,5 +90,8 @@ rewrite in `firebase.json`) should match the Firestore database's location.
 
 - Concurrent edits from the browser and Claude: each MCP edit is atomic, but the editor's Save
   writes its whole text over whatever is stored; step 3 should surface it.
-- Rate limits / abuse: per-uid limits; `maxInstances: 10` caps the bill meanwhile.
+- Rate limits / abuse: client registration and authorization requests are open to anyone and
+  each writes a record (bounded in size, expiring). Per-IP / per-uid limits would help;
+  `maxInstances: 10` caps the bill meanwhile.
+- A page listing connected apps, with a revoke button (delete the grant's tokens by `family`).
 - Image generation via MCP would spend credits — keep it out until the rest is proven.

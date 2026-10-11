@@ -26,6 +26,7 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { ImprintPage } from './pages/ImprintPage';
 import { RefundPolicyPage } from './pages/RefundPolicyPage';
+import { ConnectPage } from './pages/ConnectPage';
 
 import { theme } from './theme';
 
@@ -56,6 +57,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="privacy" element={<PrivacyPolicyPage />} />
             <Route path="imprint" element={<ImprintPage />} />
             <Route path="refund-policy" element={<RefundPolicyPage />} />
+            <Route path="connect" element={<ConnectPage />} />
             <Route path=":fileId" element={<EditorPage />} />
           </Route>
         </Routes>

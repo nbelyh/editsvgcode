@@ -4,7 +4,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createMcpServer, documentIdOf } from "../server";
 import { MemoryDocumentStore } from "../documents";
-import { handleMcp } from "../handler";
+import { handleRequest } from "../handler";
+import { MemoryOAuthStore } from "../oauth-store";
 import { CLIP_MARKER } from "../../../src/lib/svg-ai";
 
 const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -187,21 +188,37 @@ describe("the /mcp endpoint", () => {
     };
     return res;
   }
-  const deps = (uid: string | null) => ({ store, authenticate: async () => uid, editorUrl: "https://editsvgcode.com" });
+  const deps = (uid: string | null) => ({
+    documents: store,
+    oauth: new MemoryOAuthStore(),
+    uidFromFirebaseToken: async () => uid,
+    publicOrigin: "https://editsvgcode.com",
+  });
 
   it("refuses GET and DELETE at once rather than opening an event stream", async () => {
     for (const method of ["GET", "DELETE"]) {
       const res = fakeResponse();
-      await handleMcp({ method, headers: { accept: "text/event-stream" } } as never, res as never, deps("alice"));
+      await handleRequest({ method, path: "/mcp", headers: { accept: "text/event-stream" } } as never, res as never, deps("alice"));
       expect(res.status).toBe(405);
     }
   });
 
   it("asks for sign-in without a valid token", async () => {
     const res = fakeResponse();
-    await handleMcp({ method: "POST", headers: {} } as never, res as never, deps(null));
+    await handleRequest({ method: "POST", path: "/mcp", headers: {} } as never, res as never, deps(null));
     expect(res.status).toBe(401);
-    expect(res.headers["WWW-Authenticate"]).toContain("Bearer");
+    // Where to discover the authorization server (RFC 9728), as the MCP spec requires.
+    expect(res.headers["WWW-Authenticate"]).toBe(
+      'Bearer resource_metadata="https://editsvgcode.com/.well-known/oauth-protected-resource/mcp", scope="mcp"',
+    );
+  });
+
+  it("refuses a Firebase ID token, and tells a client with a bad token it is invalid", async () => {
+    // deps("alice") would accept the header as a Firebase ID token; MCP must not.
+    const res = fakeResponse();
+    await handleRequest({ method: "POST", path: "/mcp", headers: { authorization: "Bearer alice-id-token" } } as never, res as never, deps("alice"));
+    expect(res.status).toBe(401);
+    expect(res.headers["WWW-Authenticate"]).toMatch(/^Bearer error="invalid_token", resource_metadata=/);
   });
 });
 
