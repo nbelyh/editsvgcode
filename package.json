@@ -17,6 +17,8 @@
     "ship:beta": "npm run build && npm run upload-sourcemaps && npm run deploy:beta",
     "deploy": "firebase deploy --only hosting,firestore,storage",
     "deploy:beta": "firebase deploy --only hosting,firestore,storage -P beta",
+    "deploy:mcp": "firebase deploy --only functions:mcp",
+    "deploy:mcp:beta": "firebase deploy --only functions:mcp -P beta",
     "upload-sourcemaps": "node scripts/upload-sourcemaps.mjs",
     "preview:deploy": "npm run build && firebase hosting:channel:deploy preview --expires 7d",
     "test": "vitest",

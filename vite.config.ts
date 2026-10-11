@@ -76,6 +76,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test-setup.ts',
-    exclude: ['e2e/**', '**/node_modules/**', 'api/dist/**'],
+    // functions/ is its own package with its own test run (functions/package.json).
+    exclude: ['e2e/**', '**/node_modules/**', 'api/dist/**', 'functions/**'],
   },
 });
