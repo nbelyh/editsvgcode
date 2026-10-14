@@ -36,6 +36,15 @@ function text(t: string, isError = false): CallToolResult {
 }
 
 /**
+ * A result with structured content (for the widgets), carrying its text in it too, as
+ * `message`: a client may hand the model only the structured content when there is any (Claude
+ * Code does), and the model then missed the text — the editor link, the document's lines.
+ */
+function withData(t: string, data: Record<string, unknown>): CallToolResult {
+  return { ...text(t), structuredContent: { ...data, message: t } };
+}
+
+/**
  * A bare id, or an editor link whose first path segment is one (as the editor's getUniqueId reads
  * it): https://editsvgcode.com/abc123?x=1. Null for anything that cannot be a document id, so odd
  * input is answered as "no such document" instead of reaching Firestore as an invalid path.
@@ -85,7 +94,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const title = String(args.title ?? "").slice(0, 200);
     const id = await ctx.store.create(ctx.uid, svg, title);
     const doc: StoredDocument = { id, text: svg, uid: ctx.uid, visibility: "private", title };
-    return { ...text(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`), structuredContent: { documentId: id } };
+    return withData(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`, { documentId: id });
   }
 
   // Only the card: the user presses Generate on it, and the picture widget does the rest.
@@ -98,10 +107,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     if (!ctx.pictures) return text("Pictures are not available on this server.", true);
     // Where no widget shows the card, the editor shows its own (src/lib/open-from-url.ts).
     const editorLink = `${ctx.editorUrl}/?generate=${encodeURIComponent(prompt)}`;
-    return {
-      ...text(`In chats that show widgets, a card now shows this picture and what it costs (${price.credits} credits); nothing is generated or charged until the user presses Generate on it, and the result is traced into an SVG drawing, saved to their account, and named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`),
-      structuredContent: { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl },
-    };
+    return withData(`In chats that show widgets, a card now shows this picture and what it costs (${price.credits} credits); nothing is generated or charged until the user presses Generate on it, and the result is traced into an SVG drawing, saved to their account, and named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl });
   }
 
   // The same card, for a change to a drawing: the widget renders it to a PNG and sends that up.
@@ -116,10 +122,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const doc = id ? await ctx.store.get(id) : null;
     if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
     const editorLink = `${ctx.editorUrl}/${doc.id}?modify=${encodeURIComponent(request)}`;
-    return {
-      ...text(`In chats that show widgets, a card now shows the drawing, this change and what it costs (${price.credits} credits); nothing is changed or charged until the user presses Change on it, and the result is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`),
-      structuredContent: { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl },
-    };
+    return withData(`In chats that show widgets, a card now shows the drawing, this change and what it costs (${price.credits} credits); nothing is changed or charged until the user presses Change on it, and the result is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl });
   }
 
   // For the picture widget alone: a link that makes one picture, once, charged to this user.
@@ -147,10 +150,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
       `- ${d.id}  ${d.title ? JSON.stringify(d.title) : "(untitled)"}  ${d.visibility}`
       + `${d.modified ? `, changed ${d.modified.toISOString()}` : ""}  ${ctx.editorUrl}/${d.id}`);
     const list = docs.length === 0 ? "You have no saved drawings yet. create_document starts one." : rows.join("\n");
-    return {
-      ...text(`${list}\n\n${picker}`),
-      structuredContent: { documents: docs.map((d) => ({ id: d.id, title: d.title, modified: d.modified?.toISOString() ?? null })) },
-    };
+    return withData(`${list}\n\n${picker}`, { documents: docs.map((d) => ({ id: d.id, title: d.title, modified: d.modified?.toISOString() ?? null })) });
   }
 
   const id = documentIdOf(args.document_id);
@@ -169,7 +169,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     if (name === "open_document") return text(`${describe(doc, ctx)}\n\n${buildSvgContext(doc.text)}`);
     // The widget is handed only the id, and fetches the markup itself through get_document_svg.
     if (name === "show_document") {
-      return { ...text(`Showing the drawing to the user. ${describe(doc, ctx)}`), structuredContent: { documentId: doc.id } };
+      return withData(`Showing the drawing to the user. ${describe(doc, ctx)}`, { documentId: doc.id, link: `${ctx.editorUrl}/${doc.id}` });
     }
     if (name === "get_document_svg") {
       return {

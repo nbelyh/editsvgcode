@@ -166,7 +166,7 @@ describe("the drawing shown in the chat", () => {
     const client = await connect();
     const id = await created(client);
     const shown = await client.callTool({ name: "show_document", arguments: { document_id: id } });
-    expect(shown.structuredContent).toEqual({ documentId: id });
+    expect(shown.structuredContent).toMatchObject({ documentId: id });
     expect(JSON.stringify(shown.content)).not.toContain("<rect");
     const fetched = await client.callTool({ name: "get_document_svg", arguments: { document_id: id } });
     expect(fetched.structuredContent).toEqual({ svg: DRAWING, title: "Test", link: `https://editsvgcode.com/${id}` });
@@ -182,7 +182,7 @@ describe("the drawing shown in the chat", () => {
     await store.create("bob", DRAWING, "Bob's");
     for (const name of ["list_documents", "upload_document"]) {
       const picker = await client.callTool({ name, arguments: {} });
-      expect(picker.structuredContent).toEqual({ documents: [{ id, title: "Test", modified: expect.any(String) }] });
+      expect(picker.structuredContent).toMatchObject({ documents: [{ id, title: "Test", modified: expect.any(String) }] });
     }
   });
 
@@ -204,6 +204,27 @@ describe("the drawing shown in the chat", () => {
   });
 });
 
+describe("structured results", () => {
+  it("carry their text as message, for clients that hand the model only the structured content", async () => {
+    const client = await connect();
+    const id = await created(client);
+    const calls: Array<[string, Record<string, unknown>]> = [
+      ["create_document", { svg: DRAWING }],
+      ["show_document", { document_id: id }],
+      ["list_documents", {}],
+      ["generate_image", { prompt: "a fox" }],
+      ["modify_image", { document_id: id, request: "add a hat" }],
+    ];
+    for (const [name, args] of calls) {
+      const res = await client.callTool({ name, arguments: args });
+      const text = (res.content as Array<{ text: string }>)[0].text;
+      expect((res.structuredContent as { message: string }).message).toBe(text);
+    }
+    const shown = await client.callTool({ name: "show_document", arguments: { document_id: id } });
+    expect(shown.structuredContent).toMatchObject({ link: `https://editsvgcode.com/${id}` });
+  });
+});
+
 describe("pictures", () => {
   const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 
@@ -213,7 +234,7 @@ describe("pictures", () => {
     expect(tools.find((t) => t.name === "generate_image")!._meta).toEqual({ ui: { resourceUri: PICTURE_WIDGET_URI } });
     expect(tools.find((t) => t.name === "picture_link")!._meta).toEqual({ ui: { visibility: ["app"] } });
     const card = await client.callTool({ name: "generate_image", arguments: { prompt: "a red fox" } });
-    expect(card.structuredContent).toEqual({ prompt: "a red fox", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" });
+    expect(card.structuredContent).toMatchObject({ prompt: "a red fox", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" });
     expect(JSON.stringify(card)).not.toContain(PICTURE_URL);
     // Where no widget shows the card, the editor opens its own.
     expect(JSON.stringify(card.content)).toContain("https://editsvgcode.com/?generate=a%20red%20fox");
@@ -270,7 +291,7 @@ describe("pictures", () => {
     const client = await connect("alice");
     const id = await created(client);
     const card = await client.callTool({ name: "modify_image", arguments: { document_id: id, request: "add a hat" } });
-    expect(card.structuredContent).toEqual({
+    expect(card.structuredContent).toMatchObject({
       mode: "modify", documentId: id, prompt: "add a hat", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com",
     });
     expect(JSON.stringify(card.content)).toContain(`https://editsvgcode.com/${id}?modify=add%20a%20hat`);
