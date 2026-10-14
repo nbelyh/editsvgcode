@@ -119,4 +119,10 @@ async function handleMcp(req: Request, res: ServerResponse, deps: Deps, origin: 
   } finally {
     await server.close();
   }
+  // The request log has the status but not what was asked, nor the transport's reason.
+  if (res.statusCode >= 400) {
+    const messages = Array.isArray(req.body) ? req.body : [req.body];
+    const methods = messages.map((m) => (m && typeof m === "object" && "method" in m ? String(m.method) : typeof m));
+    console.warn(`mcp ${res.statusCode}: ${methods.join(", ")} (protocol ${String(req.headers["mcp-protocol-version"] ?? "none")})`);
+  }
 }
