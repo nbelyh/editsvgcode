@@ -37,7 +37,9 @@ export function ConnectPage() {
   async function answer(approve: boolean) {
     setBusy(true);
     try {
-      const idToken = approve && user ? await user.getIdToken() : undefined;
+      // Fresh, not cached: a guest who signs in here is upgraded in place, and the token cached
+      // from before still says anonymous, which the server refuses ("Sign in … first").
+      const idToken = approve && user ? await user.getIdToken(true) : undefined;
       window.location.assign(await answerConnectRequest(requestId, approve, idToken));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
