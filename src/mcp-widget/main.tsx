@@ -13,8 +13,7 @@ import { theme } from '../theme';
  * editor's own Preview. The show_document tool (functions/src/tools.ts) carries this page. Its
  * result names the document; the page then fetches the markup through get_document_svg, a tool
  * only the app may call, so the SVG does not pass through the model's context again.
- * upload_document carries it too, as a box to drop an SVG file into, and every preview opens the
- * same box from its header, whatever the model chose to call: the file is saved with
+ * upload_document carries it too, as a box to drop an SVG file into: the file is saved with
  * create_document from here, so the model never has to copy it, and the chat is told its id.
  * functions/scripts/build.mjs bundles this file into the one HTML page the server hands out.
  */
@@ -167,11 +166,6 @@ function DropBox() {
         </Button>
         <Text size="xs" c="dimmed">It is saved to your EditSvgCode account, private.</Text>
         {error && <Text size="sm" c="red">{error}</Text>}
-        {shown && (
-          <Button variant="subtle" size="xs" color="gray" onClick={() => { awaitingFile = false; changed(); }}>
-            Back to the drawing
-          </Button>
-        )}
       </Stack>
     </Center>
   );
@@ -242,14 +236,7 @@ function Widget() {
         >
           <Text size="sm" fw={500} truncate="end">{awaitingFile ? 'Add a drawing' : doc?.title || 'Untitled drawing'}</Text>
           <Group gap={4} wrap="nowrap">
-            {!awaitingFile && (
-              <Tooltip label="Upload an SVG file">
-                <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => { awaitingFile = true; changed(); }} aria-label="Upload an SVG file">
-                  <IconFileUpload size={16} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {documentId && !awaitingFile && (
+            {documentId && (
               <Tooltip label="Show the latest version">
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => void load(documentId)} loading={loading} aria-label="Refresh">
                   <IconRefresh size={16} />
