@@ -6,7 +6,8 @@ import { IconSparkles, IconUser, IconChevronRight, IconChevronDown, IconTool, Ic
 import { Link } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { sanitizeSvg } from '../../lib/sanitize';
-import { ToolCallProposal, openImageInNewTab } from '../ToolCallProposal';
+import { ToolCallProposal } from '../ToolCallProposal';
+import { openImageInNewTab } from '../TraceControls';
 import { BUY_CREDITS_URL } from '../CreditsIndicator';
 import { buildCheckoutUrl, type PpgProductKey } from '../../lib/ppg-checkout';
 import { DEFAULT_PRICING } from '../../lib/pricing';
