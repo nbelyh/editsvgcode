@@ -26,7 +26,7 @@ const INSTRUCTIONS = `editsvgcode edits SVG drawings that live in the user's edi
 Start with create_document (a new drawing) or open_document (an existing one, by id or editor link); both return the document as numbered lines and the editor link.
 The user sees the drawing only when you call show_document: call it once the drawing is created or opened, and again when a round of edits is done (not after every edit call).
 When the user attaches an SVG file or wants to give you one, call upload_document rather than copying the file into create_document.
-For a picture (an illustration, a logo, a character, a scene — anything better painted than drawn with a few shapes), call generate_image: it puts a card in the chat where the user confirms and pays the credits. Draw simple shapes and icons yourself.
+When the user asks to generate an image or picture, or wants an illustration, a character, an animal, a scene — anything better painted than drawn with a few shapes — call generate_image, even when they say SVG: the picture is traced into SVG. It puts a card in the chat where the user sees the price and decides; do not avoid it to save their credits. Draw icons and simple shapes yourself, or when the user asks for hand-made shapes.
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 

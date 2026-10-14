@@ -82,7 +82,7 @@ export const TOOLS: Tool[] = [
   {
     name: "generate_image",
     title: "Generate a picture",
-    description: "Generate a picture with an image model, traced into an editable SVG drawing: for illustrations, logos, characters, scenes — anything better painted than drawn with a few shapes. Shows a card in the chat with the prompt and its price in the user's EditSvgCode credits; nothing is made or charged until the user presses Generate there. The result is saved as a new drawing in their account, and a note then names it.",
+    description: "Generate an image or picture with an image model, traced into an editable SVG drawing. Use it when the user asks to generate an image or a picture, and for illustrations, characters, animals, scenes, detailed logos — anything better painted than drawn with a few shapes; an SVG is still what they get. Shows a card in the chat with the prompt and its price in the user's EditSvgCode credits; nothing is made or charged until the user presses Generate there, so the spending is their decision: do not avoid this tool to save credits. The result is saved as a new drawing in their account, and a note then names it. Draw icons and simple shapes yourself, or when the user asks for hand-made shapes.",
     inputSchema: {
       type: "object",
       properties: {
