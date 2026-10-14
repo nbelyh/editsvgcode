@@ -180,6 +180,17 @@ describe("the drawing shown in the chat", () => {
   });
 });
 
+describe("starters", () => {
+  it("offers prompts that send the chat to these tools", async () => {
+    const client = await connect();
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name)).toEqual(["edit_svg_file", "use_editsvgcode"]);
+    const upload = await client.getPrompt({ name: "edit_svg_file" });
+    expect(upload.messages).toEqual([{ role: "user", content: { type: "text", text: expect.stringContaining("upload_document") } }]);
+    await expect(client.getPrompt({ name: "nothing" })).rejects.toThrow();
+  });
+});
+
 describe("MCP edits that must not be saved", () => {
   it("refuses replace_svg carrying markup copied from a clipped line", async () => {
     const client = await connect();
