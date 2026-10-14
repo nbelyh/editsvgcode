@@ -812,6 +812,20 @@
   color: var(--mantine-color-dimmed);
 }
 
+/* The prompt of a picture asked for in a link, which the user may reword (ImageConfirm). */
+.aui-image-confirm-prompt {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+}
+
 .aui-image-confirm-hint {
   font-size: 11px;
   color: var(--mantine-color-dimmed);

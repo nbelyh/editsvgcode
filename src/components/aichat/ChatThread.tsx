@@ -57,6 +57,8 @@ interface ChatThreadProps {
   onIconMore: () => void;
   onIconNone: () => void;
   imageConfirmSummary: string | null;
+  /** Set for a picture asked for in a link: the card's prompt is then a text box. */
+  onImagePromptChange?: (prompt: string) => void;
   /** What a generated picture costs at the chosen image model, for the confirmation to say. */
   imageCredits: number;
   /** How the next picture is drawn, chosen on the cards that ask before one is made. */
@@ -279,7 +281,7 @@ export const ChatThread = memo(function ChatThread({
   onThumbsUp, onThumbsDown, onContinue, onRetry, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
-  imageConfirmSummary, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline,
+  imageConfirmSummary, onImagePromptChange, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline,
   onSamplePrompt, onPasteSvg, canPaste, isAnonymous, isViewer,
   pictureChoice, pictureLikenessHint, onTrace, onIllustrate, onPictureChoiceClose,
 }: ChatThreadProps) {
@@ -574,7 +576,7 @@ export const ChatThread = memo(function ChatThread({
 
       {imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
-          <ImageConfirm summary={imageConfirmSummary} imageCredits={imageCredits} imageStyle={imageStyle} onImageStyleChange={onImageStyleChange} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+          <ImageConfirm summary={imageConfirmSummary} onPromptChange={onImagePromptChange} imageCredits={imageCredits} imageStyle={imageStyle} onImageStyleChange={onImageStyleChange} onConfirm={onImageConfirm} onDecline={onImageDecline} />
         </div>
       )}
 

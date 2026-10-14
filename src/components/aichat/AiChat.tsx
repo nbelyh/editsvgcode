@@ -672,6 +672,14 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // the user's own, signed in. Declining leaves the request in the message box, to have the chat
   // model draw it with shapes instead.
   const signInAskedRef = useRef(false);
+  /** The request on show, worded by the user on the card before they answer it. */
+  const [requestOnCard, setRequestOnCard] = useState<PictureRequest | null>(null);
+  const requestOnCardRef = useRef<PictureRequest | null>(null);
+  requestOnCardRef.current = requestOnCard;
+  const handleImagePromptChange = useCallback((prompt: string) => {
+    setRequestOnCard((r) => (r ? { ...r, prompt } : r));
+    setImageConfirmSummary((s) => (s?.startsWith('modify:') ? `modify:${prompt}` : prompt));
+  }, []);
   useEffect(() => {
     if (!pictureRequest || accessPending || !documentReady || isRunning || imageConfirmSummary) return;
     if (isAnonymous !== false) {
@@ -683,12 +691,15 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     }
     onPictureRequestShown?.();
     if (!canWrite) return;
-    const request = pictureRequest;
-    setImageConfirmSummary(request.kind === 'modify' ? `modify:${request.prompt}` : request.prompt);
+    setRequestOnCard(pictureRequest);
+    setImageConfirmSummary(pictureRequest.kind === 'modify' ? `modify:${pictureRequest.prompt}` : pictureRequest.prompt);
     imageConfirmResolveRef.current = (confirmed) => {
+      // As worded on the card, which may differ from the link's.
+      const request = requestOnCardRef.current ?? pictureRequest;
       setImageConfirmSummary(null);
+      setRequestOnCard(null);
       imageConfirmResolveRef.current = null;
-      if (confirmed) void runRequestedPicture(request);
+      if (confirmed) void runRequestedPicture({ ...request, prompt: request.prompt.trim() });
       else setInput(request.prompt);
     };
   }, [pictureRequest, accessPending, documentReady, isRunning, imageConfirmSummary, isAnonymous, canWrite, onPictureRequestShown, runRequestedPicture]);
@@ -1281,6 +1292,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onIconMore={handleIconMore}
           onIconNone={handleIconNone}
           imageConfirmSummary={imageConfirmSummary}
+          onImagePromptChange={requestOnCard ? handleImagePromptChange : undefined}
           imageCredits={IMAGE_MODELS.find((m) => m.value === imageModel)?.credits ?? 0}
           imageStyle={imageStyle}
           onImageStyleChange={handleImageStyleChange}
