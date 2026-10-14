@@ -86,7 +86,7 @@ export const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        prompt: { type: "string", description: "What to picture, in detail: subject, style, colours, composition." },
+        prompt: { type: "string", description: "What to picture, close to the user's own words: the subject, and a style or colours only if they gave one. Add no details of your own (features, colours, pose, background) — the user sees the prompt on the card and can add to it there." },
         model: {
           type: "string",
           enum: Object.keys(IMAGE_MODELS),
@@ -99,11 +99,32 @@ export const TOOLS: Tool[] = [
     _meta: { ui: { resourceUri: PICTURE_WIDGET_URI } },
   },
   {
+    name: "modify_image",
+    title: "Change a picture",
+    description: "Change a picture-like drawing with the image model — one generate_image made, or any traced or detailed drawing: add or remove a detail, change a pose, an expression, the style. The image model redraws it from the drawing as it is, and the result is traced into SVG and saved as a new drawing; the original stays. Use it instead of generating a new picture when the user wants this one changed. Shows a card in the chat with the drawing, the change and its price in credits; nothing is changed or charged until the user presses Change, so the spending is their decision. For recolouring or small changes to shapes, use the edit tools instead (free).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: DOCUMENT_ID,
+        request: { type: "string", description: "The change, close to the user's own words: what to add, remove or alter. Add no changes of your own." },
+        model: {
+          type: "string",
+          enum: Object.keys(IMAGE_MODELS),
+          description: `The image model. ${DEFAULT_IMAGE_MODEL} (${IMAGE_MODELS[DEFAULT_IMAGE_MODEL].credits} credits) unless the user asks for another; the others need EditSvgCode Pro and keep faces and fine detail better.`,
+        },
+      },
+      required: ["document_id", "request"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    _meta: { ui: { resourceUri: PICTURE_WIDGET_URI } },
+  },
+  {
     name: "picture_link",
     description: "A one-time link that makes the picture, charged to the user. For the picture widget, not the model.",
     inputSchema: {
       type: "object",
       properties: {
+        kind: { type: "string", enum: ["generate", "modify"] },
         prompt: { type: "string" },
         model: { type: "string" },
         outlines: { type: "boolean" },

@@ -27,6 +27,7 @@ Start with create_document (a new drawing) or open_document (an existing one, by
 The user sees the drawing only when you call show_document: call it once the drawing is created or opened, and again when a round of edits is done (not after every edit call).
 When the user attaches an SVG file or wants to give you one, call upload_document rather than copying the file into create_document.
 When the user asks to generate an image or picture, or wants an illustration, a character, an animal, a scene — anything better painted than drawn with a few shapes — call generate_image, even when they say SVG: the picture is traced into SVG. It puts a card in the chat where the user sees the price and decides; do not avoid it to save their credits. Draw icons and simple shapes yourself, or when the user asks for hand-made shapes.
+To change such a picture — add or remove a detail, change a pose, an expression, the style — call modify_image with its document id, rather than generating a new one: the image model redraws it from the drawing as it is. Recolouring and small changes to shapes are better done with the edit tools, which cost nothing.
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 
@@ -101,6 +102,23 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     };
   }
 
+  // The same card, for a change to a drawing: the widget renders it to a PNG and sends that up.
+  if (name === "modify_image") {
+    const request = String(args.request ?? "").trim();
+    if (!request) return text("Say what to change in \"request\".", true);
+    const model = String(args.model ?? DEFAULT_IMAGE_MODEL);
+    const price = IMAGE_MODELS[model];
+    if (!price) return text(`Unknown image model "${model}". Use one of: ${Object.keys(IMAGE_MODELS).join(", ")}.`, true);
+    if (!ctx.pictures) return text("Pictures are not available on this server.", true);
+    const id = documentIdOf(args.document_id);
+    const doc = id ? await ctx.store.get(id) : null;
+    if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
+    return {
+      ...text(`A card in the chat now shows the drawing, this change and what it costs (${price.credits} credits). Nothing is changed or charged until the user presses Change on it. The image model then redraws the picture, it is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), and a note names it. Wait for the user.`),
+      structuredContent: { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl },
+    };
+  }
+
   // For the picture widget alone: a link that makes one picture, once, charged to this user.
   if (name === "picture_link") {
     if (!ctx.pictures) return text("Pictures are not available on this server.", true);
@@ -108,7 +126,8 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const model = String(args.model ?? DEFAULT_IMAGE_MODEL);
     if (!prompt || !IMAGE_MODELS[model]) return text("A picture needs a prompt and a known image model.", true);
     const token = await issueTicket(ctx.pictures.tickets, {
-      uid: ctx.uid, prompt, model, outlines: args.outlines !== false, detail: args.detail === true,
+      uid: ctx.uid, kind: args.kind === "modify" ? "modify" : "generate", prompt, model,
+      outlines: args.outlines !== false, detail: args.detail === true,
     });
     return { ...text("A one-time link for the picture."), structuredContent: { url: `${ctx.pictures.url}/${token}` } };
   }

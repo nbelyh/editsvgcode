@@ -9,6 +9,7 @@ import { Preview } from '../components/Preview';
 import { ImageGenerationControls } from '../components/TraceControls';
 import { PictureStyleOptions } from '../components/aichat/PictureStyleOptions';
 import { traceToFit, type VectorizerParams } from '../lib/trace';
+import { renderImage } from '../lib/svg-export';
 import type { ImageStyle } from '../lib/models';
 import { theme } from '../theme';
 import { tellModel, textOf } from './bridge';
@@ -19,16 +20,26 @@ import { tellModel, textOf } from './bridge';
  * nothing is made or charged until the user presses Generate. The picture then comes straight
  * from the MCP function through a one-time link (functions/src/pictures.ts), not through the
  * chat; it is traced into SVG here, in the browser, with the editor's vtracer, saved as a new
- * drawing, and shown with the tracer's settings, which retrace it and save again.
+ * drawing, and shown with the tracer's settings, which retrace it and save again. modify_image
+ * shows the same card under the drawing it changes: that drawing is rendered to a PNG here and
+ * sent up the link, and the changed picture is saved as a new drawing, the original untouched.
  * functions/scripts/build.mjs bundles this file into the page the server hands out.
  */
 
-/** What a generate_image result carries. */
+/** What a generate_image or modify_image result carries. */
 interface Asked {
   prompt: string;
   model: string;
   credits: number;
   editorUrl: string;
+  /** The drawing to change, for modify_image. */
+  documentId?: string;
+}
+
+/** The drawing a change starts from, as get_document_svg returns it. */
+interface Source {
+  svg: string;
+  title: string;
 }
 
 const app = new App(
@@ -53,7 +64,10 @@ app.addEventListener('toolresult', (result) => {
   if (result.isError || typeof content?.prompt !== 'string') {
     failure = textOf(result) || 'There is no picture to make.';
   } else {
-    asked = { prompt: content.prompt, model: content.model ?? '', credits: content.credits ?? 0, editorUrl: content.editorUrl ?? '' };
+    asked = {
+      prompt: content.prompt, model: content.model ?? '', credits: content.credits ?? 0, editorUrl: content.editorUrl ?? '',
+      ...(typeof content.documentId === 'string' ? { documentId: content.documentId } : {}),
+    };
   }
   changed();
 });
@@ -78,21 +92,34 @@ function readAsDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-function Card({ ask, onGenerate }: { ask: Asked; onGenerate: (prompt: string, style: ImageStyle) => void }) {
+/** The question asked first, in the editor's words (ImageConfirm): each sentence whole. */
+function Card({ ask, source, onGenerate }: { ask: Asked; source: Source | null; onGenerate: (prompt: string, style: ImageStyle) => void }) {
   const [prompt, setPrompt] = useState(ask.prompt);
   const [style, setStyle] = useState<ImageStyle>({ outlines: true, detail: false });
+  const modify = !!ask.documentId;
   return (
-    <Stack gap="xs" p="sm">
-      <Text fw={500}>Generate this picture?</Text>
-      <Textarea value={prompt} onChange={(e) => setPrompt(e.currentTarget.value)} autosize minRows={2} maxRows={6} />
-      <Text size="xs" c="dimmed">A generated picture is traced into SVG shapes, so you can edit it like any other drawing.</Text>
-      <PictureStyleOptions value={style} onChange={setStyle} />
-      <Group>
-        <Button size="xs" disabled={!prompt.trim()} onClick={() => onGenerate(prompt.trim(), style)}>
-          {`Generate picture (${ask.credits} credits)`}
-        </Button>
-      </Group>
-    </Stack>
+    <>
+      {modify && (
+        <div style={{ height: 220, borderBottom: '1px solid var(--esvg-chrome-border)' }}>
+          {source ? <Preview svgCode={source.svg} /> : <Center h="100%"><Loader size="sm" /></Center>}
+        </div>
+      )}
+      <Stack gap="xs" p="sm">
+        <Text fw={500}>{modify ? 'Change this picture?' : 'Generate this picture?'}</Text>
+        <Textarea value={prompt} onChange={(e) => setPrompt(e.currentTarget.value)} autosize minRows={2} maxRows={6} />
+        <Text size="xs" c="dimmed">
+          {modify
+            ? 'The picture is redrawn with the change and traced into SVG shapes again, saved as a new drawing. Changing the shapes by hand instead suits small changes, not new details.'
+            : 'A generated picture is traced into SVG shapes, so you can edit it like any other drawing.'}
+        </Text>
+        <PictureStyleOptions value={style} onChange={setStyle} />
+        <Group>
+          <Button size="xs" disabled={!prompt.trim() || (modify && !source)} onClick={() => onGenerate(prompt.trim(), style)}>
+            {modify ? `Change picture (${ask.credits} credits)` : `Generate picture (${ask.credits} credits)`}
+          </Button>
+        </Group>
+      </Stack>
+    </>
   );
 }
 
@@ -103,23 +130,48 @@ function Widget() {
   const [title, setTitle] = useState('');
   /** The tracer's sliders are open until the user is done with them. */
   const [tuning, setTuning] = useState(true);
+  const [source, setSource] = useState<Source | null>(null);
 
   useEffect(() => {
-    if (asked) setTitle(asked.prompt.slice(0, 80));
+    if (!asked) return;
+    setTitle(asked.prompt.slice(0, 80));
+    const id = asked.documentId;
+    if (!id) return;
+    void app.callServerTool({ name: 'get_document_svg', arguments: { document_id: id } }).then((result) => {
+      const loaded = result.structuredContent as Partial<Source> | undefined;
+      if (result.isError || typeof loaded?.svg !== 'string') {
+        setStage({ kind: 'failed', message: textOf(result) || 'The drawing could not be loaded.', credits: false });
+      } else {
+        setSource({ svg: loaded.svg, title: loaded.title ?? '' });
+        if (loaded.title) setTitle(loaded.title);
+      }
+    });
   }, [version]);
 
   const generate = async (ask: Asked, prompt: string, style: ImageStyle) => {
-    setTitle(prompt.slice(0, 80));
+    const modify = !!ask.documentId;
+    if (!modify) setTitle(prompt.slice(0, 80));
     setStage({ kind: 'working', step: 'generating' });
     try {
+      // For a change, the drawing as it is, as the picture the image model redraws.
+      let picture: Blob | null = null;
+      if (modify) {
+        if (!source) throw new Error('The drawing could not be loaded.');
+        const rendered = await renderImage(source.svg, { size: { width: 1024 }, format: 'png', background: null });
+        if ('error' in rendered) throw new Error(rendered.error);
+        picture = rendered.blob;
+      }
+
       const link = await app.callServerTool({
         name: 'picture_link',
-        arguments: { prompt, model: ask.model, outlines: style.outlines, detail: style.detail },
+        arguments: { kind: modify ? 'modify' : 'generate', prompt, model: ask.model, outlines: style.outlines, detail: style.detail },
       });
       const url = (link.structuredContent as { url?: string } | undefined)?.url;
       if (link.isError || !url) throw new Error(textOf(link) || 'The picture could not be started.');
 
-      const res = await fetch(url);
+      const res = picture
+        ? await fetch(url, { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: picture })
+        : await fetch(url);
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setStage({ kind: 'failed', message: data.error ?? `The picture could not be made (${res.status}).`, credits: res.status === 402 });
@@ -129,13 +181,16 @@ function Widget() {
 
       setStage({ kind: 'working', step: 'tracing' });
       const { svg, params } = await traceToFit(png);
-      const saved = await app.callServerTool({ name: 'create_document', arguments: { svg, title: prompt.slice(0, 80) } });
+      const newTitle = modify ? (source?.title || prompt.slice(0, 80)) : prompt.slice(0, 80);
+      const saved = await app.callServerTool({ name: 'create_document', arguments: { svg, title: newTitle } });
       const documentId = (saved.structuredContent as { documentId?: string } | undefined)?.documentId;
       if (saved.isError || !documentId) throw new Error(textOf(saved) || 'The drawing could not be saved.');
 
       setStage({ kind: 'done', png, svg, params, documentId });
-      // For the model, not for reading: it names the document by id.
-      await tellModel(app, `The picture was generated, traced into SVG and saved as document ${documentId}. open_document it before editing.`);
+      // For the model, not for reading: it names the documents by id.
+      await tellModel(app, modify
+        ? `The picture of document ${ask.documentId} was changed, traced into SVG and saved as a new document ${documentId}; ${ask.documentId} is unchanged. open_document ${documentId} before editing.`
+        : `The picture was generated, traced into SVG and saved as document ${documentId}. open_document it before editing.`);
     } catch (err) {
       setStage({ kind: 'failed', message: err instanceof Error ? err.message : String(err), credits: false });
     }
@@ -171,13 +226,15 @@ function Widget() {
       ) : !ask ? (
         <Center p="md"><Loader size="sm" /></Center>
       ) : stage.kind === 'card' ? (
-        <Card ask={ask} onGenerate={(prompt, style) => void generate(ask, prompt, style)} />
+        <Card ask={ask} source={source} onGenerate={(prompt, style) => void generate(ask, prompt, style)} />
       ) : stage.kind === 'working' ? (
         <Center p="xl">
           <Stack align="center" gap="xs">
             <Loader size="sm" />
             <Text size="sm" c="dimmed">
-              {stage.step === 'generating' ? 'Generating the picture…' : 'Tracing it into SVG shapes…'}
+              {stage.step === 'tracing'
+                ? 'Tracing it into SVG shapes…'
+                : ask.documentId ? 'Changing the picture…' : 'Generating the picture…'}
             </Text>
           </Stack>
         </Center>

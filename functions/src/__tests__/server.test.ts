@@ -231,36 +231,69 @@ describe("pictures", () => {
       calls.push({ uid, body });
       return new Response(PNG, { status: 200, headers: { "X-Credits-Remaining": "20" } });
     };
-    const first = await handlePicture("GET", token, { tickets, callImageApi });
+    const first = await handlePicture("GET", token, undefined, { tickets, callImageApi });
     expect(first.status).toBe(200);
     expect(first.headers["Content-Type"]).toBe("image/png");
     expect(first.headers["Access-Control-Allow-Origin"]).toBe("*");
     expect(first.headers["X-Credits-Remaining"]).toBe("20");
     expect(first.body).toEqual(PNG);
-    expect(calls).toEqual([{ uid: "alice", body: { prompt: "a red fox", model: "gpt-image-1-mini", outlines: false, detail: false } }]);
+    expect(calls).toEqual([{ uid: "alice", body: { kind: "generate", prompt: "a red fox", model: "gpt-image-1-mini", outlines: false, detail: false } }]);
 
-    const again = await handlePicture("GET", token, { tickets, callImageApi });
+    const again = await handlePicture("GET", token, undefined, { tickets, callImageApi });
     expect(again.status).toBe(410);
     expect(calls).toHaveLength(1);
   });
 
   it("refuses an expired link, and passes on the API's refusal when credits run out", async () => {
-    const token = await issueTicket(tickets, { uid: "alice", prompt: "fox", model: "gpt-image-1-mini", outlines: true, detail: false }, 0);
+    const token = await issueTicket(tickets, { uid: "alice", kind: "generate", prompt: "fox", model: "gpt-image-1-mini", outlines: true, detail: false }, 0);
     const never = async () => { throw new Error("called"); };
-    expect((await handlePicture("GET", token, { tickets, callImageApi: never, now: () => 10 * 60_000 })).status).toBe(410);
+    expect((await handlePicture("GET", token, undefined, { tickets, callImageApi: never, now: () => 10 * 60_000 })).status).toBe(410);
 
-    const fresh = await issueTicket(tickets, { uid: "alice", prompt: "fox", model: "gpt-image-1.5", outlines: true, detail: false });
+    const fresh = await issueTicket(tickets, { uid: "alice", kind: "generate", prompt: "fox", model: "gpt-image-1.5", outlines: true, detail: false });
     const broke = async () => new Response(JSON.stringify({ error: "Pro required", code: "PRO_REQUIRED" }), { status: 402 });
-    const out = await handlePicture("GET", fresh, { tickets, callImageApi: broke });
+    const out = await handlePicture("GET", fresh, undefined, { tickets, callImageApi: broke });
     expect(out.status).toBe(402);
     expect(JSON.parse(String(out.body))).toEqual({ error: "Pro required", code: "PRO_REQUIRED" });
   });
 
   it("answers the browser's preflight and refuses what is not a link", async () => {
     const never = async () => { throw new Error("called"); };
-    expect((await handlePicture("OPTIONS", "x", { tickets, callImageApi: never })).status).toBe(204);
-    expect((await handlePicture("GET", "../../etc", { tickets, callImageApi: never })).status).toBe(404);
-    expect((await handlePicture("POST", "a".repeat(32), { tickets, callImageApi: never })).status).toBe(405);
+    expect((await handlePicture("OPTIONS", "x", undefined, { tickets, callImageApi: never })).status).toBe(204);
+    expect((await handlePicture("GET", "../../etc", undefined, { tickets, callImageApi: never })).status).toBe(404);
+    expect((await handlePicture("DELETE", "a".repeat(32), undefined, { tickets, callImageApi: never })).status).toBe(405);
+    expect((await handlePicture("POST", "a".repeat(32), Buffer.from("not a png"), { tickets, callImageApi: never })).status).toBe(400);
+  });
+
+  it("changes a drawing on a card too: the PNG sent up goes to modify-image, and the original stays", async () => {
+    const client = await connect("alice");
+    const id = await created(client);
+    const card = await client.callTool({ name: "modify_image", arguments: { document_id: id, request: "add a hat" } });
+    expect(card.structuredContent).toEqual({
+      mode: "modify", documentId: id, prompt: "add a hat", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com",
+    });
+    const hidden = await store.create("bob", DRAWING, "Bob's");
+    expect((await client.callTool({ name: "modify_image", arguments: { document_id: hidden, request: "x" } })).isError).toBe(true);
+
+    const link = await client.callTool({ name: "picture_link", arguments: { kind: "modify", prompt: "add a hat", model: "gpt-image-1-mini" } });
+    const token = (link.structuredContent as { url: string }).url.slice(PICTURE_URL.length + 1);
+    const calls: Array<{ uid: string; body: unknown }> = [];
+    const callImageApi = async (uid: string, body: unknown) => {
+      calls.push({ uid, body });
+      return new Response(PNG, { status: 200 });
+    };
+    // A change is a POST with the picture; a GET on its link spends the link and makes nothing.
+    const out = await handlePicture("POST", token, PNG, { tickets, callImageApi });
+    expect(out.status).toBe(200);
+    expect(calls).toEqual([{
+      uid: "alice",
+      body: { kind: "modify", prompt: "add a hat", model: "gpt-image-1-mini", outlines: true, detail: false, image: PNG.toString("base64") },
+    }]);
+    expect((await store.get(id))!.text).toBe(DRAWING);
+
+    const other = await client.callTool({ name: "picture_link", arguments: { kind: "modify", prompt: "x", model: "gpt-image-1-mini" } });
+    const otherToken = (other.structuredContent as { url: string }).url.slice(PICTURE_URL.length + 1);
+    expect((await handlePicture("GET", otherToken, undefined, { tickets, callImageApi })).status).toBe(400);
+    expect(calls).toHaveLength(1);
   });
 });
 

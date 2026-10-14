@@ -7,6 +7,9 @@ import { AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/
  * answers its get_document_svg call with the drawing chosen here instead of a stored document.
  * With ?page=picture it loads the picture widget instead and hands it a generate_image result;
  * picture_link answers with a PNG painted here from the sample drawing, not the image model.
+ * With ?page=modify it hands the picture widget a modify_image result for the sample drawing;
+ * a change POSTs the drawing's PNG, so give ?picture=<url> of a server that answers with a PNG
+ * (dev/picture-echo.mjs sends the same picture back).
  */
 
 declare const WIDGET_HTML: string;
@@ -22,7 +25,9 @@ let drawing = SAMPLE;
 let documentNo = 1;
 let theme: "light" | "dark" = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 let displayMode: "inline" | "fullscreen" = "inline";
-const page = new URLSearchParams(location.search).get("page") === "picture" ? "picture" : "preview";
+const query = new URLSearchParams(location.search);
+const page = query.get("page") === "picture" || query.get("page") === "modify" ? "picture" : "preview";
+const modify = query.get("page") === "modify";
 
 /** The sample drawing painted into a PNG, standing in for what the image model would return. */
 async function samplePng(): Promise<string> {
@@ -53,7 +58,8 @@ bridge.oncalltool = async (params) => {
     return { content: [{ type: "text", text: `Document doc${documentNo}` }], structuredContent: { documentId: `doc${documentNo}` } };
   }
   if (params.name === "picture_link") {
-    return { content: [{ type: "text", text: "A one-time link." }], structuredContent: { url: await samplePng() } };
+    const url = (params.arguments as { kind?: string }).kind === "modify" ? query.get("picture") ?? "" : await samplePng();
+    return { content: [{ type: "text", text: "A one-time link." }], structuredContent: { url } };
   }
   if (params.name === "replace_svg") {
     drawing = { ...drawing, svg: (params.arguments as { svg: string }).svg };
@@ -102,9 +108,11 @@ bridge.oninitialized = () => {
   if (page === "picture") {
     bridge.sendToolResult({
       content: [{ type: "text", text: "A card in the chat now shows this picture." }],
-      structuredContent: { prompt: "A tiger's head, front view, bold flat colours", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" },
+      structuredContent: modify
+        ? { mode: "modify", documentId: `doc${documentNo}`, prompt: "Add a small party hat", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" }
+        : { prompt: "A tiger's head, front view, bold flat colours", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" },
     });
-    say("tool result: generate_image");
+    say(modify ? "tool result: modify_image" : "tool result: generate_image");
   } else {
     showDocument();
   }

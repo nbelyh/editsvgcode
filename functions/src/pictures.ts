@@ -3,8 +3,9 @@ import { getDb } from "./firebase";
 
 /**
  * Pictures from the image models, charged to the user's credits. The model's tools never make
- * one: generate_image only puts a card in the chat (the picture widget), and the user presses
- * Generate there. The widget then asks, through the chat, for a one-time link (picture_link) and
+ * one: generate_image and modify_image only put a card in the chat (the picture widget), and the
+ * user presses Generate (or Change) there. For a change, the widget renders the drawing to a PNG
+ * and sends it up the same link, in the body of a POST. The widget then asks, through the chat, for a one-time link (picture_link) and
  * fetches the picture from this function directly, so the 1–2 MB PNG never passes through the
  * chat. Behind the link this function calls the editsvgcode API as the user — the API's own
  * credit check and charge apply, as when the editor asks — and streams the PNG back.
@@ -22,6 +23,8 @@ export const DEFAULT_IMAGE_MODEL = "gpt-image-1-mini";
 /** What a link may make: one picture, for this user, as asked on the card. */
 export interface PictureTicket {
   uid: string;
+  /** A new picture (GET), or a change to the one sent up (POST, the PNG as the body). */
+  kind: "generate" | "modify";
   prompt: string;
   model: string;
   outlines: boolean;
@@ -49,8 +52,18 @@ export async function issueTicket(store: TicketStore, ticket: Omit<PictureTicket
   return token;
 }
 
+/** What the API's generate-image and modify-image take; `image` (base64 PNG) only for a change. */
+export interface ImageRequest {
+  kind: "generate" | "modify";
+  prompt: string;
+  model: string;
+  outlines: boolean;
+  detail: boolean;
+  image?: string;
+}
+
 /** Calls the editsvgcode API's image endpoint as the user; the API checks and charges credits. */
-export type CallImageApi = (uid: string, body: { prompt: string; model: string; outlines: boolean; detail: boolean }) => Promise<Response>;
+export type CallImageApi = (uid: string, request: ImageRequest) => Promise<Response>;
 
 export interface PictureDeps {
   tickets: TicketStore;
@@ -67,7 +80,8 @@ export interface PictureOut {
 /** The link is the credential, so any page may use it: the widget's origin is the host's sandbox. */
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Expose-Headers": "X-Credits-Remaining, X-Credits-Limit",
 };
 
@@ -75,20 +89,33 @@ function json(status: number, value: unknown): PictureOut {
   return { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(value) };
 }
 
-/** GET /picture/<token>: the picture the ticket names, made and charged now, once. */
-export async function handlePicture(method: string, token: string, deps: PictureDeps): Promise<PictureOut> {
+/** The most a picture sent up for a change may weigh: a 1024-pixel PNG is 1–2 MB. */
+const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/**
+ * /picture/<token>: the picture the ticket names, made and charged now, once. GET for a new
+ * picture; POST with the PNG to change as the body for a change.
+ */
+export async function handlePicture(method: string, token: string, body: Buffer | undefined, deps: PictureDeps): Promise<PictureOut> {
   if (method === "OPTIONS") return { status: 204, headers: CORS, body: "" };
-  if (method !== "GET") return json(405, { error: "Method not allowed." });
+  if (method !== "GET" && method !== "POST") return json(405, { error: "Method not allowed." });
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return json(404, { error: "This link is not valid." });
+  if (method === "POST" && (!body || body.length > MAX_SOURCE_BYTES || !body.subarray(0, 8).equals(PNG_SIGNATURE))) {
+    return json(400, { error: "Send the picture to change as a PNG, at most 8 MB." });
+  }
 
   const ticket = await deps.tickets.take(hashOf(token));
   const now = deps.now?.() ?? Date.now();
   if (!ticket || ticket.expiresAt.getTime() < now) {
-    return json(410, { error: "This link has expired or was used. Press Generate again." });
+    return json(410, { error: "This link has expired or was used. Press the button again." });
   }
+  // A link is for one kind of request; taken either way, so a wrong call cannot be retried.
+  if ((ticket.kind === "modify") !== (method === "POST")) return json(400, { error: "This link is for another kind of picture." });
 
   const res = await deps.callImageApi(ticket.uid, {
-    prompt: ticket.prompt, model: ticket.model, outlines: ticket.outlines, detail: ticket.detail,
+    kind: ticket.kind, prompt: ticket.prompt, model: ticket.model, outlines: ticket.outlines, detail: ticket.detail,
+    ...(ticket.kind === "modify" ? { image: body!.toString("base64") } : {}),
   });
   if (!res.ok) {
     // The API's own answer, as the editor gets it: 402 with a code when credits run out.
@@ -135,7 +162,7 @@ export function imageApiAsUser(options: {
     return idToken;
   }
 
-  return async (uid, body) => doFetch(`${options.apiUrl.replace(/\/+$/, "")}/api/generate-image`, {
+  return async (uid, { kind, ...body }) => doFetch(`${options.apiUrl.replace(/\/+$/, "")}/api/${kind}-image`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await idTokenFor(uid)}` },
     body: JSON.stringify(body),

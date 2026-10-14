@@ -24,7 +24,7 @@ export interface Deps {
   now?: () => number;
 }
 
-type Request = IncomingMessage & { body?: unknown; path?: string; query?: Record<string, unknown> };
+type Request = IncomingMessage & { body?: unknown; rawBody?: Buffer; path?: string; query?: Record<string, unknown> };
 
 /**
  * The origin clients reached us at: the OAuth issuer and the MCP resource. PUBLIC_ORIGIN pins it
@@ -77,7 +77,7 @@ export async function handleRequest(req: Request, res: ServerResponse, deps: Dep
   // A picture link: the token in it is the credential (pictures.ts), so it comes before sign-in.
   const picture = /^\/picture\/([^/]+)$/.exec(path);
   if (picture && deps.pictures) {
-    const out = await handlePicture(req.method ?? "GET", picture[1], {
+    const out = await handlePicture(req.method ?? "GET", picture[1], req.rawBody, {
       tickets: deps.pictures.tickets, callImageApi: deps.pictures.callImageApi, now: deps.now,
     });
     res.writeHead(out.status, out.headers);
