@@ -7,7 +7,7 @@
     "node": "22"
   },
   "scripts": {
-    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=lib/index.js",
+    "build": "tsc --noEmit && node scripts/build.mjs",
     "test": "vitest run"
   },
   "dependencies": {

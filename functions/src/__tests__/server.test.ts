@@ -13,12 +13,14 @@ const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <text id="label" x="50" y="50">Hello</text>
 </svg>`;
 
+const WIDGET_PAGE = "<!doctype html><title>preview</title>";
+
 let store: MemoryDocumentStore;
 
 /** A real MCP client, talking to the server through the same stateless transport the endpoint uses. */
 async function connect(uid = "alice"): Promise<Client> {
   const fetchViaServer: typeof fetch = async (input, init) => {
-    const server = createMcpServer({ uid, store, editorUrl: "https://editsvgcode.com" });
+    const server = createMcpServer({ uid, store, editorUrl: "https://editsvgcode.com", widgetHtml: async () => WIDGET_PAGE });
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     const res = await transport.handleRequest(new Request(input as RequestInfo, init));
@@ -123,6 +125,46 @@ describe("MCP server", () => {
     const { text } = await call(alice, "list_documents", {});
     expect(text).toContain(id);
     expect(text.split("\n")).toHaveLength(1);
+  });
+});
+
+describe("the drawing shown in the chat", () => {
+  it("shows it through show_document, and keeps get_document_svg for the widget alone", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    const show = tools.find((t) => t.name === "show_document")!;
+    expect(show._meta).toEqual({ ui: { resourceUri: "ui://editsvgcode/preview.html" } });
+    const fetch = tools.find((t) => t.name === "get_document_svg")!;
+    expect(fetch._meta).toEqual({ ui: { visibility: ["app"] } });
+  });
+
+  it("serves the widget page as an MCP App resource", async () => {
+    const client = await connect();
+    const { resources } = await client.listResources();
+    expect(resources).toEqual([expect.objectContaining({ uri: "ui://editsvgcode/preview.html", mimeType: "text/html;profile=mcp-app" })]);
+    const { contents } = await client.readResource({ uri: "ui://editsvgcode/preview.html" });
+    expect(contents).toEqual([expect.objectContaining({ mimeType: "text/html;profile=mcp-app", text: WIDGET_PAGE })]);
+    await expect(client.readResource({ uri: "ui://editsvgcode/other.html" })).rejects.toThrow();
+  });
+
+  it("hands the widget the document's id, and the markup only when it asks", async () => {
+    const client = await connect();
+    const id = await created(client);
+    const shown = await client.callTool({ name: "show_document", arguments: { document_id: id } });
+    expect(shown.structuredContent).toEqual({ documentId: id });
+    expect(JSON.stringify(shown.content)).not.toContain("<rect");
+    const fetched = await client.callTool({ name: "get_document_svg", arguments: { document_id: id } });
+    expect(fetched.structuredContent).toEqual({ svg: DRAWING, title: "Test", link: `https://editsvgcode.com/${id}` });
+  });
+
+  it("shows nothing of someone else's private document", async () => {
+    const id = await store.create("bob", DRAWING, "Bob's");
+    const client = await connect("alice");
+    for (const name of ["show_document", "get_document_svg"]) {
+      const res = await client.callTool({ name, arguments: { document_id: id } });
+      expect(res.isError).toBe(true);
+      expect(res.structuredContent).toBeUndefined();
+    }
   });
 });
 

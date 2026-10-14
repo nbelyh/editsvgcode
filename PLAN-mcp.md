@@ -20,7 +20,7 @@ or publish it.
   esbuild bundles them into `functions/lib/index.js` at deploy. One edit-call planner,
   `planEditCall` in `svg-ai.ts`, serves the editor's chat and MCP alike, so a refusal rule
   added for one reaches the other.
-- **Tools:** `create_document`, `open_document`, `list_documents`; read: `read_svg_lines`,
+- **Tools:** `create_document`, `open_document`, `list_documents`, `show_document`; read: `read_svg_lines`,
   `search_svg`, `query`, `list_path_parts`; edit: `set_attribute`, `set_text`,
   `set_style_rule`, `insert_element`, `remove_element`, `split_path`, `replace_lines`,
   `replace_svg` (`functions/src/tools.ts`). Descriptions are written for MCP; the chat's own
@@ -39,7 +39,8 @@ or publish it.
 cd functions
 npm install        # .npmrc sets legacy-peer-deps: npm 10 crashes on vitest's jsdom peer
 npm test           # MCP tests, through a real MCP client
-npm run build      # typecheck + bundle to lib/index.js
+npm run build      # typecheck + bundle to lib/index.js and the widget to lib/widget.html
+node scripts/widget-preview.mjs [drawing.svg]   # lib/widget-preview.html: the widget in a stand-in host
 ```
 
 Locally, `npm run dev` builds the function and runs it in the functions emulator with the
@@ -78,22 +79,34 @@ rewrite in `firebase.json`) should match the Firestore database's location.
 
    **Before the first deploy:** set a Firestore TTL policy on `expiresAt` for the four
    `mcpOAuth*` collections (Console → Firestore → TTL), or expired records pile up. Production
-   pins its address in `functions/.env.editsvgcode-db`; beta takes it from the site the
-   request came through — pin it in `functions/.env.editsvgcode-beta` once its address is known.
-3. **Live view in the editor** — `onSnapshot` on the open `files/{id}` so Claude's edits appear
+   pins its address in `functions/.env.editsvgcode-db`, beta in `functions/.env.editsvgcode-beta`
+   (the firebaseapp.com address: Google sign-in on `/connect` fails on web.app).
+3. **The drawing in the chat (MCP App)** — first version done: without it the user cannot see
+   what the model edits. `show_document` carries `_meta.ui.resourceUri` →
+   `ui://editsvgcode/preview.html`, which hosts that render MCP Apps (Claude, ChatGPT) load into
+   a sandboxed iframe. The page is the editor's own `Preview` (`src/mcp-widget/main.tsx`),
+   bundled by `functions/scripts/build.mjs` into one self-contained HTML (~1 MB, mostly zod
+   from the MCP SDK and Mantine's CSS). The tool result names only the document; the page
+   fetches the markup through `get_document_svg`, which is app-only (`visibility: ["app"]`), so
+   the SVG does not pass through the model again. Header: title, Refresh, Open in EditSvgCode,
+   full screen. No PNG fallback for hosts without widgets: they get the editor link. Modelled on
+   VisPlan's plan viewer (VistoTeams `src/client/mcpApp`). Next: select and move/resize in the
+   widget, written back through the edit tools and reported to the model
+   (`updateModelContext`) so its line numbers do not go stale.
+4. **Live view in the editor** — `onSnapshot` on the open `files/{id}` so Claude's edits appear
    as they land (and go on the undo stack); hold remote updates while the user is typing.
-4. **Seeing the drawing** — `get_png_image` and `get_element_bounds` via `@resvg/resvg-js`
+5. **The model seeing the drawing** — `get_png_image` and `get_element_bounds` via `@resvg/resvg-js`
    (the browser versions use canvas and getBBox), returned as MCP image content.
-5. **Icons** — `search_icons` without the picker: return the top matches for the model to choose.
-6. **Listing** — submit to the claude.ai connector directory; mention it in `llms.txt` and a
+6. **Icons** — `search_icons` without the picker: return the top matches for the model to choose.
+7. **Listing** — submit to the claude.ai connector directory; mention it in `llms.txt` and a
    feature page.
-7. **Move the Azure API to Firebase** — a second, private functions codebase in the same
+8. **Move the Azure API to Firebase** — a second, private functions codebase in the same
    project, so there is one backend again.
 
 ## Open questions
 
 - Concurrent edits from the browser and Claude: each MCP edit is atomic, but the editor's Save
-  writes its whole text over whatever is stored; step 3 should surface it.
+  writes its whole text over whatever is stored; step 4 should surface it.
 - Rate limits / abuse: client registration and authorization requests are open to anyone and
   each writes a record (bounded in size, expiring). Per-IP / per-uid limits would help;
   `maxInstances: 10` caps the bill meanwhile.

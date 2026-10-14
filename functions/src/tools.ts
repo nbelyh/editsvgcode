@@ -1,4 +1,5 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { WIDGET_URI } from "./widget";
 
 const DOCUMENT_ID = {
   type: "string",
@@ -68,6 +69,20 @@ export const TOOLS: Tool[] = [
     description: "Open a drawing by id or editsvgcode.com link. Returns its editor link and the document as numbered lines — excerpts for a large one; read the rest with read_svg_lines or search_svg.",
     inputSchema: { type: "object", properties: { document_id: DOCUMENT_ID }, required: ["document_id"] },
     annotations: READ,
+  },
+  {
+    name: "show_document",
+    description: "Show the drawing to the user, rendered, in the chat. Call it after create_document or open_document, and again after each round of edits — once, when the round is done, not after every call. The user cannot see the drawing otherwise.",
+    inputSchema: { type: "object", properties: { document_id: DOCUMENT_ID }, required: ["document_id"] },
+    annotations: READ,
+    _meta: { ui: { resourceUri: WIDGET_URI } },
+  },
+  {
+    name: "get_document_svg",
+    description: "The drawing's markup, for the preview in the chat. For the app, not the model.",
+    inputSchema: { type: "object", properties: { document_id: DOCUMENT_ID }, required: ["document_id"] },
+    annotations: READ,
+    _meta: { ui: { visibility: ["app"] } },
   },
   {
     name: "list_documents",

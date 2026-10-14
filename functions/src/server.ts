@@ -1,20 +1,26 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, type CallToolResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { buildSvgContext } from "../../src/lib/svg-ai";
 import { installDom } from "./dom";
 import { applyEditTool, runReadTool, svgBytes, EDIT_TOOLS, MAX_SVG_BYTES, READ_TOOLS } from "./edits";
 import type { DocumentStore, StoredDocument } from "./documents";
 import { TOOLS } from "./tools";
+import { readWidgetHtml, WIDGET_META, WIDGET_MIME_TYPE, WIDGET_URI } from "./widget";
 
 export interface McpContext {
   uid: string;
   store: DocumentStore;
   /** Where a document opens in the editor, without the trailing slash. */
   editorUrl: string;
+  /** The widget page (lib/widget.html). Tests pass their own. */
+  widgetHtml?: () => Promise<string>;
 }
 
 const INSTRUCTIONS = `editsvgcode edits SVG drawings that live in the user's editsvgcode.com account.
-Start with create_document (a new drawing) or open_document (an existing one, by id or editor link); both return the document as numbered lines and the editor link — give the user that link so they can watch and fine-tune the drawing.
+Start with create_document (a new drawing) or open_document (an existing one, by id or editor link); both return the document as numbered lines and the editor link.
+The user sees the drawing only when you call show_document: call it once the drawing is created or opened, and again when a round of edits is done (not after every edit call).
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 
@@ -87,7 +93,8 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
 
   const id = documentIdOf(args.document_id);
   if (!id) return text(`"${String(args.document_id ?? "")}" is not a document id or editor link.`, true);
-  const isRead = name === "open_document" || (READ_TOOLS as readonly string[]).includes(name);
+  const isRead = name === "open_document" || name === "show_document" || name === "get_document_svg"
+    || (READ_TOOLS as readonly string[]).includes(name);
   const isEdit = (EDIT_TOOLS as readonly string[]).includes(name);
   if (!isRead && !isEdit) return text(`Unknown tool "${name}".`, true);
 
@@ -98,6 +105,16 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const doc = await ctx.store.get(id);
     if (!doc || !canRead(doc, ctx.uid)) return text(missing, true);
     if (name === "open_document") return text(`${describe(doc, ctx)}\n\n${buildSvgContext(doc.text)}`);
+    // The widget is handed only the id, and fetches the markup itself through get_document_svg.
+    if (name === "show_document") {
+      return { ...text(`Showing the drawing to the user. ${describe(doc, ctx)}`), structuredContent: { documentId: doc.id } };
+    }
+    if (name === "get_document_svg") {
+      return {
+        ...text(`The markup of document ${doc.id}, for the preview.`),
+        structuredContent: { svg: doc.text, title: doc.title, link: `${ctx.editorUrl}/${doc.id}` },
+      };
+    }
     return text(runReadTool(name, args, doc.text));
   }
 
@@ -122,9 +139,17 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
 export function createMcpServer(ctx: McpContext): Server {
   const server = new Server(
     { name: "editsvgcode", title: "EditSvgCode", version: "1.0.0", websiteUrl: "https://editsvgcode.com" },
-    { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {}, resources: {} }, instructions: INSTRUCTIONS },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [{ uri: WIDGET_URI, name: "Drawing preview", mimeType: WIDGET_MIME_TYPE, _meta: WIDGET_META }],
+  }));
+  server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+    if (req.params.uri !== WIDGET_URI) throw new Error(`Unknown resource ${req.params.uri}`);
+    const html = await (ctx.widgetHtml ?? readWidgetHtml)();
+    return { contents: [{ uri: WIDGET_URI, mimeType: WIDGET_MIME_TYPE, text: html, _meta: WIDGET_META }] };
+  });
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     try {
       return await callTool(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>, ctx);

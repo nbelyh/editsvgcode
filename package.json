@@ -34,6 +34,7 @@
     "@mantine/hooks": "^9.0.2",
     "@mantine/modals": "^9.5.1",
     "@mantine/notifications": "^9.5.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.46.0",
     "allotment": "^1.20.5",
