@@ -21,7 +21,7 @@ function pictureUrl(): string {
 // The editsvgcode API and the site's public Firebase key (functions/.env.<project>, as
 // config/config.<env>.js has them). Without both, generate_image says pictures are unavailable.
 const apiUrl = process.env.API_URL;
-const webApiKey = process.env.FIREBASE_WEB_API_KEY;
+const webApiKey = process.env.WEB_API_KEY;
 
 const deps: Deps = {
   documents: new FirestoreDocumentStore(),

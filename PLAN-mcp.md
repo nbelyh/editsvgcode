@@ -121,7 +121,7 @@ rewrite in `firebase.json`) should match the Firestore database's location.
    user's account, passing through the chat host, and the API would have to admit the
    sandbox's origin).
 
-   **Setup per project:** `API_URL` and `FIREBASE_WEB_API_KEY` in `functions/.env.<project>`
+   **Setup per project:** `API_URL` and `WEB_API_KEY` (not FIREBASE_…: Firebase reserves that prefix) in `functions/.env.<project>`
    (as `config/config.<env>.js`); the function's service account needs
    `roles/iam.serviceAccountTokenCreator` on itself to sign the custom token. Next:
    `modify_image` (the widget renders the drawing to PNG and sends it up the same way), and
