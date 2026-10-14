@@ -47,6 +47,8 @@ const app = new App(
 // handshake, and a listener registered later would miss it.
 let shown: Shown | null = null;
 let awaitingFile = false;
+/** A file was just saved from the box: the user still has to tell the model what to do. */
+let justUploaded = false;
 let failure: string | null = null;
 let version = 0;
 const listeners = new Set<() => void>();
@@ -106,14 +108,17 @@ async function uploadFile(file: File): Promise<string | null> {
 
   shown = { documentId: id };
   awaitingFile = false;
+  justUploaded = true;
   changed();
 
-  // For the model, not for reading: the user did not type it, and it names the document by id.
-  const note = { type: 'text' as const, text: `I dropped "${file.name}" into the box. It is saved as document ${id}.` };
+  // For the model, not for reading: it names the document by id.
+  const note = { type: 'text' as const, text: `The user dropped "${file.name}" into the box; it is saved as document ${id}. open_document it before editing.` };
+  // Context first: it reaches the model with the user's next message, quietly. claude.ai puts a
+  // ui/message into the input box for the user to send, under a warning about untrusted prompts.
   const host = app.getHostCapabilities();
   try {
-    if (host?.message) await app.sendMessage({ role: 'user', content: [note] });
-    else await app.updateModelContext({ content: [note] });
+    if (host?.updateModelContext) await app.updateModelContext({ content: [note] });
+    else if (host?.message) await app.sendMessage({ role: 'user', content: [note] });
   } catch {
     // The drawing is saved and shown either way; the user can name it to the model.
   }
@@ -267,6 +272,11 @@ function Widget() {
             )}
           </Group>
         </Group>
+        {justUploaded && !awaitingFile && (
+          <Text size="xs" px="xs" py={4} c="dimmed" style={{ borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0 }}>
+            Saved to your EditSvgCode account. Now say in the chat what to change.
+          </Text>
+        )}
         <div style={{ flex: 1, minHeight: 0 }}>
           {awaitingFile && !failure ? (
             <DropBox />

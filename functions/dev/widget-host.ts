@@ -24,7 +24,7 @@ const context = () => ({ theme, displayMode, availableDisplayModes: ["inline" as
 const bridge = new AppBridge(
   null,
   { name: "Widget preview host", version: "1.0.0" },
-  { openLinks: {}, serverTools: {}, message: { text: {} } },
+  { openLinks: {}, serverTools: {}, message: { text: {} }, updateModelContext: { text: {} } },
   { hostContext: context() },
 );
 
@@ -44,6 +44,10 @@ bridge.oncalltool = async (params) => {
 };
 bridge.onmessage = async ({ content }) => {
   say(`message to the model: ${content.map((c) => (c.type === "text" ? c.text : c.type)).join(" ")}`);
+  return {};
+};
+bridge.onupdatemodelcontext = async ({ content }) => {
+  say(`model context: ${(content ?? []).map((c) => (c.type === "text" ? c.text : c.type)).join(" ")}`);
   return {};
 };
 bridge.onopenlink = async ({ url }) => {
