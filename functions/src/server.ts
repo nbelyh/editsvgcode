@@ -160,11 +160,16 @@ export function createMcpServer(ctx: McpContext): Server {
     return { contents: [{ uri: WIDGET_URI, mimeType: WIDGET_MIME_TYPE, text: html, _meta: WIDGET_META }] };
   });
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const args = (req.params.arguments ?? {}) as Record<string, unknown>;
+    let result: CallToolResult;
     try {
-      return await callTool(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>, ctx);
+      result = await callTool(req.params.name, args, ctx);
     } catch (err) {
-      return text(`Error: ${err instanceof Error ? err.message : String(err)}`, true);
+      result = text(`Error: ${err instanceof Error ? err.message : String(err)}`, true);
     }
+    // Which tools a client's model reaches for, and how much it writes: no content, no user.
+    console.log(`mcp tool ${req.params.name}: ${JSON.stringify(args).length} chars in${result.isError ? ", refused" : ""}`);
+    return result;
   });
   return server;
 }
