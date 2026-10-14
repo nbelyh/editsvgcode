@@ -96,8 +96,10 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const price = IMAGE_MODELS[model];
     if (!price) return text(`Unknown image model "${model}". Use one of: ${Object.keys(IMAGE_MODELS).join(", ")}.`, true);
     if (!ctx.pictures) return text("Pictures are not available on this server.", true);
+    // Where no widget shows the card, the editor shows its own (src/lib/open-from-url.ts).
+    const editorLink = `${ctx.editorUrl}/?generate=${encodeURIComponent(prompt)}`;
     return {
-      ...text(`A card in the chat now shows this picture and what it costs (${price.credits} credits). Nothing is generated or charged until the user presses Generate on it. The picture is then traced into an SVG drawing and saved to their account, and a note names the document. Do not draw it yourself meanwhile; wait for the user.`),
+      ...text(`In chats that show widgets, a card now shows this picture and what it costs (${price.credits} credits); nothing is generated or charged until the user presses Generate on it, and the result is traced into an SVG drawing, saved to their account, and named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`),
       structuredContent: { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl },
     };
   }
@@ -113,8 +115,9 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const id = documentIdOf(args.document_id);
     const doc = id ? await ctx.store.get(id) : null;
     if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
+    const editorLink = `${ctx.editorUrl}/${doc.id}?modify=${encodeURIComponent(request)}`;
     return {
-      ...text(`A card in the chat now shows the drawing, this change and what it costs (${price.credits} credits). Nothing is changed or charged until the user presses Change on it. The image model then redraws the picture, it is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), and a note names it. Wait for the user.`),
+      ...text(`In chats that show widgets, a card now shows the drawing, this change and what it costs (${price.credits} credits); nothing is changed or charged until the user presses Change on it, and the result is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`),
       structuredContent: { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl },
     };
   }

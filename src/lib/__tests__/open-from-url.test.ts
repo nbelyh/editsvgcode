@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fetchSvgFromUrl, readOpenParam, withoutOpenParam, MAX_FETCHED } from '../open-from-url';
+import { fetchSvgFromUrl, readOpenParam, readPictureParam, withoutOpenParam, withoutPictureParam, MAX_FETCHED } from '../open-from-url';
 
 /** A link can carry the drawing, so an assistant that wrote SVG has somewhere to send someone. */
 
@@ -105,5 +105,28 @@ describe('fetchSvgFromUrl', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/** The MCP connector's picture tools hand off here from chats that show no widgets. */
+describe('readPictureParam', () => {
+  it('reads a picture to generate, or a change to make', () => {
+    expect(readPictureParam('?generate=a%20red%20fox')).toEqual({ kind: 'generate', prompt: 'a red fox' });
+    expect(readPictureParam('?modify=add+a+hat&x=1')).toEqual({ kind: 'modify', prompt: 'add a hat' });
+  });
+
+  it('asks for nothing when there is no prompt', () => {
+    expect(readPictureParam('')).toBeNull();
+    expect(readPictureParam('?generate=%20%20')).toBeNull();
+    expect(readPictureParam('?svg=%3Csvg%2F%3E')).toBeNull();
+  });
+
+  it('keeps a prompt to a length an image model can use', () => {
+    expect(readPictureParam(`?generate=${'a'.repeat(5000)}`)!.prompt).toHaveLength(4000);
+  });
+
+  it('drops only its own parameters from the address', () => {
+    expect(withoutPictureParam('?generate=fox&utm=x')).toBe('?utm=x');
+    expect(withoutPictureParam('?modify=hat')).toBe('');
   });
 });

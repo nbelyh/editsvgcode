@@ -129,3 +129,35 @@ async function readCapped(response: Response, limit: number): Promise<string | n
   }
   return text + decoder.decode();
 }
+
+/**
+ * A picture asked for in the address: `?generate=<prompt>` for a new drawing, or
+ * `/<id>?modify=<request>` to change the one in the address. The MCP connector's picture
+ * tools hand off to these when the chat they run in shows no widgets (VS Code, Claude Code),
+ * so the user makes the picture here instead. It opens the AI chat's own picture card, which
+ * asks and prices it as for a picture the chat model wants — nothing is made from a link alone.
+ */
+export interface PictureRequest {
+  kind: 'generate' | 'modify';
+  prompt: string;
+}
+
+/** Longer than any prompt worth sending to an image model, short enough for any address bar. */
+const MAX_PICTURE_PROMPT = 4000;
+
+export function readPictureParam(search: string): PictureRequest | null {
+  const params = new URLSearchParams(search);
+  for (const kind of ['generate', 'modify'] as const) {
+    const prompt = params.get(kind)?.trim().slice(0, MAX_PICTURE_PROMPT);
+    if (prompt) return { kind, prompt };
+  }
+  return null;
+}
+
+export function withoutPictureParam(search: string): string {
+  const params = new URLSearchParams(search);
+  params.delete('generate');
+  params.delete('modify');
+  const rest = params.toString();
+  return rest ? `?${rest}` : '';
+}

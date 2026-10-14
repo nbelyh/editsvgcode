@@ -215,6 +215,8 @@ describe("pictures", () => {
     const card = await client.callTool({ name: "generate_image", arguments: { prompt: "a red fox" } });
     expect(card.structuredContent).toEqual({ prompt: "a red fox", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" });
     expect(JSON.stringify(card)).not.toContain(PICTURE_URL);
+    // Where no widget shows the card, the editor opens its own.
+    expect(JSON.stringify(card.content)).toContain("https://editsvgcode.com/?generate=a%20red%20fox");
     const unknown = await client.callTool({ name: "generate_image", arguments: { prompt: "x", model: "dall-e" } });
     expect(unknown.isError).toBe(true);
   });
@@ -271,6 +273,7 @@ describe("pictures", () => {
     expect(card.structuredContent).toEqual({
       mode: "modify", documentId: id, prompt: "add a hat", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com",
     });
+    expect(JSON.stringify(card.content)).toContain(`https://editsvgcode.com/${id}?modify=add%20a%20hat`);
     const hidden = await store.create("bob", DRAWING, "Bob's");
     expect((await client.callTool({ name: "modify_image", arguments: { document_id: hidden, request: "x" } })).isError).toBe(true);
 

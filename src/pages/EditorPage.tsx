@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Group, ActionIcon, Text, Tooltip, VisuallyHidden, useComputedColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconSparkles, IconInfoCircle } from '@tabler/icons-react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { readPictureParam, withoutPictureParam, type PictureRequest } from '../lib/open-from-url';
 import { Allotment } from 'allotment';
 import { DiffEditor } from '@monaco-editor/react';
 import { Editor, type EditorHandle } from '../components/Editor';
@@ -229,6 +230,35 @@ export function EditorPage() {
   // drawing, not the info tab — but only until the visitor picks a tab
   // themselves, and without overwriting their stored preference.
   const tabChosenRef = useRef(false);
+
+  // A picture asked for in the address (?generate= / ?modify=, see open-from-url): the chat
+  // shows it as its picture card. A new picture gets a new drawing first, as a ?svg= link does,
+  // so accepting it cannot replace what this browser was holding; a change needs the drawing
+  // in the address. The chat panel is opened for it, and the parameter dropped once the card
+  // is up, so a reload does not ask again.
+  const navigate = useNavigate();
+  const [pictureRequest, setPictureRequest] = useState<PictureRequest | null>(() => readPictureParam(window.location.search));
+  const pictureRequestStarted = useRef(false);
+  useEffect(() => {
+    if (!pictureRequest || pictureRequestStarted.current) return;
+    pictureRequestStarted.current = true;
+    if (pictureRequest.kind === 'modify' && !routeFileId) {
+      setPictureRequest(null);
+      return;
+    }
+    if (pictureRequest.kind === 'generate' && !routeFileId) handleNew();
+    tabChosenRef.current = true;
+    setSidebarTab('ai');
+    setShowSidebar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const handlePictureRequestShown = useCallback(() => {
+    setPictureRequest(null);
+    navigate(
+      { pathname: window.location.pathname, search: withoutPictureParam(window.location.search), hash: window.location.hash },
+      { replace: true },
+    );
+  }, [navigate]);
   useEffect(() => { tabChosenRef.current = false; }, [routeFileId]);
 
   const handleChatLoaded = useCallback((hasMessages: boolean) => {
@@ -341,6 +371,8 @@ export function EditorPage() {
       onAccessResolved={setIsViewer}
       onStartFrom={startFromThis}
       cloning={cloningId === fileId}
+      pictureRequest={pictureRequest}
+      onPictureRequestShown={handlePictureRequestShown}
     />
   );
 

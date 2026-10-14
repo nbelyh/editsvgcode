@@ -1,3 +1,4 @@
+import type { PictureRequest } from '../../lib/open-from-url';
 import type { StoredToolCall } from '../ToolCallProposal';
 import type { ProgressStatus, Credits, IconResult, ReadToolCall } from '../../lib/api-client';
 import type { ReasoningEffort } from '../../lib/models';
@@ -80,6 +81,10 @@ export interface AiChatProps {
    * action — one clone-in-progress state rather than one per panel. */
   onStartFrom: () => void;
   cloning?: boolean;
+  /** A picture asked for in the address (?generate= / ?modify=, see open-from-url): shown as
+   *  the picture card once the chat is ready, and handed back through onPictureRequestShown. */
+  pictureRequest?: PictureRequest | null;
+  onPictureRequestShown?: () => void;
 }
 
 export type { StoredToolCall, ProgressStatus, Credits, ReasoningEffort };

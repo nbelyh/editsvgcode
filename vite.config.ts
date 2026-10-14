@@ -46,6 +46,9 @@ export default defineConfig({
     __MONACO_VS_PATH__: JSON.stringify(monaco.vsPath),
   },
   plugins: [react(), wasm(), monacoCssPreload],
+  // Scan only the app's page for dependencies to pre-bundle: the MCP widget pages built into
+  // functions/lib are HTML too, with megabytes of inline script the scanner chokes on.
+  optimizeDeps: { entries: ['index.html'] },
   build: {
     target: 'es2022',
     outDir: 'dist',
