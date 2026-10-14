@@ -1,5 +1,6 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { WIDGET_URI } from "./widget";
+import { DEFAULT_IMAGE_MODEL, IMAGE_MODELS } from "./pictures";
+import { PICTURE_WIDGET_URI, WIDGET_URI } from "./widget";
 
 const DOCUMENT_ID = {
   type: "string",
@@ -77,6 +78,41 @@ export const TOOLS: Tool[] = [
     inputSchema: { type: "object", properties: {} },
     annotations: READ,
     _meta: { ui: { resourceUri: WIDGET_URI } },
+  },
+  {
+    name: "generate_image",
+    title: "Generate a picture",
+    description: "Generate a picture with an image model, traced into an editable SVG drawing: for illustrations, logos, characters, scenes — anything better painted than drawn with a few shapes. Shows a card in the chat with the prompt and its price in the user's EditSvgCode credits; nothing is made or charged until the user presses Generate there. The result is saved as a new drawing in their account, and a note then names it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "What to picture, in detail: subject, style, colours, composition." },
+        model: {
+          type: "string",
+          enum: Object.keys(IMAGE_MODELS),
+          description: `The image model. ${DEFAULT_IMAGE_MODEL} (${IMAGE_MODELS[DEFAULT_IMAGE_MODEL].credits} credits) unless the user asks for another; the others need EditSvgCode Pro.`,
+        },
+      },
+      required: ["prompt"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    _meta: { ui: { resourceUri: PICTURE_WIDGET_URI } },
+  },
+  {
+    name: "picture_link",
+    description: "A one-time link that makes the picture, charged to the user. For the picture widget, not the model.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        model: { type: "string" },
+        outlines: { type: "boolean" },
+        detail: { type: "boolean" },
+      },
+      required: ["prompt", "model"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    _meta: { ui: { visibility: ["app"] } },
   },
   {
     name: "show_document",

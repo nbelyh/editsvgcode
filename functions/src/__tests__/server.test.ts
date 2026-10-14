@@ -6,7 +6,8 @@ import { createMcpServer, documentIdOf } from "../server";
 import { MemoryDocumentStore } from "../documents";
 import { handleRequest } from "../handler";
 import { MemoryOAuthStore } from "../oauth-store";
-import { WIDGET_URI } from "../widget";
+import { MemoryTicketStore, handlePicture, issueTicket } from "../pictures";
+import { PICTURE_WIDGET_URI, WIDGET_URI } from "../widget";
 import { CLIP_MARKER } from "../../../src/lib/svg-ai";
 
 const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -15,13 +16,19 @@ const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 </svg>`;
 
 const WIDGET_PAGE = "<!doctype html><title>preview</title>";
+const PICTURE_URL = "https://us-central1-test.cloudfunctions.net/mcp/picture";
 
 let store: MemoryDocumentStore;
+let tickets: MemoryTicketStore;
 
 /** A real MCP client, talking to the server through the same stateless transport the endpoint uses. */
 async function connect(uid = "alice"): Promise<Client> {
   const fetchViaServer: typeof fetch = async (input, init) => {
-    const server = createMcpServer({ uid, store, editorUrl: "https://editsvgcode.com", widgetHtml: async () => WIDGET_PAGE });
+    const server = createMcpServer({
+      uid, store, editorUrl: "https://editsvgcode.com",
+      widgetHtml: async (file) => (file === "widget.html" ? WIDGET_PAGE : `<!doctype html><title>${file}</title>`),
+      pictures: { url: PICTURE_URL, tickets },
+    });
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     const res = await transport.handleRequest(new Request(input as RequestInfo, init));
@@ -48,6 +55,7 @@ async function created(client: Client, svg = DRAWING): Promise<string> {
 
 beforeEach(() => {
   store = new MemoryDocumentStore();
+  tickets = new MemoryTicketStore();
 });
 
 describe("MCP server", () => {
@@ -141,12 +149,16 @@ describe("the drawing shown in the chat", () => {
     expect(fetch._meta).toEqual({ ui: { visibility: ["app"] } });
   });
 
-  it("serves the widget page as an MCP App resource", async () => {
+  it("serves the widget pages as MCP App resources, the picture page allowed to fetch its links", async () => {
     const client = await connect();
     const { resources } = await client.listResources();
-    expect(resources).toEqual([expect.objectContaining({ uri: WIDGET_URI, mimeType: "text/html;profile=mcp-app" })]);
+    expect(resources.map((r) => r.uri)).toEqual([WIDGET_URI, PICTURE_WIDGET_URI]);
     const { contents } = await client.readResource({ uri: WIDGET_URI });
     expect(contents).toEqual([expect.objectContaining({ mimeType: "text/html;profile=mcp-app", text: WIDGET_PAGE })]);
+    expect((contents[0]._meta as { ui: { csp: { connectDomains: string[] } } }).ui.csp.connectDomains).toEqual([]);
+    const picture = await client.readResource({ uri: PICTURE_WIDGET_URI });
+    expect((picture.contents[0]._meta as { ui: { csp: { connectDomains: string[] } } }).ui.csp.connectDomains)
+      .toEqual(["https://us-central1-test.cloudfunctions.net"]);
     await expect(client.readResource({ uri: "ui://editsvgcode/preview.html" })).rejects.toThrow();
   });
 
@@ -189,6 +201,66 @@ describe("the drawing shown in the chat", () => {
       expect(res.isError).toBe(true);
       expect(res.structuredContent).toBeUndefined();
     }
+  });
+});
+
+describe("pictures", () => {
+  const PNG = Buffer.from("89504e470d0a1a0a", "hex");
+
+  it("asks on a card first: generate_image makes nothing and names no link", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "generate_image")!._meta).toEqual({ ui: { resourceUri: PICTURE_WIDGET_URI } });
+    expect(tools.find((t) => t.name === "picture_link")!._meta).toEqual({ ui: { visibility: ["app"] } });
+    const card = await client.callTool({ name: "generate_image", arguments: { prompt: "a red fox" } });
+    expect(card.structuredContent).toEqual({ prompt: "a red fox", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" });
+    expect(JSON.stringify(card)).not.toContain(PICTURE_URL);
+    const unknown = await client.callTool({ name: "generate_image", arguments: { prompt: "x", model: "dall-e" } });
+    expect(unknown.isError).toBe(true);
+  });
+
+  it("makes the picture behind a link once, charged as the user who asked", async () => {
+    const client = await connect("alice");
+    const link = await client.callTool({ name: "picture_link", arguments: { prompt: "a red fox", model: "gpt-image-1-mini", outlines: false } });
+    const url = (link.structuredContent as { url: string }).url;
+    expect(url.startsWith(`${PICTURE_URL}/`)).toBe(true);
+    const token = url.slice(PICTURE_URL.length + 1);
+
+    const calls: Array<{ uid: string; body: unknown }> = [];
+    const callImageApi = async (uid: string, body: unknown) => {
+      calls.push({ uid, body });
+      return new Response(PNG, { status: 200, headers: { "X-Credits-Remaining": "20" } });
+    };
+    const first = await handlePicture("GET", token, { tickets, callImageApi });
+    expect(first.status).toBe(200);
+    expect(first.headers["Content-Type"]).toBe("image/png");
+    expect(first.headers["Access-Control-Allow-Origin"]).toBe("*");
+    expect(first.headers["X-Credits-Remaining"]).toBe("20");
+    expect(first.body).toEqual(PNG);
+    expect(calls).toEqual([{ uid: "alice", body: { prompt: "a red fox", model: "gpt-image-1-mini", outlines: false, detail: false } }]);
+
+    const again = await handlePicture("GET", token, { tickets, callImageApi });
+    expect(again.status).toBe(410);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("refuses an expired link, and passes on the API's refusal when credits run out", async () => {
+    const token = await issueTicket(tickets, { uid: "alice", prompt: "fox", model: "gpt-image-1-mini", outlines: true, detail: false }, 0);
+    const never = async () => { throw new Error("called"); };
+    expect((await handlePicture("GET", token, { tickets, callImageApi: never, now: () => 10 * 60_000 })).status).toBe(410);
+
+    const fresh = await issueTicket(tickets, { uid: "alice", prompt: "fox", model: "gpt-image-1.5", outlines: true, detail: false });
+    const broke = async () => new Response(JSON.stringify({ error: "Pro required", code: "PRO_REQUIRED" }), { status: 402 });
+    const out = await handlePicture("GET", fresh, { tickets, callImageApi: broke });
+    expect(out.status).toBe(402);
+    expect(JSON.parse(String(out.body))).toEqual({ error: "Pro required", code: "PRO_REQUIRED" });
+  });
+
+  it("answers the browser's preflight and refuses what is not a link", async () => {
+    const never = async () => { throw new Error("called"); };
+    expect((await handlePicture("OPTIONS", "x", { tickets, callImageApi: never })).status).toBe(204);
+    expect((await handlePicture("GET", "../../etc", { tickets, callImageApi: never })).status).toBe(404);
+    expect((await handlePicture("POST", "a".repeat(32), { tickets, callImageApi: never })).status).toBe(405);
   });
 });
 

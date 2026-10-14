@@ -6,6 +6,7 @@ import { App } from '@modelcontextprotocol/ext-apps';
 import '@mantine/core/styles.css';
 import './widget.css';
 import { Preview } from '../components/Preview';
+import { tellModel, textOf } from './bridge';
 import { theme } from '../theme';
 
 /**
@@ -70,10 +71,6 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-function textOf(result: { content?: Array<{ type: string; text?: string }> }): string {
-  return (result.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('\n');
-}
-
 app.addEventListener('toolresult', (result) => {
   const content = result.structuredContent as (Partial<Shown> & { documents?: Listed[] }) | undefined;
   const id = content?.documentId;
@@ -100,24 +97,13 @@ app.connect().then(changed, () => {
   changed();
 });
 
-/**
- * Show the chosen drawing and tell the model which it is. Context first: it reaches the model
- * with the user's next message, quietly. claude.ai puts a ui/message into the input box for the
- * user to send, under a warning about untrusted prompts, so that is only the fallback.
- */
+/** Show the chosen drawing and tell the model which it is. */
 async function choose(id: string, how: 'uploaded' | 'picked', note: string): Promise<void> {
   shown = { documentId: id };
   picking = false;
   chose = how;
   changed();
-  const content = [{ type: 'text' as const, text: note }];
-  const host = app.getHostCapabilities();
-  try {
-    if (host?.updateModelContext) await app.updateModelContext({ content });
-    else if (host?.message) await app.sendMessage({ role: 'user', content });
-  } catch {
-    // The drawing is shown either way; the user can name it to the model.
-  }
+  await tellModel(app, note);
 }
 
 /** Save a dropped file as a new document, then choose it. Returns an error to show, or null. */

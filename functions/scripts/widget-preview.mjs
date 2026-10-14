@@ -1,5 +1,6 @@
 // Builds lib/widget-preview.html: the MCP widget in a stand-in chat host (dev/widget-host.ts),
-// to open in a browser straight from disk. Run `npm run build` first for lib/widget.html.
+// to open in a browser straight from disk. Run `npm run build` first for the widget pages.
+// Open it with ?page=picture for the picture widget.
 //   node scripts/widget-preview.mjs [drawing.svg]
 // Without a drawing it shows one of the gallery's seed drawings.
 import { build } from "esbuild";
@@ -17,6 +18,7 @@ async function sample(path) {
 }
 
 const widgetHtml = await readFile(`${root}lib/widget.html`, "utf8");
+const pictureHtml = await readFile(`${root}lib/picture.html`, "utf8");
 const host = await build({
   absWorkingDir: root,
   entryPoints: ["dev/widget-host.ts"],
@@ -26,6 +28,7 @@ const host = await build({
   target: "es2022",
   define: {
     WIDGET_HTML: JSON.stringify(widgetHtml),
+    PICTURE_HTML: JSON.stringify(pictureHtml),
     SAMPLE: JSON.stringify(await sample(process.argv[2])),
   },
   logLevel: "warning",

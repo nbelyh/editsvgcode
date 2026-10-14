@@ -21,3 +21,9 @@ export async function uidFromFirebaseToken(authorization: string | undefined): P
     return null;
   }
 }
+
+/** A custom token for the user, to exchange for an ID token (pictures.ts imageApiAsUser). Signing
+ *  it needs the Service Account Token Creator role for the function's account on itself. */
+export function createCustomToken(uid: string): Promise<string> {
+  return getAuth(app()).createCustomToken(uid);
+}

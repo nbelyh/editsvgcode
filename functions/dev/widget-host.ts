@@ -5,9 +5,12 @@ import { AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/
  * scripts/widget-preview.mjs bundles this into lib/widget-preview.html next to the widget page.
  * It loads the widget into a sandboxed iframe as hosts do, hands it a show_document result and
  * answers its get_document_svg call with the drawing chosen here instead of a stored document.
+ * With ?page=picture it loads the picture widget instead and hands it a generate_image result;
+ * picture_link answers with a PNG painted here from the sample drawing, not the image model.
  */
 
 declare const WIDGET_HTML: string;
+declare const PICTURE_HTML: string;
 declare const SAMPLE: { title: string; svg: string };
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -19,6 +22,19 @@ let drawing = SAMPLE;
 let documentNo = 1;
 let theme: "light" | "dark" = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 let displayMode: "inline" | "fullscreen" = "inline";
+const page = new URLSearchParams(location.search).get("page") === "picture" ? "picture" : "preview";
+
+/** The sample drawing painted into a PNG, standing in for what the image model would return. */
+async function samplePng(): Promise<string> {
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SAMPLE.svg)}`;
+  await img.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1024;
+  canvas.getContext("2d")!.drawImage(img, 0, 0, 1024, 1024);
+  return canvas.toDataURL("image/png");
+}
 
 const context = () => ({ theme, displayMode, availableDisplayModes: ["inline" as const, "fullscreen" as const] });
 const bridge = new AppBridge(
@@ -35,6 +51,13 @@ bridge.oncalltool = async (params) => {
     drawing = { title: args.title, svg: args.svg };
     documentNo++;
     return { content: [{ type: "text", text: `Document doc${documentNo}` }], structuredContent: { documentId: `doc${documentNo}` } };
+  }
+  if (params.name === "picture_link") {
+    return { content: [{ type: "text", text: "A one-time link." }], structuredContent: { url: await samplePng() } };
+  }
+  if (params.name === "replace_svg") {
+    drawing = { ...drawing, svg: (params.arguments as { svg: string }).svg };
+    return { content: [{ type: "text", text: "Saved." }] };
   }
   if (params.name !== "get_document_svg") return { content: [{ type: "text", text: `No tool ${params.name} here.` }], isError: true };
   return {
@@ -76,12 +99,20 @@ function showDocument(): void {
 
 bridge.oninitialized = () => {
   say("widget initialized");
-  showDocument();
+  if (page === "picture") {
+    bridge.sendToolResult({
+      content: [{ type: "text", text: "A card in the chat now shows this picture." }],
+      structuredContent: { prompt: "A tiger's head, front view, bold flat colours", model: "gpt-image-1-mini", credits: 10, editorUrl: "https://editsvgcode.com" },
+    });
+    say("tool result: generate_image");
+  } else {
+    showDocument();
+  }
 };
 
 // The bridge listens before the page loads: the widget says hello as soon as its script runs.
 await bridge.connect(new PostMessageTransport(frame.contentWindow!, frame.contentWindow!));
-frame.srcdoc = WIDGET_HTML;
+frame.srcdoc = page === "picture" ? PICTURE_HTML : WIDGET_HTML;
 
 $("theme").textContent = `Theme: ${theme}`;
 $("theme").onclick = () => {

@@ -3,6 +3,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createMcpServer } from "./server";
 import type { DocumentStore } from "./documents";
 import type { OAuthStore } from "./oauth-store";
+import { handlePicture, type CallImageApi, type TicketStore } from "./pictures";
 import { corsHeaders, handleOAuth, resourceMetadataUrl, uidFromAccessToken, type HttpOut, type OAuthConfig } from "./oauth";
 
 export interface Deps {
@@ -16,6 +17,10 @@ export interface Deps {
   editorUrl?: string;
   /** This server's origin as clients see it. Unset: worked out from the request. */
   publicOrigin?: string;
+  /** Pictures from the image models (pictures.ts): the address of this function's /picture
+   *  links as the widget reaches them, the tickets behind them, and the API called as the user.
+   *  Unset, generate_image says pictures are unavailable. */
+  pictures?: { url: string; tickets: TicketStore; callImageApi: CallImageApi };
   now?: () => number;
 }
 
@@ -69,6 +74,17 @@ export async function handleRequest(req: Request, res: ServerResponse, deps: Dep
     now: deps.now,
   };
 
+  // A picture link: the token in it is the credential (pictures.ts), so it comes before sign-in.
+  const picture = /^\/picture\/([^/]+)$/.exec(path);
+  if (picture && deps.pictures) {
+    const out = await handlePicture(req.method ?? "GET", picture[1], {
+      tickets: deps.pictures.tickets, callImageApi: deps.pictures.callImageApi, now: deps.now,
+    });
+    res.writeHead(out.status, out.headers);
+    res.end(out.body);
+    return;
+  }
+
   const oauth = await handleOAuth({
     method: req.method ?? "GET",
     path,
@@ -111,7 +127,8 @@ async function handleMcp(req: Request, res: ServerResponse, deps: Deps, origin: 
   }
 
   for (const [k, v] of Object.entries(cors)) res.setHeader(k, v);
-  const server = createMcpServer({ uid, store: deps.documents, editorUrl });
+  const pictures = deps.pictures ? { url: deps.pictures.url, tickets: deps.pictures.tickets } : undefined;
+  const server = createMcpServer({ uid, store: deps.documents, editorUrl, pictures });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);

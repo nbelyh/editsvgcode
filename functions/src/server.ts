@@ -6,22 +6,27 @@ import { buildSvgContext } from "../../src/lib/svg-ai";
 import { installDom } from "./dom";
 import { applyEditTool, runReadTool, svgBytes, EDIT_TOOLS, MAX_SVG_BYTES, READ_TOOLS } from "./edits";
 import type { DocumentStore, StoredDocument } from "./documents";
+import { DEFAULT_IMAGE_MODEL, IMAGE_MODELS, issueTicket, type TicketStore } from "./pictures";
 import { TOOLS } from "./tools";
-import { readWidgetHtml, WIDGET_META, WIDGET_MIME_TYPE, WIDGET_URI } from "./widget";
+import { readWidgetHtml, WIDGET_MIME_TYPE, WIDGET_PAGES, widgetMeta } from "./widget";
 
 export interface McpContext {
   uid: string;
   store: DocumentStore;
   /** Where a document opens in the editor, without the trailing slash. */
   editorUrl: string;
-  /** The widget page (lib/widget.html). Tests pass their own. */
-  widgetHtml?: () => Promise<string>;
+  /** A widget page, by its file under lib/. Tests pass their own. */
+  widgetHtml?: (file: string) => Promise<string>;
+  /** Pictures: where the picture widget fetches one (…/picture, see pictures.ts), and the
+   *  one-time tickets behind those links. Unset, generate_image says pictures are unavailable. */
+  pictures?: { url: string; tickets: TicketStore };
 }
 
 const INSTRUCTIONS = `editsvgcode edits SVG drawings that live in the user's editsvgcode.com account.
 Start with create_document (a new drawing) or open_document (an existing one, by id or editor link); both return the document as numbered lines and the editor link.
 The user sees the drawing only when you call show_document: call it once the drawing is created or opened, and again when a round of edits is done (not after every edit call).
 When the user attaches an SVG file or wants to give you one, call upload_document rather than copying the file into create_document.
+For a picture (an illustration, a logo, a character, a scene — anything better painted than drawn with a few shapes), call generate_image: it puts a card in the chat where the user confirms and pays the credits. Draw simple shapes and icons yourself.
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 
@@ -80,6 +85,32 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const id = await ctx.store.create(ctx.uid, svg, title);
     const doc: StoredDocument = { id, text: svg, uid: ctx.uid, visibility: "private", title };
     return { ...text(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`), structuredContent: { documentId: id } };
+  }
+
+  // Only the card: the user presses Generate on it, and the picture widget does the rest.
+  if (name === "generate_image") {
+    const prompt = String(args.prompt ?? "").trim();
+    if (!prompt) return text("Describe the picture in \"prompt\".", true);
+    const model = String(args.model ?? DEFAULT_IMAGE_MODEL);
+    const price = IMAGE_MODELS[model];
+    if (!price) return text(`Unknown image model "${model}". Use one of: ${Object.keys(IMAGE_MODELS).join(", ")}.`, true);
+    if (!ctx.pictures) return text("Pictures are not available on this server.", true);
+    return {
+      ...text(`A card in the chat now shows this picture and what it costs (${price.credits} credits). Nothing is generated or charged until the user presses Generate on it. The picture is then traced into an SVG drawing and saved to their account, and a note names the document. Do not draw it yourself meanwhile; wait for the user.`),
+      structuredContent: { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl },
+    };
+  }
+
+  // For the picture widget alone: a link that makes one picture, once, charged to this user.
+  if (name === "picture_link") {
+    if (!ctx.pictures) return text("Pictures are not available on this server.", true);
+    const prompt = String(args.prompt ?? "").trim().slice(0, 4000);
+    const model = String(args.model ?? DEFAULT_IMAGE_MODEL);
+    if (!prompt || !IMAGE_MODELS[model]) return text("A picture needs a prompt and a known image model.", true);
+    const token = await issueTicket(ctx.pictures.tickets, {
+      uid: ctx.uid, prompt, model, outlines: args.outlines !== false, detail: args.detail === true,
+    });
+    return { ...text("A one-time link for the picture."), structuredContent: { url: `${ctx.pictures.url}/${token}` } };
   }
 
   // The widget takes the file and saves it with create_document, then says so in the chat.
@@ -150,14 +181,18 @@ export function createMcpServer(ctx: McpContext): Server {
     { name: "editsvgcode", title: "EditSvgCode", version: "1.0.0", websiteUrl: "https://editsvgcode.com" },
     { capabilities: { tools: {}, resources: {} }, instructions: INSTRUCTIONS },
   );
+  const pictureOrigin = ctx.pictures ? new URL(ctx.pictures.url).origin : null;
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-    resources: [{ uri: WIDGET_URI, name: "Drawing preview", mimeType: WIDGET_MIME_TYPE, _meta: WIDGET_META }],
+    resources: WIDGET_PAGES.map((page) => ({
+      uri: page.uri, name: page.name, mimeType: WIDGET_MIME_TYPE, _meta: widgetMeta(page, pictureOrigin),
+    })),
   }));
   server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
-    if (req.params.uri !== WIDGET_URI) throw new Error(`Unknown resource ${req.params.uri}`);
-    const html = await (ctx.widgetHtml ?? readWidgetHtml)();
-    return { contents: [{ uri: WIDGET_URI, mimeType: WIDGET_MIME_TYPE, text: html, _meta: WIDGET_META }] };
+    const page = WIDGET_PAGES.find((p) => p.uri === req.params.uri);
+    if (!page) throw new Error(`Unknown resource ${req.params.uri}`);
+    const html = await (ctx.widgetHtml ?? readWidgetHtml)(page.file);
+    return { contents: [{ uri: page.uri, mimeType: WIDGET_MIME_TYPE, text: html, _meta: widgetMeta(page, pictureOrigin) }] };
   });
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
