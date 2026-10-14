@@ -117,7 +117,11 @@ rewrite in `firebase.json`) should match the Firestore database's location.
    (`mcpPictureTickets`; add a TTL policy on `expiresAt`). The widget traces with the editor's
    vtracer (`src/lib/trace.ts`, inlined by the build), saves a new drawing, tells the model
    its id, and shows the editor's tracing sliders (`TraceControls`), which retrace and save
-   again. Rejected: handing the widget a Firebase ID token (an hour of full access to the
+   again. Chats that show no widgets (VS Code, Claude Code) get the editor instead: the results
+   carry `editsvgcode.com/?generate=<prompt>` or `/<id>?modify=<change>`, which open the editor's
+   own picture card (prompt editable there), charged the same way. Every structured result also
+   carries its text as `message`: Claude Code hands the model only the structured content.
+   Rejected: handing the widget a Firebase ID token (an hour of full access to the
    user's account, passing through the chat host, and the API would have to admit the
    sandbox's origin).
 

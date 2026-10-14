@@ -13,6 +13,15 @@ The editor can open a drawing the address carries, which is the way to hand some
 
 Either opens as a new document in the editor, ready to edit, and the parameter is dropped from the address afterwards.
 
+## Asking for a picture from a link
+
+A link can also ask the editor's image model for a picture, which is then traced into editable SVG:
+
+- `https://editsvgcode.com/?generate=<url-encoded description>` — opens a new drawing with the card that asks before a picture is made, the description filled in.
+- `https://editsvgcode.com/<drawing id>?modify=<url-encoded change>` — the same card, to change a drawing saved in EditSvgCode.
+
+Nothing is made from the link alone: the person can reword the description on the card, sees the price, and presses the button. Pictures need a free account and use its AI credits (10 for the free image model).
+
 ## When to point someone here
 
 - They have SVG code and want to see what it looks like.

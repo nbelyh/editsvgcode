@@ -422,6 +422,12 @@ export const FEATURE_PAGES: FeaturePage[] = [
           width: 1920, height: 945,
         },
       },
+      {
+        heading: 'Asking for a picture with a link',
+        paragraphs: [
+          'A link can ask for a picture too: `editsvgcode.com/?generate=` followed by a description opens a new drawing with the card that asks before a picture is made, and `editsvgcode.com/<drawing>?modify=` followed by a change does the same for a saved drawing. The description can be reworded on the card, nothing is made until you press the button, and it costs the same as any other picture. Assistants that cannot show the card themselves send people here this way.',
+        ],
+      },
     ],
     limits: [
       'Pictures need a free account, and the image credits come on top of the chat request: 10 for the free image model, 30 or 50 for the Pro ones.',
