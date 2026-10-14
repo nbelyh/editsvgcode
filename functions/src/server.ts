@@ -1,13 +1,11 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
-  CallToolRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema,
-  ReadResourceRequestSchema, type CallToolResult,
+  CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { buildSvgContext } from "../../src/lib/svg-ai";
 import { installDom } from "./dom";
 import { applyEditTool, runReadTool, svgBytes, EDIT_TOOLS, MAX_SVG_BYTES, READ_TOOLS } from "./edits";
 import type { DocumentStore, StoredDocument } from "./documents";
-import { getPrompt, PROMPTS } from "./prompts";
 import { TOOLS } from "./tools";
 import { readWidgetHtml, WIDGET_META, WIDGET_MIME_TYPE, WIDGET_URI } from "./widget";
 
@@ -150,15 +148,9 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
 export function createMcpServer(ctx: McpContext): Server {
   const server = new Server(
     { name: "editsvgcode", title: "EditSvgCode", version: "1.0.0", websiteUrl: "https://editsvgcode.com" },
-    { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {}, resources: {} }, instructions: INSTRUCTIONS },
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: PROMPTS }));
-  server.setRequestHandler(GetPromptRequestSchema, async (req) => {
-    const prompt = getPrompt(req.params.name);
-    if (!prompt) throw new Error(`Unknown prompt ${req.params.name}`);
-    return prompt;
-  });
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources: [{ uri: WIDGET_URI, name: "Drawing preview", mimeType: WIDGET_MIME_TYPE, _meta: WIDGET_META }],
   }));
