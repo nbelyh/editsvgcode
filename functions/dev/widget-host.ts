@@ -24,17 +24,27 @@ const context = () => ({ theme, displayMode, availableDisplayModes: ["inline" as
 const bridge = new AppBridge(
   null,
   { name: "Widget preview host", version: "1.0.0" },
-  { openLinks: {}, serverTools: {} },
+  { openLinks: {}, serverTools: {}, message: { text: {} } },
   { hostContext: context() },
 );
 
 bridge.oncalltool = async (params) => {
-  say(`tools/call ${params.name} ${JSON.stringify(params.arguments)}`);
+  say(`tools/call ${params.name} ${JSON.stringify(params.arguments).slice(0, 120)}`);
+  if (params.name === "create_document") {
+    const args = params.arguments as { svg: string; title: string };
+    drawing = { title: args.title, svg: args.svg };
+    documentNo++;
+    return { content: [{ type: "text", text: `Document doc${documentNo}` }], structuredContent: { documentId: `doc${documentNo}` } };
+  }
   if (params.name !== "get_document_svg") return { content: [{ type: "text", text: `No tool ${params.name} here.` }], isError: true };
   return {
     content: [{ type: "text", text: "The markup, for the preview." }],
     structuredContent: { svg: drawing.svg, title: drawing.title, link: `https://editsvgcode.com/doc${documentNo}` },
   };
+};
+bridge.onmessage = async ({ content }) => {
+  say(`message to the model: ${content.map((c) => (c.type === "text" ? c.text : c.type)).join(" ")}`);
+  return {};
 };
 bridge.onopenlink = async ({ url }) => {
   say(`open link ${url}`);
@@ -89,6 +99,10 @@ $<HTMLInputElement>("file").onchange = async (e) => {
   drawing = { title: file.name.replace(/\.svg$/i, ""), svg: await file.text() };
   documentNo++;
   showDocument();
+};
+$("upload").onclick = () => {
+  bridge.sendToolResult({ content: [{ type: "text", text: "A box to drop an SVG file into is shown." }], structuredContent: { upload: true } });
+  say("tool result: upload_document");
 };
 $("edit").onclick = () => {
   // A stand-in for an edit the model made: the widget sees it on Refresh.

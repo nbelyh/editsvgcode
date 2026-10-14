@@ -21,6 +21,7 @@ export interface McpContext {
 const INSTRUCTIONS = `editsvgcode edits SVG drawings that live in the user's editsvgcode.com account.
 Start with create_document (a new drawing) or open_document (an existing one, by id or editor link); both return the document as numbered lines and the editor link.
 The user sees the drawing only when you call show_document: call it once the drawing is created or opened, and again when a round of edits is done (not after every edit call).
+When the user attaches an SVG file or wants to give you one, call upload_document rather than copying the file into create_document.
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 
@@ -78,7 +79,15 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const title = String(args.title ?? "").slice(0, 200);
     const id = await ctx.store.create(ctx.uid, svg, title);
     const doc: StoredDocument = { id, text: svg, uid: ctx.uid, visibility: "private", title };
-    return text(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`);
+    return { ...text(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`), structuredContent: { documentId: id } };
+  }
+
+  // The widget takes the file and saves it with create_document, then says so in the chat.
+  if (name === "upload_document") {
+    return {
+      ...text("A box to drop an SVG file into is now shown in the chat. Ask the user to drop the file there; a message will name the new document."),
+      structuredContent: { upload: true },
+    };
   }
 
   if (name === "list_documents") {

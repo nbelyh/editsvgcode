@@ -53,7 +53,7 @@ const DESTRUCTIVE = { readOnlyHint: false, destructiveHint: true, openWorldHint:
 export const TOOLS: Tool[] = [
   {
     name: "create_document",
-    description: "Create a new SVG drawing in the user's editsvgcode.com account (private until they share it). Returns its id, its editor link and the document as numbered lines. Give the user the link.",
+    description: "Create a new SVG drawing in the user's editsvgcode.com account (private until they share it), from markup you write. Returns its id, its editor link and the document as numbered lines. For a file the user has — attached to the chat or on their computer — use upload_document instead: copying a file here is slow, and fails for a large one.",
     inputSchema: {
       type: "object",
       properties: {
@@ -69,6 +69,13 @@ export const TOOLS: Tool[] = [
     description: "Open a drawing by id or editsvgcode.com link. Returns its editor link and the document as numbered lines — excerpts for a large one; read the rest with read_svg_lines or search_svg.",
     inputSchema: { type: "object", properties: { document_id: DOCUMENT_ID }, required: ["document_id"] },
     annotations: READ,
+  },
+  {
+    name: "upload_document",
+    description: "Show the user a box in the chat to drop an SVG file into. Use it when the user attaches an SVG file or wants to give you one: you cannot pass the attachment on, and copying it into create_document is slow. The box saves the file to the user's account and then a message names the new document; open_document it from there. Ask the user to drop the file into the box.",
+    inputSchema: { type: "object", properties: {} },
+    annotations: READ,
+    _meta: { ui: { resourceUri: WIDGET_URI } },
   },
   {
     name: "show_document",

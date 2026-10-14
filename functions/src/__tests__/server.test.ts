@@ -157,6 +157,17 @@ describe("the drawing shown in the chat", () => {
     expect(fetched.structuredContent).toEqual({ svg: DRAWING, title: "Test", link: `https://editsvgcode.com/${id}` });
   });
 
+  it("opens the widget as a drop box, which saves the file with create_document and learns its id", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "upload_document")!._meta).toEqual({ ui: { resourceUri: "ui://editsvgcode/preview.html" } });
+    const box = await client.callTool({ name: "upload_document", arguments: {} });
+    expect(box.structuredContent).toEqual({ upload: true });
+    const saved = await client.callTool({ name: "create_document", arguments: { svg: DRAWING, title: "fox" } });
+    const id = (saved.structuredContent as { documentId: string }).documentId;
+    expect((await store.get(id))?.title).toBe("fox");
+  });
+
   it("shows nothing of someone else's private document", async () => {
     const id = await store.create("bob", DRAWING, "Bob's");
     const client = await connect("alice");
