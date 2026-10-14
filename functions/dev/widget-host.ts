@@ -105,8 +105,12 @@ $<HTMLInputElement>("file").onchange = async (e) => {
   showDocument();
 };
 $("upload").onclick = () => {
-  bridge.sendToolResult({ content: [{ type: "text", text: "A box to drop an SVG file into is shown." }], structuredContent: { upload: true } });
-  say("tool result: upload_document");
+  const documents = [
+    { id: `doc${documentNo}`, title: drawing.title, modified: new Date().toISOString() },
+    { id: "doc0", title: "An older drawing", modified: new Date(Date.now() - 86_400_000).toISOString() },
+  ];
+  bridge.sendToolResult({ content: [{ type: "text", text: "A picker is shown." }], structuredContent: { documents } });
+  say("tool result: list_documents");
 };
 $("edit").onclick = () => {
   // A stand-in for an edit the model made: the widget sees it on Refresh.

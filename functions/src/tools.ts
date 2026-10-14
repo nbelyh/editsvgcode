@@ -73,7 +73,7 @@ export const TOOLS: Tool[] = [
   {
     name: "upload_document",
     title: "Upload an SVG file",
-    description: "Upload an SVG file from the user's computer: shows a box in the chat to drop the file into, or pick it. Use it whenever the user has a file, attached one, or says they will upload one — you cannot read files attached to the chat, and copying one into create_document is slow. The box saves the file to the user's account and then a message names the new document; open_document it from there. Ask the user to drop the file into the box.",
+    description: "Upload an SVG file from the user's computer: shows a picker in the chat with a box to drop the file into (and the user's saved drawings). Use it whenever the user has a file, attached one, or says they will upload one — you cannot read files attached to the chat, and copying one into create_document is slow. The picker saves the file to the user's account and a note then names the new document; open_document it from there. Ask the user to drop the file into the box.",
     inputSchema: { type: "object", properties: {} },
     annotations: READ,
     _meta: { ui: { resourceUri: WIDGET_URI } },
@@ -94,12 +94,14 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "list_documents",
-    description: "List the user's own drawings, most recently changed first.",
+    title: "Your SVG files",
+    description: "List the user's SVG files (their saved drawings), most recently changed first, and show them a picker in the chat: they can pick one, or upload an SVG file from their computer into it. Call it when the user wants to work on a file — theirs, saved or on their computer.",
     inputSchema: {
       type: "object",
       properties: { limit: { type: "number", description: "How many to list (default 20, at most 100)." } },
     },
     annotations: READ,
+    _meta: { ui: { resourceUri: WIDGET_URI } },
   },
 
   onDocument("read_svg_lines", "Read lines of the document, numbered. Long lines in the overview are clipped; this returns them whole while the result stays under about 60,000 characters.", {

@@ -61,7 +61,7 @@ const html = `<!doctype html>
   </select>
   <label>Show another drawing <input id="file" type="file" accept=".svg,image/svg+xml"></label>
   <button id="edit" title="Change the drawing behind the widget's back">Simulate an edit</button>
-  <button id="upload" title="As if the model called upload_document">Ask for a file</button>
+  <button id="upload" title="As if the model called list_documents or upload_document">Show the picker</button>
 </header>
 <div id="chat">
   <div class="msg">I've drawn it. Here it is:</div>

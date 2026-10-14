@@ -127,7 +127,7 @@ describe("MCP server", () => {
     expect(text).toContain(id);
     expect(text.split("\n").filter((line) => line.startsWith("- "))).toHaveLength(1);
     // The tool a model finds when it looks for files says how to take one from the user.
-    expect(text).toContain("upload_document");
+    expect(text).toContain("upload an SVG file from their computer");
   });
 });
 
@@ -160,12 +160,22 @@ describe("the drawing shown in the chat", () => {
     expect(fetched.structuredContent).toEqual({ svg: DRAWING, title: "Test", link: `https://editsvgcode.com/${id}` });
   });
 
-  it("opens the widget as a drop box, which saves the file with create_document and learns its id", async () => {
+  it("shows the picker from list_documents and upload_document alike, with the user's drawings", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(tools.find((t) => t.name === "upload_document")!._meta).toEqual({ ui: { resourceUri: WIDGET_URI } });
-    const box = await client.callTool({ name: "upload_document", arguments: {} });
-    expect(box.structuredContent).toEqual({ upload: true });
+    for (const name of ["list_documents", "upload_document"]) {
+      expect(tools.find((t) => t.name === name)!._meta).toEqual({ ui: { resourceUri: WIDGET_URI } });
+    }
+    const id = await created(client);
+    await store.create("bob", DRAWING, "Bob's");
+    for (const name of ["list_documents", "upload_document"]) {
+      const picker = await client.callTool({ name, arguments: {} });
+      expect(picker.structuredContent).toEqual({ documents: [{ id, title: "Test", modified: expect.any(String) }] });
+    }
+  });
+
+  it("saves a file dropped into the picker with create_document, which names it", async () => {
+    const client = await connect();
     const saved = await client.callTool({ name: "create_document", arguments: { svg: DRAWING, title: "fox" } });
     const id = (saved.structuredContent as { documentId: string }).documentId;
     expect((await store.get(id))?.title).toBe("fox");

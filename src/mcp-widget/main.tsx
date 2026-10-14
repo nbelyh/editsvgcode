@@ -1,7 +1,7 @@
 import { StrictMode, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ActionIcon, Button, Center, Group, Loader, MantineProvider, Stack, Text, Tooltip } from '@mantine/core';
-import { IconExternalLink, IconFileUpload, IconMaximize, IconMinimize, IconRefresh } from '@tabler/icons-react';
+import { ActionIcon, Button, Center, Group, Loader, MantineProvider, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { IconArrowLeft, IconExternalLink, IconFileUpload, IconMaximize, IconMinimize, IconRefresh } from '@tabler/icons-react';
 import { App } from '@modelcontextprotocol/ext-apps';
 import '@mantine/core/styles.css';
 import './widget.css';
@@ -13,18 +13,24 @@ import { theme } from '../theme';
  * editor's own Preview. The show_document tool (functions/src/tools.ts) carries this page. Its
  * result names the document; the page then fetches the markup through get_document_svg, a tool
  * only the app may call, so the SVG does not pass through the model's context again.
- * upload_document carries it too, as a box to drop an SVG file into: the file is saved with
- * create_document from here, so the model never has to copy it, and the chat is told its id.
+ * list_documents and upload_document carry it as a picker: the user's drawings to click, and a
+ * box to drop an SVG file into. A dropped file is saved with create_document from here, so the
+ * model never has to copy it; either way the model is told which document the user chose. In
+ * claude.ai the model finds tools by search and reaches for list_documents when it looks for
+ * files, so the picker turns up where upload_document alone was never called.
  * functions/scripts/build.mjs bundles this file into the one HTML page the server hands out.
  */
 
-/** What a show_document result names, or upload_document's request for a file. */
+/** What a show_document or create_document result names. */
 interface Shown {
   documentId: string;
 }
 
-interface UploadRequest {
-  upload: true;
+/** One of the user's drawings, as list_documents and upload_document return them for the picker. */
+interface Listed {
+  id: string;
+  title: string;
+  modified: string | null;
 }
 
 /** As the server's MAX_SVG_BYTES (functions/src/edits.ts). */
@@ -45,9 +51,11 @@ const app = new App(
 // Outside React, and before connect(): the host sends the tool result once, right after the
 // handshake, and a listener registered later would miss it.
 let shown: Shown | null = null;
-let awaitingFile = false;
-/** A file was just saved from the box: the user still has to tell the model what to do. */
-let justUploaded = false;
+/** The picker's drawings, while this widget came from list_documents or upload_document. */
+let listed: Listed[] | null = null;
+let picking = false;
+/** The user just chose here, and still has to tell the model what to do with it. */
+let chose: 'uploaded' | 'picked' | null = null;
 let failure: string | null = null;
 let version = 0;
 const listeners = new Set<() => void>();
@@ -67,20 +75,21 @@ function textOf(result: { content?: Array<{ type: string; text?: string }> }): s
 }
 
 app.addEventListener('toolresult', (result) => {
-  const content = result.structuredContent as Partial<Shown & UploadRequest> | undefined;
+  const content = result.structuredContent as (Partial<Shown> & { documents?: Listed[] }) | undefined;
   const id = content?.documentId;
-  if (!result.isError && content?.upload === true) {
+  if (!result.isError && Array.isArray(content?.documents)) {
     failure = null;
     shown = null;
-    awaitingFile = true;
+    listed = content.documents;
+    picking = true;
   } else if (result.isError || typeof id !== 'string') {
     failure = textOf(result) || 'There is no drawing to show.';
     shown = null;
-    awaitingFile = false;
+    picking = false;
   } else {
     failure = null;
     shown = { documentId: id };
-    awaitingFile = false;
+    picking = false;
   }
   changed();
 });
@@ -92,10 +101,26 @@ app.connect().then(changed, () => {
 });
 
 /**
- * Save a dropped file as a new document, show it, and tell the chat: the model learns the id
- * from the message, as it would from create_document. A host that takes no messages from the
- * page gets it as context for the next turn instead.
+ * Show the chosen drawing and tell the model which it is. Context first: it reaches the model
+ * with the user's next message, quietly. claude.ai puts a ui/message into the input box for the
+ * user to send, under a warning about untrusted prompts, so that is only the fallback.
  */
+async function choose(id: string, how: 'uploaded' | 'picked', note: string): Promise<void> {
+  shown = { documentId: id };
+  picking = false;
+  chose = how;
+  changed();
+  const content = [{ type: 'text' as const, text: note }];
+  const host = app.getHostCapabilities();
+  try {
+    if (host?.updateModelContext) await app.updateModelContext({ content });
+    else if (host?.message) await app.sendMessage({ role: 'user', content });
+  } catch {
+    // The drawing is shown either way; the user can name it to the model.
+  }
+}
+
+/** Save a dropped file as a new document, then choose it. Returns an error to show, or null. */
 async function uploadFile(file: File): Promise<string | null> {
   const svg = await file.text();
   if (!/<svg[\s>]/i.test(svg)) return 'That is not an SVG file.';
@@ -105,26 +130,12 @@ async function uploadFile(file: File): Promise<string | null> {
   const id = (result.structuredContent as Partial<Shown> | undefined)?.documentId;
   if (result.isError || typeof id !== 'string') return textOf(result) || 'The file could not be saved.';
 
-  shown = { documentId: id };
-  awaitingFile = false;
-  justUploaded = true;
-  changed();
-
   // For the model, not for reading: it names the document by id.
-  const note = { type: 'text' as const, text: `The user dropped "${file.name}" into the box; it is saved as document ${id}. open_document it before editing.` };
-  // Context first: it reaches the model with the user's next message, quietly. claude.ai puts a
-  // ui/message into the input box for the user to send, under a warning about untrusted prompts.
-  const host = app.getHostCapabilities();
-  try {
-    if (host?.updateModelContext) await app.updateModelContext({ content: [note] });
-    else if (host?.message) await app.sendMessage({ role: 'user', content: [note] });
-  } catch {
-    // The drawing is saved and shown either way; the user can name it to the model.
-  }
+  await choose(id, 'uploaded', `The user uploaded "${file.name}" in the box; it is saved as document ${id}. open_document it before editing.`);
   return null;
 }
 
-/** The box upload_document shows: drop an SVG file, or pick one. */
+/** Drop an SVG file, or pick one from the computer. */
 function DropBox() {
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -145,20 +156,20 @@ function DropBox() {
 
   return (
     <Center
-      h="100%" p="md"
+      p="xs"
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); void take(e.dataTransfer.files[0]); }}
     >
       <Stack
-        align="center" gap="xs" p="xl"
+        align="center" gap={6} p="md"
         style={{
-          width: '100%', height: '100%', justifyContent: 'center', borderRadius: 8,
+          width: '100%', justifyContent: 'center', borderRadius: 8,
           border: `2px dashed ${over ? 'var(--mantine-color-blue-filled)' : 'var(--esvg-chrome-border)'}`,
           background: over ? 'var(--mantine-color-blue-light)' : undefined,
         }}
       >
-        <IconFileUpload size={32} stroke={1.5} />
+        <IconFileUpload size={28} stroke={1.5} />
         <Text fw={500}>Drop an SVG file here</Text>
         <Button component="label" variant="light" size="xs" loading={busy}>
           Choose a file
@@ -168,6 +179,32 @@ function DropBox() {
         {error && <Text size="sm" c="red">{error}</Text>}
       </Stack>
     </Center>
+  );
+}
+
+/** The picker: a new file into the box above, or one of the user's drawings below. */
+function Picker({ documents }: { documents: Listed[] }) {
+  return (
+    <ScrollArea h="100%">
+      <DropBox />
+      {documents.length > 0 && (
+        <Stack gap={0} px="xs" pb="xs">
+          <Text size="xs" c="dimmed" px={6} py={4}>Or pick one of your drawings</Text>
+          {documents.map((d) => (
+            <UnstyledButton
+              key={d.id}
+              className="esvg-picker-row"
+              onClick={() => void choose(d.id, 'picked', `The user picked document ${d.id} in the box. open_document it before editing.`)}
+            >
+              <Group justify="space-between" wrap="nowrap" gap="xs">
+                <Text size="sm" truncate="end">{d.title || 'Untitled drawing'}</Text>
+                {d.modified && <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>{new Date(d.modified).toLocaleString()}</Text>}
+              </Group>
+            </UnstyledButton>
+          ))}
+        </Stack>
+      )}
+    </ScrollArea>
   );
 }
 
@@ -234,16 +271,25 @@ function Widget() {
           justify="space-between" wrap="nowrap" px="xs" py={4} gap="xs"
           style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, minHeight: 36 }}
         >
-          <Text size="sm" fw={500} truncate="end">{awaitingFile ? 'Add a drawing' : doc?.title || 'Untitled drawing'}</Text>
+          <Group gap={4} wrap="nowrap" style={{ minWidth: 0 }}>
+            {listed && !picking && (
+              <Tooltip label="Back to your drawings">
+                <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => { picking = true; chose = null; changed(); }} aria-label="Back to your drawings">
+                  <IconArrowLeft size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <Text size="sm" fw={500} truncate="end">{picking ? 'Choose a drawing' : doc?.title || 'Untitled drawing'}</Text>
+          </Group>
           <Group gap={4} wrap="nowrap">
-            {documentId && (
+            {documentId && !picking && (
               <Tooltip label="Show the latest version">
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => void load(documentId)} loading={loading} aria-label="Refresh">
                   <IconRefresh size={16} />
                 </ActionIcon>
               </Tooltip>
             )}
-            {doc?.link && !awaitingFile && (
+            {doc?.link && !picking && (
               <Tooltip label="Open in EditSvgCode">
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => void app.openLink({ url: doc.link }).catch(() => undefined)} aria-label="Open in EditSvgCode">
                   <IconExternalLink size={16} />
@@ -259,14 +305,16 @@ function Widget() {
             )}
           </Group>
         </Group>
-        {justUploaded && !awaitingFile && (
+        {chose && !picking && (
           <Text size="xs" px="xs" py={4} c="dimmed" style={{ borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0 }}>
-            Saved to your EditSvgCode account. Now say in the chat what to change.
+            {chose === 'uploaded'
+              ? 'Saved to your EditSvgCode account. Now say in the chat what to change.'
+              : 'Now say in the chat what to change.'}
           </Text>
         )}
         <div style={{ flex: 1, minHeight: 0 }}>
-          {awaitingFile && !failure ? (
-            <DropBox />
+          {picking && listed && !failure ? (
+            <Picker documents={listed} />
           ) : doc && !message ? (
             <Preview svgCode={doc.svg} />
           ) : (

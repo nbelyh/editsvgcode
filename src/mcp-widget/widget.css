@@ -18,3 +18,15 @@ html, body {
   --esvg-chrome-bg: var(--mantine-color-dark-7);
   --esvg-chrome-border: var(--mantine-color-dark-4);
 }
+
+/* A drawing in the picker (main.tsx Picker). */
+.esvg-picker-row {
+  display: block;
+  width: 100%;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.esvg-picker-row:hover {
+  background: var(--esvg-chrome-bg);
+}
