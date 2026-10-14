@@ -198,15 +198,19 @@ function Widget() {
           <Text size="xs" px="xs" py={4} c="dimmed" style={{ borderBottom: '1px solid var(--esvg-chrome-border)' }}>
             Saved to your EditSvgCode account. Now say in the chat what to change.
           </Text>
-          <div style={{ height: 360 }}>
-            <Preview svgCode={stage.svg} />
-          </div>
-          {/* Hidden, not unmounted, once Done: reopened, the sliders stand where they were left. */}
-          <div style={{ padding: 8, borderTop: '1px solid var(--esvg-chrome-border)', display: tuning ? undefined : 'none' }}>
-            <ImageGenerationControls pngDataUrl={stage.png} initialParams={stage.params} onUpdateSvg={(svg) => void retraced(svg)} />
-            <Group justify="flex-end" mt={6}>
-              <Button size="xs" onClick={() => setTuning(false)}>Done</Button>
-            </Group>
+          {/* The sliders beside the drawing, not under it at the chat's full width, where they
+              stretched like an equalizer; in a narrow chat they wrap below it. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 320px', height: 360, minWidth: 0 }}>
+              <Preview svgCode={stage.svg} />
+            </div>
+            {/* Hidden, not unmounted, once Done: reopened, the sliders stand where they were left. */}
+            <div style={{ flex: '0 1 340px', maxWidth: 340, padding: 8, borderLeft: '1px solid var(--esvg-chrome-border)', display: tuning ? undefined : 'none' }}>
+              <ImageGenerationControls pngDataUrl={stage.png} initialParams={stage.params} onUpdateSvg={(svg) => void retraced(svg)} />
+              <Group justify="flex-end" mt={6}>
+                <Button size="xs" onClick={() => setTuning(false)}>Done</Button>
+              </Group>
+            </div>
           </div>
           {!tuning && (
             <Group px="xs" py={4} style={{ borderTop: '1px solid var(--esvg-chrome-border)' }}>
