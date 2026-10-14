@@ -125,7 +125,9 @@ describe("MCP server", () => {
     const id = await created(alice);
     const { text } = await call(alice, "list_documents", {});
     expect(text).toContain(id);
-    expect(text.split("\n")).toHaveLength(1);
+    expect(text.split("\n").filter((line) => line.startsWith("- "))).toHaveLength(1);
+    // The tool a model finds when it looks for files says how to take one from the user.
+    expect(text).toContain("upload_document");
   });
 });
 
