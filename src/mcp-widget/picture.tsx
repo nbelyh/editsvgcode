@@ -101,6 +101,8 @@ function Widget() {
   const context = app.getHostContext();
   const [stage, setStage] = useState<Stage>({ kind: 'card' });
   const [title, setTitle] = useState('');
+  /** The tracer's sliders are open until the user is done with them. */
+  const [tuning, setTuning] = useState(true);
 
   useEffect(() => {
     if (asked) setTitle(asked.prompt.slice(0, 80));
@@ -199,9 +201,18 @@ function Widget() {
           <div style={{ height: 360 }}>
             <Preview svgCode={stage.svg} />
           </div>
-          <div style={{ padding: 8, borderTop: '1px solid var(--esvg-chrome-border)' }}>
+          {/* Hidden, not unmounted, once Done: reopened, the sliders stand where they were left. */}
+          <div style={{ padding: 8, borderTop: '1px solid var(--esvg-chrome-border)', display: tuning ? undefined : 'none' }}>
             <ImageGenerationControls pngDataUrl={stage.png} initialParams={stage.params} onUpdateSvg={(svg) => void retraced(svg)} />
+            <Group justify="flex-end" mt={6}>
+              <Button size="xs" onClick={() => setTuning(false)}>Done</Button>
+            </Group>
           </div>
+          {!tuning && (
+            <Group px="xs" py={4} style={{ borderTop: '1px solid var(--esvg-chrome-border)' }}>
+              <Button size="compact-xs" variant="subtle" color="gray" onClick={() => setTuning(true)}>Adjust the tracing</Button>
+            </Group>
+          )}
         </>
       )}
     </MantineProvider>
