@@ -1,6 +1,7 @@
 // Builds the function into lib/: the server (lib/index.js) and the MCP widget page
 // (lib/widget.html) that the show_document tool displays in the chat (src/widget.ts).
 import { build } from "esbuild";
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
@@ -53,6 +54,8 @@ await build({
   target: "node22",
   packages: "external",
   outfile: "lib/index.js",
+  // The widget's ui:// address names its content (src/widget.ts), so a changed page is fetched anew.
+  define: { __WIDGET_HASH__: JSON.stringify(createHash("sha256").update(html).digest("hex").slice(0, 12)) },
   logLevel: "warning",
 });
 

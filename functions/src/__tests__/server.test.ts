@@ -6,6 +6,7 @@ import { createMcpServer, documentIdOf } from "../server";
 import { MemoryDocumentStore } from "../documents";
 import { handleRequest } from "../handler";
 import { MemoryOAuthStore } from "../oauth-store";
+import { WIDGET_URI } from "../widget";
 import { CLIP_MARKER } from "../../../src/lib/svg-ai";
 
 const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -133,7 +134,7 @@ describe("the drawing shown in the chat", () => {
     const client = await connect();
     const { tools } = await client.listTools();
     const show = tools.find((t) => t.name === "show_document")!;
-    expect(show._meta).toEqual({ ui: { resourceUri: "ui://editsvgcode/preview.html" } });
+    expect(show._meta).toEqual({ ui: { resourceUri: WIDGET_URI } });
     const fetch = tools.find((t) => t.name === "get_document_svg")!;
     expect(fetch._meta).toEqual({ ui: { visibility: ["app"] } });
   });
@@ -141,10 +142,10 @@ describe("the drawing shown in the chat", () => {
   it("serves the widget page as an MCP App resource", async () => {
     const client = await connect();
     const { resources } = await client.listResources();
-    expect(resources).toEqual([expect.objectContaining({ uri: "ui://editsvgcode/preview.html", mimeType: "text/html;profile=mcp-app" })]);
-    const { contents } = await client.readResource({ uri: "ui://editsvgcode/preview.html" });
+    expect(resources).toEqual([expect.objectContaining({ uri: WIDGET_URI, mimeType: "text/html;profile=mcp-app" })]);
+    const { contents } = await client.readResource({ uri: WIDGET_URI });
     expect(contents).toEqual([expect.objectContaining({ mimeType: "text/html;profile=mcp-app", text: WIDGET_PAGE })]);
-    await expect(client.readResource({ uri: "ui://editsvgcode/other.html" })).rejects.toThrow();
+    await expect(client.readResource({ uri: "ui://editsvgcode/preview.html" })).rejects.toThrow();
   });
 
   it("hands the widget the document's id, and the markup only when it asks", async () => {
@@ -160,7 +161,7 @@ describe("the drawing shown in the chat", () => {
   it("opens the widget as a drop box, which saves the file with create_document and learns its id", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(tools.find((t) => t.name === "upload_document")!._meta).toEqual({ ui: { resourceUri: "ui://editsvgcode/preview.html" } });
+    expect(tools.find((t) => t.name === "upload_document")!._meta).toEqual({ ui: { resourceUri: WIDGET_URI } });
     const box = await client.callTool({ name: "upload_document", arguments: {} });
     expect(box.structuredContent).toEqual({ upload: true });
     const saved = await client.callTool({ name: "create_document", arguments: { svg: DRAWING, title: "fox" } });
