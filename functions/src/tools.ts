@@ -72,7 +72,8 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "upload_document",
-    description: "Show the user a box in the chat to drop an SVG file into. Use it when the user attaches an SVG file or wants to give you one: you cannot pass the attachment on, and copying it into create_document is slow. The box saves the file to the user's account and then a message names the new document; open_document it from there. Ask the user to drop the file into the box.",
+    title: "Upload an SVG file",
+    description: "Upload an SVG file from the user's computer: shows a box in the chat to drop the file into, or pick it. Use it whenever the user has a file, attached one, or says they will upload one — you cannot read files attached to the chat, and copying one into create_document is slow. The box saves the file to the user's account and then a message names the new document; open_document it from there. Ask the user to drop the file into the box.",
     inputSchema: { type: "object", properties: {} },
     annotations: READ,
     _meta: { ui: { resourceUri: WIDGET_URI } },

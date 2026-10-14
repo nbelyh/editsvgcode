@@ -95,11 +95,14 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
   if (name === "list_documents") {
     const limit = Math.min(100, Math.max(1, Number(args.limit) || 20));
     const docs = await ctx.store.listOwned(ctx.uid, limit);
-    if (docs.length === 0) return text("You have no saved drawings yet. create_document starts one.");
+    // Said here because this is the tool a model finds when it looks for "files": claude.ai loads
+    // connector tools by search, and the model may never see upload_document's own description.
+    const upload = "For an SVG file on the user's computer, call upload_document: it shows a box in the chat to drop the file into. You cannot read files attached to the chat, so do not ask for an attachment or pasted code.";
+    if (docs.length === 0) return text(`You have no saved drawings yet. create_document starts one.\n\n${upload}`);
     const rows = docs.map((d) =>
       `- ${d.id}  ${d.title ? JSON.stringify(d.title) : "(untitled)"}  ${d.visibility}`
       + `${d.modified ? `, changed ${d.modified.toISOString()}` : ""}  ${ctx.editorUrl}/${d.id}`);
-    return text(rows.join("\n"));
+    return text(`${rows.join("\n")}\n\n${upload}`);
   }
 
   const id = documentIdOf(args.document_id);
