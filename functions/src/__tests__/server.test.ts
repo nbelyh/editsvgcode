@@ -186,6 +186,17 @@ describe("the drawing shown in the chat", () => {
     }
   });
 
+  it("gives the picker previews of the user's own drawings only, and none of a large one", async () => {
+    const client = await connect("alice");
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "document_thumbnails")!._meta).toEqual({ ui: { visibility: ["app"] } });
+    const mine = await created(client);
+    const large = await store.create("alice", `<svg>${"<!-- x -->".repeat(25_000)}</svg>`, "Large");
+    const bobs = await store.create("bob", DRAWING, "Bob's");
+    const res = await client.callTool({ name: "document_thumbnails", arguments: { document_ids: [mine, large, bobs, "../x", "missing"] } });
+    expect(res.structuredContent).toEqual({ thumbnails: { [mine]: DRAWING } });
+  });
+
   it("saves a file dropped into the picker with create_document, which names it", async () => {
     const client = await connect();
     const saved = await client.callTool({ name: "create_document", arguments: { svg: DRAWING, title: "fox" } });

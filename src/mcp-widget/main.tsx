@@ -1,11 +1,12 @@
 import { StrictMode, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ActionIcon, Button, Center, Group, Loader, MantineProvider, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Button, Center, Group, Loader, MantineProvider, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { IconArrowLeft, IconExternalLink, IconFileUpload, IconMaximize, IconMinimize, IconRefresh } from '@tabler/icons-react';
 import { App } from '@modelcontextprotocol/ext-apps';
 import '@mantine/core/styles.css';
 import './widget.css';
 import { Preview } from '../components/Preview';
+import { SvgThumb } from '../components/SvgThumb';
 import { tellModel, textOf } from './bridge';
 import { theme } from '../theme';
 
@@ -168,29 +169,60 @@ function DropBox() {
   );
 }
 
-/** The picker: a new file into the box above, or one of the user's drawings below. */
+/** Drawings shown at first, and added by each "Show more". */
+const PICKER_PAGE = 8;
+
+/**
+ * The picker: a new file into the box above, or one of the user's drawings below, each with a
+ * small preview as the Files page has. Inline it scrolls nothing itself: it is as tall as its
+ * rows (the App reports its height to the host), so the chat's own scrolling moves it — a
+ * scrolling box inside a chat on a phone took no touch. A page of rows at a time keeps it short.
+ */
 function Picker({ documents }: { documents: Listed[] }) {
+  const [count, setCount] = useState(PICKER_PAGE);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const shownRows = documents.slice(0, count);
+
+  // The markup of the rows on show, fetched by the widget alone (document_thumbnails), so the
+  // model's context never holds it.
+  useEffect(() => {
+    const ids = shownRows.map((d) => d.id).filter((id) => !(id in thumbnails));
+    if (ids.length === 0) return;
+    void app.callServerTool({ name: 'document_thumbnails', arguments: { document_ids: ids } }).then((result) => {
+      const got = (result.structuredContent as { thumbnails?: Record<string, string> } | undefined)?.thumbnails ?? {};
+      // A row without one (too large, or failed) keeps its blank square and is not asked again.
+      setThumbnails((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, got[id] ?? ''])) }));
+    }, () => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, documents]);
+
   return (
-    <ScrollArea h="100%">
+    <>
       <DropBox />
       {documents.length > 0 && (
         <Stack gap={0} px="xs" pb="xs">
           <Text size="xs" c="dimmed" px={6} py={4}>Or pick one of your drawings</Text>
-          {documents.map((d) => (
+          {shownRows.map((d) => (
             <UnstyledButton
               key={d.id}
               className="esvg-picker-row"
               onClick={() => void choose(d.id, 'picked', `The user picked document ${d.id} in the box. open_document it before editing.`)}
             >
-              <Group justify="space-between" wrap="nowrap" gap="xs">
-                <Text size="sm" truncate="end">{d.title || 'Untitled drawing'}</Text>
-                {d.modified && <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>{new Date(d.modified).toLocaleString()}</Text>}
+              <Group wrap="nowrap" gap="xs">
+                <SvgThumb text={thumbnails[d.id] ?? ''} height={32} width={32} radius={4} alt="" />
+                <Text size="sm" truncate="end" style={{ flex: 1, minWidth: 0 }}>{d.title || 'Untitled drawing'}</Text>
+                {d.modified && <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>{new Date(d.modified).toLocaleDateString()}</Text>}
               </Group>
             </UnstyledButton>
           ))}
+          {documents.length > count && (
+            <Button variant="subtle" size="xs" mt={4} onClick={() => setCount((c) => c + PICKER_PAGE)}>
+              Show more
+            </Button>
+          )}
         </Stack>
       )}
-    </ScrollArea>
+    </>
   );
 }
 
@@ -249,10 +281,13 @@ function Widget() {
   };
 
   const message = failure ?? error;
+  const pickerDocs = picking && !failure ? listed : null;
+  // The picker inline is as tall as it is (see Picker); full screen, it scrolls in the frame.
+  const fitContent = !!pickerDocs && !fullscreen;
 
   return (
     <MantineProvider theme={theme} forceColorScheme={context?.theme}>
-      <div style={{ height, display: 'flex', flexDirection: 'column' }}>
+      <div style={fitContent ? undefined : { height, display: 'flex', flexDirection: 'column' }}>
         <Group
           justify="space-between" wrap="nowrap" px="xs" py={4} gap="xs"
           style={{ backgroundColor: 'var(--esvg-chrome-bg)', borderBottom: '1px solid var(--esvg-chrome-border)', flexShrink: 0, minHeight: 36 }}
@@ -298,9 +333,9 @@ function Widget() {
               : 'Now say in the chat what to change.'}
           </Text>
         )}
-        <div style={{ flex: 1, minHeight: 0 }}>
-          {picking && listed && !failure ? (
-            <Picker documents={listed} />
+        <div style={fitContent ? undefined : { flex: 1, minHeight: 0, overflowY: pickerDocs ? 'auto' : undefined }}>
+          {pickerDocs ? (
+            <Picker documents={pickerDocs} />
           ) : doc && !message ? (
             <Preview svgCode={doc.svg} />
           ) : (

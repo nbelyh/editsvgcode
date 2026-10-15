@@ -166,6 +166,17 @@ export const TOOLS: Tool[] = [
     _meta: { ui: { visibility: ["app"] } },
   },
   {
+    name: "document_thumbnails",
+    description: "The markup of some of the user's drawings, for the small previews in the picker. For the app, not the model.",
+    inputSchema: {
+      type: "object",
+      properties: { document_ids: { type: "array", items: { type: "string" } } },
+      required: ["document_ids"],
+    },
+    annotations: READ,
+    _meta: { ui: { visibility: ["app"] } },
+  },
+  {
     name: "list_documents",
     title: "Your SVG files",
     description: "List the user's SVG files (their saved drawings), most recently changed first, and show them a picker in the chat: they can pick one, or upload an SVG file from their computer into it. Call it when the user wants to work on a file — theirs, saved or on their computer.",

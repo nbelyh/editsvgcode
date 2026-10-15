@@ -74,6 +74,10 @@ function targetIdOf(raw: unknown): string | null {
   return /^[0-9a-z]{10,40}$/.test(id) ? id : null;
 }
 
+/** The picker asks for the rows it shows, a page at a time (src/mcp-widget/main.tsx). */
+const MAX_THUMBNAILS = 20;
+const MAX_THUMBNAIL_BYTES = 200_000;
+
 function canRead(doc: StoredDocument, uid: string): boolean {
   return doc.uid === uid || doc.visibility !== "private";
 }
@@ -174,6 +178,19 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
       return { ...text(`Document ${target} is saved already.`, true), structuredContent: { made: true, documentId: target } };
     }
     return withData(`Saved as document ${target}. Editor: ${ctx.editorUrl}/${target}`, { documentId: target });
+  }
+
+  // For the picker alone: the rows it shows, as small previews. Only the user's own drawings,
+  // and none so large that a page of them would weigh megabytes; those keep a blank square.
+  if (name === "document_thumbnails") {
+    const ids = (Array.isArray(args.document_ids) ? args.document_ids : [])
+      .slice(0, MAX_THUMBNAILS).map(documentIdOf).filter((id): id is string => id !== null);
+    const docs = await Promise.all(ids.map((id) => ctx.store.get(id)));
+    const thumbnails: Record<string, string> = {};
+    for (const doc of docs) {
+      if (doc && doc.uid === ctx.uid && svgBytes(doc.text) <= MAX_THUMBNAIL_BYTES) thumbnails[doc.id] = doc.text;
+    }
+    return { ...text(`Previews of ${Object.keys(thumbnails).length} drawings, for the picker.`), structuredContent: { thumbnails } };
   }
 
   // The widget takes the file and saves it with create_document, then says so in the chat.
