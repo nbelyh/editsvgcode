@@ -78,7 +78,8 @@ interface ChatThreadProps {
   onTrace: () => void;
   onIllustrate: () => void;
   onPictureChoiceClose: () => void;
-  isAnonymous: boolean;
+  /** A guest, or a device last used by one: says AI edits need a sign-in. */
+  showGuestNote: boolean;
   /** Somebody else's document — no composer, so nothing to prompt into. */
   isViewer: boolean;
 }
@@ -282,7 +283,7 @@ export const ChatThread = memo(function ChatThread({
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
   imageConfirmSummary, onImagePromptChange, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline,
-  onSamplePrompt, onPasteSvg, canPaste, isAnonymous, isViewer,
+  onSamplePrompt, onPasteSvg, canPaste, showGuestNote, isViewer,
   pictureChoice, pictureLikenessHint, onTrace, onIllustrate, onPictureChoiceClose,
 }: ChatThreadProps) {
   const progressLabel = typeof progressStatus === 'string' ? progressStatus : progressStatus.tool;
@@ -345,7 +346,7 @@ export const ChatThread = memo(function ChatThread({
                 </button>
               ))}
             </div>
-            {isAnonymous && (
+            {showGuestNote && (
               <p className="aui-empty-signin">AI edits need a free sign-in, with {DEFAULT_PRICING.freeMonthlyCredits} AI credits a month. Pasting SVG code works without one.</p>
             )}
           </div>

@@ -37,6 +37,9 @@ const MAX_HISTORY = 100;
 // survive it. sessionStorage does — Firebase's own redirect flow depends on it.
 const PENDING_SEND_KEY = 'esvg-pending-send';
 
+// 'true' while this device's last known account was a real one, not a guest's.
+const SIGNED_IN_KEY = 'esvg-signed-in';
+
 // Sent by the Continue button after a turn ran out of tool calls. It reads as a
 // user message in the transcript, which is what it is — the previous turn's
 // findings are already replayed as history, so the point is to stop it starting
@@ -231,8 +234,23 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const user = getAuth().currentUser;
     return user ? user.isAnonymous : null;
   });
+  // The guest note under the sample prompts is the largest text in a phone's
+  // empty chat, so it is the page's largest paint. Waiting for isAnonymous held
+  // it — and LCP with it — until the anonymous sign-in came back from the
+  // network, seconds after everything else had painted. Whether this device was
+  // last signed in is remembered instead, so the note paints with the page; a
+  // signed-in user sees it at most once, on the first load after this shipped.
+  const [showGuestNote, setShowGuestNote] = useState(() => {
+    try { return localStorage.getItem(SIGNED_IN_KEY) !== 'true'; } catch { return true; }
+  });
   useEffect(() => {
-    return onAuthStateChanged(getAuth(), (user) => setIsAnonymous(user ? user.isAnonymous : null));
+    return onAuthStateChanged(getAuth(), (user) => {
+      setIsAnonymous(user ? user.isAnonymous : null);
+      // null is the gap before the anonymous sign-in lands, not an answer.
+      if (!user) return;
+      setShowGuestNote(user.isAnonymous);
+      try { localStorage.setItem(SIGNED_IN_KEY, String(!user.isAnonymous)); } catch { /* storage unavailable: the note shows until auth answers */ }
+    });
   }, []);
   const isDebug = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const isModelDisabled = useCallback((m: { pro: boolean }) => !isDebug && tier !== 'pro' && m.pro, [isDebug, tier]);
@@ -1267,7 +1285,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           live={live}
           onLiveGrow={followBottom}
           canUndo={canUndo}
-          isAnonymous={isAnonymous === true}
+          showGuestNote={showGuestNote}
           isViewer={isViewer}
           viewportRef={viewportRef}
           onAccept={handleAccept}
