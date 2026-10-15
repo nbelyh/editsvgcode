@@ -321,6 +321,79 @@ describe("pictures", () => {
   });
 });
 
+describe("a picture card the chat shows again", () => {
+  const PNG = Buffer.from("89504e470d0a1a0a", "hex");
+  const ok = async () => new Response(PNG, { status: 200 });
+  const tokenOf = (res: unknown) => (res as { structuredContent: { url: string } }).structuredContent.url.slice(PICTURE_URL.length + 1);
+
+  async function card(client: Client): Promise<string> {
+    const res = await client.callTool({ name: "generate_image", arguments: { prompt: "a red fox" } });
+    return (res.structuredContent as { targetId: string }).targetId;
+  }
+
+  it("names the drawing it will save on each card, and the drawing does not exist yet", async () => {
+    const client = await connect();
+    const id = await created(client);
+    const first = await card(client);
+    const modify = await client.callTool({ name: "modify_image", arguments: { document_id: id, request: "add a hat" } });
+    const second = (modify.structuredContent as { targetId: string }).targetId;
+    expect(first).toMatch(/^[0-9a-z]{10,40}$/);
+    expect(second).not.toBe(first);
+    expect(await store.get(first)).toBeNull();
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "save_picture")!._meta).toEqual({ ui: { visibility: ["app"] } });
+  });
+
+  it("saves the picture under the card's id once, as the user's private drawing", async () => {
+    const client = await connect("alice");
+    const target = await card(client);
+    const saved = await client.callTool({ name: "save_picture", arguments: { document_id: target, svg: DRAWING, title: "Fox" } });
+    expect(saved.structuredContent).toMatchObject({ documentId: target });
+    expect(await store.get(target)).toMatchObject({ uid: "alice", visibility: "private", title: "Fox", text: DRAWING });
+
+    const again = await client.callTool({ name: "save_picture", arguments: { document_id: target, svg: "<svg/>" } });
+    expect(again.isError).toBe(true);
+    expect(again.structuredContent).toMatchObject({ made: true, documentId: target });
+    expect((await store.get(target))!.text).toBe(DRAWING);
+    expect((await client.callTool({ name: "save_picture", arguments: { document_id: "../files/x", svg: DRAWING } })).isError).toBe(true);
+  });
+
+  it("gives no second link while the picture is being made, nor once it is saved", async () => {
+    const client = await connect("alice");
+    const target = await card(client);
+    const args = { prompt: "a red fox", model: "gpt-image-1-mini", target_id: target };
+    const first = await client.callTool({ name: "picture_link", arguments: args });
+    expect(first.isError).toBeFalsy();
+
+    // The page rebuilt mid-picture shows the card again; pressing it pays for nothing more.
+    const busy = await client.callTool({ name: "picture_link", arguments: args });
+    expect(busy.isError).toBe(true);
+    expect(busy.structuredContent).toMatchObject({ busy: true });
+
+    expect((await handlePicture("GET", tokenOf(first), undefined, { tickets, callImageApi: ok })).status).toBe(200);
+    await client.callTool({ name: "save_picture", arguments: { document_id: target, svg: DRAWING } });
+    const made = await client.callTool({ name: "picture_link", arguments: args });
+    expect(made.structuredContent).toMatchObject({ made: true, documentId: target });
+  });
+
+  it("lets the card ask again when the API made nothing", async () => {
+    const client = await connect("alice");
+    const target = await card(client);
+    const args = { prompt: "a red fox", model: "gpt-image-1-mini", target_id: target };
+    const first = await client.callTool({ name: "picture_link", arguments: args });
+    const broke = async () => new Response(JSON.stringify({ error: "Out of credits" }), { status: 402 });
+    expect((await handlePicture("GET", tokenOf(first), undefined, { tickets, callImageApi: broke })).status).toBe(402);
+    expect((await client.callTool({ name: "picture_link", arguments: args })).isError).toBeFalsy();
+  });
+
+  it("holds the card only as long as a picture can take", async () => {
+    expect(await tickets.hold("abc1234567", new Date(1000), new Date(0))).toBe(true);
+    expect(await tickets.hold("abc1234567", new Date(3000), new Date(500))).toBe(false);
+    expect(await tickets.hold("abc1234567", new Date(3000), new Date(1500))).toBe(true);
+    expect((await (await connect()).callTool({ name: "picture_link", arguments: { prompt: "x", model: "gpt-image-1-mini", target_id: "A/B" } })).isError).toBe(true);
+  });
+});
+
 describe("MCP edits that must not be saved", () => {
   it("refuses replace_svg carrying markup copied from a clipped line", async () => {
     const client = await connect();

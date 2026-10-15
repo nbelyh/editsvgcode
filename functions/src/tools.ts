@@ -129,10 +129,26 @@ export const TOOLS: Tool[] = [
         model: { type: "string" },
         outlines: { type: "boolean" },
         detail: { type: "boolean" },
+        target_id: { type: "string", description: "The card's drawing id, from the card's result." },
       },
       required: ["prompt", "model"],
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    _meta: { ui: { visibility: ["app"] } },
+  },
+  {
+    name: "save_picture",
+    description: "Save a traced picture as the card's drawing, once. For the picture widget, not the model.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: { type: "string", description: "The card's drawing id, from the card's result." },
+        svg: { type: "string" },
+        title: { type: "string" },
+      },
+      required: ["document_id", "svg"],
+    },
+    annotations: { ...WRITE, idempotentHint: false },
     _meta: { ui: { visibility: ["app"] } },
   },
   {

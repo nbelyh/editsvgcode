@@ -29,16 +29,29 @@ export interface PictureTicket {
   model: string;
   outlines: boolean;
   detail: boolean;
+  /** The card's drawing (server.ts generate_image targetId): held while its picture is made. */
+  target?: string;
   expiresAt: Date;
 }
 
 /** Links last long enough for the widget to use theirs at once, no longer. */
 export const TICKET_TTL_MS = 5 * 60_000;
 
+/**
+ * How long a card's drawing is held once its link is issued: the link's own life, plus the
+ * function's 60-second timeout for making the picture. A widget rebuilt in that time (a phone
+ * locked, the chat reopened) shows the card again; the hold keeps a second press from paying
+ * for a second picture. A refusal from the API lets go of it at once.
+ */
+export const HOLD_MS = TICKET_TTL_MS + 2 * 60_000;
+
 export interface TicketStore {
   put(hash: string, ticket: PictureTicket): Promise<void>;
   /** The ticket, removed so it cannot be used twice; null when there is none. */
   take(hash: string): Promise<PictureTicket | null>;
+  /** Hold a card's drawing until `until`; false when it is held already and the hold still runs. */
+  hold(target: string, until: Date, now: Date): Promise<boolean>;
+  release(target: string): Promise<void>;
 }
 
 function hashOf(token: string): string {
@@ -111,13 +124,18 @@ export async function handlePicture(method: string, token: string, body: Buffer 
     return json(410, { error: "This link has expired or was used. Press the button again." });
   }
   // A link is for one kind of request; taken either way, so a wrong call cannot be retried.
-  if ((ticket.kind === "modify") !== (method === "POST")) return json(400, { error: "This link is for another kind of picture." });
+  if ((ticket.kind === "modify") !== (method === "POST")) {
+    if (ticket.target) await deps.tickets.release(ticket.target);
+    return json(400, { error: "This link is for another kind of picture." });
+  }
 
   const res = await deps.callImageApi(ticket.uid, {
     kind: ticket.kind, prompt: ticket.prompt, model: ticket.model, outlines: ticket.outlines, detail: ticket.detail,
     ...(ticket.kind === "modify" ? { image: body!.toString("base64") } : {}),
   });
   if (!res.ok) {
+    // Nothing was made, so the card may ask again (after buying credits, say).
+    if (ticket.target) await deps.tickets.release(ticket.target);
     // The API's own answer, as the editor gets it: 402 with a code when credits run out.
     const data = await res.json().catch(() => ({ error: `The picture could not be made (${res.status}).` }));
     return json(res.status, data);
@@ -171,6 +189,7 @@ export function imageApiAsUser(options: {
 
 export class MemoryTicketStore implements TicketStore {
   private readonly tickets = new Map<string, PictureTicket>();
+  private readonly holds = new Map<string, Date>();
 
   async put(hash: string, ticket: PictureTicket): Promise<void> {
     this.tickets.set(hash, ticket);
@@ -181,13 +200,40 @@ export class MemoryTicketStore implements TicketStore {
     this.tickets.delete(hash);
     return ticket;
   }
+
+  async hold(target: string, until: Date, now: Date): Promise<boolean> {
+    const held = this.holds.get(target);
+    if (held && held > now) return false;
+    this.holds.set(target, until);
+    return true;
+  }
+
+  async release(target: string): Promise<void> {
+    this.holds.delete(target);
+  }
 }
 
-/** mcpPictureTickets/{hash}: closed to browsers (firestore.rules denies what it does not name).
- *  A TTL policy on expiresAt clears the ones never used. */
+/** mcpPictureTickets/{hash}, and hold-{target} beside them: closed to browsers (firestore.rules
+ *  denies what it does not name). A TTL policy on expiresAt clears both. */
 export class FirestoreTicketStore implements TicketStore {
   async put(hash: string, ticket: PictureTicket): Promise<void> {
     await getDb().collection("mcpPictureTickets").doc(hash).set(ticket);
+  }
+
+  async hold(target: string, until: Date, now: Date): Promise<boolean> {
+    const db = getDb();
+    const ref = db.collection("mcpPictureTickets").doc(`hold-${target}`);
+    return db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      // TTL deletes late (within a day), so an expired hold may still be there.
+      if (snap.exists && snap.data()!.expiresAt.toDate() > now) return false;
+      tx.set(ref, { expiresAt: until });
+      return true;
+    });
+  }
+
+  async release(target: string): Promise<void> {
+    await getDb().collection("mcpPictureTickets").doc(`hold-${target}`).delete();
   }
 
   async take(hash: string): Promise<PictureTicket | null> {

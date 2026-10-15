@@ -34,6 +34,10 @@ interface Asked {
   editorUrl: string;
   /** The drawing to change, for modify_image. */
   documentId?: string;
+  /** The id the picture is saved under, picked by the server with the card. The page lives
+   *  only as long as the chat keeps it: rebuilt (a phone app switched away and back, the chat
+   *  reopened) it gets the same result again, and finds the drawing there if it was made. */
+  targetId?: string;
 }
 
 /** The drawing a change starts from, as get_document_svg returns it. */
@@ -67,6 +71,7 @@ app.addEventListener('toolresult', (result) => {
     asked = {
       prompt: content.prompt, model: content.model ?? '', credits: content.credits ?? 0, editorUrl: content.editorUrl ?? '',
       ...(typeof content.documentId === 'string' ? { documentId: content.documentId } : {}),
+      ...(typeof content.targetId === 'string' ? { targetId: content.targetId } : {}),
     };
   }
   changed();
@@ -81,7 +86,17 @@ type Stage =
   | { kind: 'card' }
   | { kind: 'working'; step: 'generating' | 'tracing' }
   | { kind: 'failed'; message: string; credits: boolean }
-  | { kind: 'done'; png: string; svg: string; params: VectorizerParams; documentId: string };
+  | { kind: 'done'; png: string; svg: string; params: VectorizerParams; documentId: string }
+  /** Made before this page was: the saved drawing, without the picture the sliders trace. */
+  | { kind: 'made'; svg: string; documentId: string };
+
+/** The card's drawing if it was saved, or null: a missing one and a failed read alike show the
+ *  card, where picture_link refuses a second picture all the same. */
+async function loadMade(id: string): Promise<{ svg: string; title: string } | null> {
+  const result = await app.callServerTool({ name: 'get_document_svg', arguments: { document_id: id } }).catch(() => null);
+  const loaded = result?.structuredContent as Partial<Source> | undefined;
+  return !result || result.isError || typeof loaded?.svg !== 'string' ? null : { svg: loaded.svg, title: loaded.title ?? '' };
+}
 
 function readAsDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -131,6 +146,23 @@ function Widget() {
   /** The tracer's sliders are open until the user is done with them. */
   const [tuning, setTuning] = useState(true);
   const [source, setSource] = useState<Source | null>(null);
+  /** Whether the card's drawing was looked for; the card waits for that. */
+  const [checked, setChecked] = useState(false);
+
+  const showMade = (id: string, made: { svg: string; title: string }) => {
+    setStage({ kind: 'made', svg: made.svg, documentId: id });
+    if (made.title) setTitle(made.title);
+  };
+
+  useEffect(() => {
+    const target = asked?.targetId;
+    if (!target || checked) return;
+    void loadMade(target).then((made) => {
+      if (made) showMade(target, made);
+      setChecked(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version]);
 
   useEffect(() => {
     if (!asked) return;
@@ -162,11 +194,21 @@ function Widget() {
         picture = rendered.blob;
       }
 
+      const target = ask.targetId;
       const link = await app.callServerTool({
         name: 'picture_link',
-        arguments: { kind: modify ? 'modify' : 'generate', prompt, model: ask.model, outlines: style.outlines, detail: style.detail },
+        arguments: {
+          kind: modify ? 'modify' : 'generate', prompt, model: ask.model, outlines: style.outlines, detail: style.detail,
+          ...(target ? { target_id: target } : {}),
+        },
       });
-      const url = (link.structuredContent as { url?: string } | undefined)?.url;
+      const linked = link.structuredContent as { url?: string; made?: boolean } | undefined;
+      // Made from another copy of this card (the page rebuilt, or the chat on another device).
+      if (linked?.made && target) {
+        const made = await loadMade(target);
+        if (made) return showMade(target, made);
+      }
+      const url = linked?.url;
       if (link.isError || !url) throw new Error(textOf(link) || 'The picture could not be started.');
 
       const res = picture
@@ -182,8 +224,16 @@ function Widget() {
       setStage({ kind: 'working', step: 'tracing' });
       const { svg, params } = await traceToFit(png);
       const newTitle = modify ? (source?.title || prompt.slice(0, 80)) : prompt.slice(0, 80);
-      const saved = await app.callServerTool({ name: 'create_document', arguments: { svg, title: newTitle } });
-      const documentId = (saved.structuredContent as { documentId?: string } | undefined)?.documentId;
+      // Under the card's id, so a rebuilt page finds it; a card from before there were ids, as before.
+      const saved = target
+        ? await app.callServerTool({ name: 'save_picture', arguments: { document_id: target, svg, title: newTitle } })
+        : await app.callServerTool({ name: 'create_document', arguments: { svg, title: newTitle } });
+      const savedAs = saved.structuredContent as { documentId?: string; made?: boolean } | undefined;
+      if (savedAs?.made && target) {
+        const made = await loadMade(target);
+        if (made) return showMade(target, made);
+      }
+      const documentId = savedAs?.documentId;
       if (saved.isError || !documentId) throw new Error(textOf(saved) || 'The drawing could not be saved.');
 
       setStage({ kind: 'done', png, svg, params, documentId });
@@ -204,7 +254,7 @@ function Widget() {
   };
 
   const ask = asked;
-  const link = stage.kind === 'done' && ask?.editorUrl ? `${ask.editorUrl}/${stage.documentId}` : null;
+  const link = (stage.kind === 'done' || stage.kind === 'made') && ask?.editorUrl ? `${ask.editorUrl}/${stage.documentId}` : null;
 
   return (
     <MantineProvider theme={theme} forceColorScheme={context?.theme}>
@@ -223,8 +273,17 @@ function Widget() {
       </Group>
       {failure ? (
         <Center p="md"><Text size="sm" c="dimmed" ta="center">{failure}</Text></Center>
-      ) : !ask ? (
+      ) : !ask || (ask.targetId && !checked) ? (
         <Center p="md"><Loader size="sm" /></Center>
+      ) : stage.kind === 'made' ? (
+        <>
+          <Text size="xs" px="xs" py={4} c="dimmed" style={{ borderBottom: '1px solid var(--esvg-chrome-border)' }}>
+            This picture is made and saved to your EditSvgCode account. Open it in the editor to change it by hand.
+          </Text>
+          <div style={{ height: 360 }}>
+            <Preview svgCode={stage.svg} />
+          </div>
+        </>
       ) : stage.kind === 'card' ? (
         <Card ask={ask} source={source} onGenerate={(prompt, style) => void generate(ask, prompt, style)} />
       ) : stage.kind === 'working' ? (

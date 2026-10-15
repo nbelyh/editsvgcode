@@ -26,6 +26,9 @@ export interface DocumentSummary {
 export interface DocumentStore {
   get(id: string): Promise<StoredDocument | null>;
   create(uid: string, text: string, title: string): Promise<string>;
+  /** Create it under an id chosen beforehand (a picture card's, see server.ts generate_image);
+   *  false, writing nothing, when a document already has that id. */
+  createAt(id: string, uid: string, text: string, title: string): Promise<boolean>;
   /**
    * Read-modify-write in one transaction, so two edits racing on one document cannot both win.
    * `edit` returns the new text, or null to leave the document as it is.
@@ -68,20 +71,31 @@ export class FirestoreDocumentStore implements DocumentStore {
 
   async create(uid: string, text: string, title: string): Promise<string> {
     const id = newDocumentId();
+    await this.createAt(id, uid, text, title);
+    return id;
+  }
+
+  async createAt(id: string, uid: string, text: string, title: string): Promise<boolean> {
     // The fields the editor's own Save writes (firebase.ts saveDocument), as a saved private
     // file: it shows in the user's file list, and only they can open it until they share it.
-    await this.files().doc(id).create({
-      uid,
-      text,
-      title,
-      visibility: "private",
-      private: true,
-      saved: true,
-      createdAt: FieldValue.serverTimestamp(),
-      modified: FieldValue.serverTimestamp(),
-      createdBy: "mcp",
-    });
-    return id;
+    try {
+      await this.files().doc(id).create({
+        uid,
+        text,
+        title,
+        visibility: "private",
+        private: true,
+        saved: true,
+        createdAt: FieldValue.serverTimestamp(),
+        modified: FieldValue.serverTimestamp(),
+        createdBy: "mcp",
+      });
+      return true;
+    } catch (err) {
+      // gRPC ALREADY_EXISTS: create() never overwrites.
+      if ((err as { code?: number }).code === 6) return false;
+      throw err;
+    }
   }
 
   async update(id: string, edit: (current: StoredDocument) => string | null): Promise<StoredDocument | null> {
@@ -125,8 +139,14 @@ export class MemoryDocumentStore implements DocumentStore {
 
   async create(uid: string, text: string, title: string): Promise<string> {
     const id = newDocumentId();
-    this.docs.set(id, { id, uid, text, title, visibility: "private", modified: new Date() });
+    await this.createAt(id, uid, text, title);
     return id;
+  }
+
+  async createAt(id: string, uid: string, text: string, title: string): Promise<boolean> {
+    if (this.docs.has(id)) return false;
+    this.docs.set(id, { id, uid, text, title, visibility: "private", modified: new Date() });
+    return true;
   }
 
   async update(id: string, edit: (current: StoredDocument) => string | null): Promise<StoredDocument | null> {

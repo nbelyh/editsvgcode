@@ -5,8 +5,8 @@ import {
 import { buildSvgContext } from "../../src/lib/svg-ai";
 import { installDom } from "./dom";
 import { applyEditTool, runReadTool, svgBytes, EDIT_TOOLS, MAX_SVG_BYTES, READ_TOOLS } from "./edits";
-import type { DocumentStore, StoredDocument } from "./documents";
-import { DEFAULT_IMAGE_MODEL, IMAGE_MODELS, issueTicket, type TicketStore } from "./pictures";
+import { newDocumentId, type DocumentStore, type StoredDocument } from "./documents";
+import { DEFAULT_IMAGE_MODEL, HOLD_MS, IMAGE_MODELS, issueTicket, type TicketStore } from "./pictures";
 import { TOOLS } from "./tools";
 import { readWidgetHtml, WIDGET_MIME_TYPE, WIDGET_PAGES, widgetMeta } from "./widget";
 
@@ -64,6 +64,16 @@ export function documentIdOf(raw: unknown): string | null {
   return id;
 }
 
+/**
+ * A picture card's drawing id, as generate_image and modify_image pick it (newDocumentId:
+ * lowercase base36) before the drawing exists. The widget saves the picture under it, so a
+ * widget the chat rebuilt finds the drawing there and shows it instead of asking again.
+ */
+function targetIdOf(raw: unknown): string | null {
+  const id = String(raw ?? "");
+  return /^[0-9a-z]{10,40}$/.test(id) ? id : null;
+}
+
 function canRead(doc: StoredDocument, uid: string): boolean {
   return doc.uid === uid || doc.visibility !== "private";
 }
@@ -107,7 +117,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     if (!ctx.pictures) return text("Pictures are not available on this server.", true);
     // Where no widget shows the card, the editor shows its own (src/lib/open-from-url.ts).
     const editorLink = `${ctx.editorUrl}/?generate=${encodeURIComponent(prompt)}`;
-    return withData(`In chats that show widgets, a card now shows this picture and what it costs (${price.credits} credits); nothing is generated or charged until the user presses Generate on it, and the result is traced into an SVG drawing, saved to their account, and named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl });
+    return withData(`In chats that show widgets, a card now shows this picture and what it costs (${price.credits} credits); nothing is generated or charged until the user presses Generate on it, and the result is traced into an SVG drawing, saved to their account, and named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { prompt, model, credits: price.credits, editorUrl: ctx.editorUrl, targetId: newDocumentId() });
   }
 
   // The same card, for a change to a drawing: the widget renders it to a PNG and sends that up.
@@ -122,20 +132,48 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const doc = id ? await ctx.store.get(id) : null;
     if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
     const editorLink = `${ctx.editorUrl}/${doc.id}?modify=${encodeURIComponent(request)}`;
-    return withData(`In chats that show widgets, a card now shows the drawing, this change and what it costs (${price.credits} credits); nothing is changed or charged until the user presses Change on it, and the result is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl });
+    return withData(`In chats that show widgets, a card now shows the drawing, this change and what it costs (${price.credits} credits); nothing is changed or charged until the user presses Change on it, and the result is traced into SVG and saved as a new drawing (document ${doc.id} stays as it is), named in a note. Where no card appears (the chat shows no widgets), the same card opens in the EditSvgCode editor at ${editorLink}, charged to the same credits; the result stays in the editor.`, { mode: "modify", documentId: doc.id, prompt: request, model, credits: price.credits, editorUrl: ctx.editorUrl, targetId: newDocumentId() });
   }
 
   // For the picture widget alone: a link that makes one picture, once, charged to this user.
+  // With the card's target, a card whose picture is saved or still being made gets none.
   if (name === "picture_link") {
     if (!ctx.pictures) return text("Pictures are not available on this server.", true);
     const prompt = String(args.prompt ?? "").trim().slice(0, 4000);
     const model = String(args.model ?? DEFAULT_IMAGE_MODEL);
     if (!prompt || !IMAGE_MODELS[model]) return text("A picture needs a prompt and a known image model.", true);
+    const target = args.target_id === undefined ? null : targetIdOf(args.target_id);
+    if (args.target_id !== undefined && !target) return text("That is not a picture card's drawing.", true);
+    if (target) {
+      if (await ctx.store.get(target)) {
+        return { ...text("This card's picture was made already.", true), structuredContent: { made: true, documentId: target } };
+      }
+      const now = Date.now();
+      if (!await ctx.pictures.tickets.hold(target, new Date(now + HOLD_MS), new Date(now))) {
+        return { ...text("This card's picture is being made already. Wait a minute for it.", true), structuredContent: { busy: true } };
+      }
+    }
     const token = await issueTicket(ctx.pictures.tickets, {
       uid: ctx.uid, kind: args.kind === "modify" ? "modify" : "generate", prompt, model,
       outlines: args.outlines !== false, detail: args.detail === true,
+      ...(target ? { target } : {}),
     });
     return { ...text("A one-time link for the picture."), structuredContent: { url: `${ctx.pictures.url}/${token}` } };
+  }
+
+  // For the picture widget alone: the traced picture, saved under the card's drawing id, once.
+  if (name === "save_picture") {
+    const target = targetIdOf(args.document_id);
+    if (!target) return text("That is not a picture card's drawing.", true);
+    const svg = String(args.svg ?? "");
+    if (!svg.trim()) return text("Give the traced SVG in \"svg\".", true);
+    const bytes = svgBytes(svg);
+    if (bytes > MAX_SVG_BYTES) return text(`The SVG is ${bytes} bytes, over the ${MAX_SVG_BYTES}-byte limit.`, true);
+    const title = String(args.title ?? "").slice(0, 200);
+    if (!await ctx.store.createAt(target, ctx.uid, svg, title)) {
+      return { ...text(`Document ${target} is saved already.`, true), structuredContent: { made: true, documentId: target } };
+    }
+    return withData(`Saved as document ${target}. Editor: ${ctx.editorUrl}/${target}`, { documentId: target });
   }
 
   // The widget takes the file and saves it with create_document, then says so in the chat.
