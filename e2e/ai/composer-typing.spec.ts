@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { installRenderCounter, waitForStartup } from '../support/render-counter';
 
 /**
  * Typing in the AI composer must re-render the composer and nothing else in the
@@ -17,59 +18,6 @@ import { test, expect, type Page } from '@playwright/test';
  * sees exactly which components did work.
  */
 
-/**
- * Install a minimal React DevTools hook that counts, per component name, the
- * renders in each commit.
- *
- * A function component rendered in a commit when its fiber both is new since
- * the previous commit and carries the PerformedWork flag. Either test alone is
- * wrong: a subtree React skips entirely keeps its old fibers, flags and all, and
- * a fiber cloned only to bail out is new but has its flags reset.
- */
-async function installRenderCounter(page: Page) {
-  await page.addInitScript(() => {
-    const PERFORMED_WORK = 1;
-    const w = window as any;
-    w.__renders = {} as Record<string, number>;
-    w.__lastRenderAt = {} as Record<string, number>;
-    let prevSeen = new Set<object>();
-    const nameOf = (type: any): string | undefined => {
-      if (typeof type === 'function') return type.displayName || type.name;
-      // memo / forwardRef wrappers: Mantine names its components on the wrapper
-      // ("@mantine/core/Radio") and leaves the inner render function anonymous.
-      if (type && typeof type === 'object') return type.displayName || nameOf(type.type ?? type.render);
-      return undefined;
-    };
-    w.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-      supportsFiber: true,
-      renderers: new Map(),
-      inject: () => 1,
-      checkDCE: () => {},
-      onScheduleFiberRoot: () => {},
-      onCommitFiberUnmount: () => {},
-      onPostCommitFiberRoot: () => {},
-      setStrictMode: () => {},
-      onCommitFiberRoot: (_id: number, root: any) => {
-        const seen = new Set<object>();
-        const stack = [root.current];
-        while (stack.length) {
-          const fiber = stack.pop();
-          if (!fiber) continue;
-          seen.add(fiber);
-          const name = nameOf(fiber.type);
-          if (name && !prevSeen.has(fiber) && (fiber.flags & PERFORMED_WORK)) {
-            w.__renders[name] = (w.__renders[name] ?? 0) + 1;
-            w.__lastRenderAt[name] = performance.now();
-          }
-          if (fiber.sibling) stack.push(fiber.sibling);
-          if (fiber.child) stack.push(fiber.child);
-        }
-        prevSeen = seen;
-      },
-    };
-  });
-}
-
 // The phone layout: preview over the chat, which is where the slow typing was
 // measured. The render scope is the same at any width.
 test.use({ viewport: { width: 412, height: 915 } });
@@ -87,15 +35,12 @@ test('typing in the composer re-renders neither the thread nor the model picker'
   await expect(composer).toBeEnabled({ timeout: 20000 });
 
   // Let start-up settle first: auth and the chat load legitimately re-render the
-  // thread, and none of that is typing. The composer only appears once access is
-  // resolved; the sign-in hint only once the panel knows this is a guest, which
-  // is the last of them. A guest has no credits listener, so nothing else
-  // arrives later. The quiet period on top covers anything that slips past.
-  await expect(page.getByText(/AI edits need a free sign-in/)).toBeVisible({ timeout: 20000 });
-  await page.waitForFunction(() => {
-    const last = (window as any).__lastRenderAt.ChatThread ?? 0;
-    return performance.now() - last > 1500;
-  }, undefined, { timeout: 20000, polling: 250 });
+  // thread, and none of that is typing. The sign-in hint is no signal for it any
+  // more — it paints before auth answers — so wait for the session itself and
+  // the renders it sets off. A guest has no credits listener, so nothing else
+  // arrives later.
+  await waitForStartup(page);
+  await expect(page.getByText(/AI edits need a free sign-in/)).toBeVisible();
 
   await page.evaluate(() => { (window as any).__renders = {}; });
 
