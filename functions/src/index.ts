@@ -7,6 +7,12 @@ import { FirestoreOAuthStore } from "./oauth-store";
 import { FirestoreTicketStore, imageApiAsUser } from "./pictures";
 
 /**
+ * Next to the Firestore databases (eur3, Europe), which every request reads and writes. The
+ * Hosting rewrites in firebase.json and the dev proxy in vite.config.ts name it too.
+ */
+const REGION = "europe-west1";
+
+/**
  * Where the picture widget fetches a picture: this function's own address, not the site's —
  * Hosting rewrites only /mcp, /oauth and /.well-known to it. PICTURE_URL overrides.
  */
@@ -14,8 +20,8 @@ function pictureUrl(): string {
   if (process.env.PICTURE_URL) return process.env.PICTURE_URL;
   const project = process.env.GCLOUD_PROJECT;
   return process.env.FUNCTIONS_EMULATOR === "true"
-    ? `http://127.0.0.1:5001/${project}/us-central1/mcp/picture`
-    : `https://us-central1-${project}.cloudfunctions.net/mcp/picture`;
+    ? `http://127.0.0.1:5001/${project}/${REGION}/mcp/picture`
+    : `https://${REGION}-${project}.cloudfunctions.net/mcp/picture`;
 }
 
 // The editsvgcode API and the site's public Firebase key (functions/.env.<project>, as
@@ -41,7 +47,7 @@ const deps: Deps = {
  */
 export const mcp = onRequest(
   // jsdom parses the documents; 512 MiB leaves room for a large one. maxInstances caps the bill.
-  { region: "us-central1", memory: "512MiB", timeoutSeconds: 60, maxInstances: 10 },
+  { region: REGION, memory: "512MiB", timeoutSeconds: 60, maxInstances: 10 },
   async (req, res) => {
     try {
       await handleRequest(req, res, deps);

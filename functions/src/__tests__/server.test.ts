@@ -16,7 +16,7 @@ const DRAWING = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 </svg>`;
 
 const WIDGET_PAGE = "<!doctype html><title>preview</title>";
-const PICTURE_URL = "https://us-central1-test.cloudfunctions.net/mcp/picture";
+const PICTURE_URL = "https://europe-west1-test.cloudfunctions.net/mcp/picture";
 
 let store: MemoryDocumentStore;
 let tickets: MemoryTicketStore;
@@ -158,7 +158,7 @@ describe("the drawing shown in the chat", () => {
     expect((contents[0]._meta as { ui: { csp: { connectDomains: string[] } } }).ui.csp.connectDomains).toEqual([]);
     const picture = await client.readResource({ uri: PICTURE_WIDGET_URI });
     expect((picture.contents[0]._meta as { ui: { csp: { connectDomains: string[] } } }).ui.csp.connectDomains)
-      .toEqual(["https://us-central1-test.cloudfunctions.net"]);
+      .toEqual(["https://europe-west1-test.cloudfunctions.net"]);
     await expect(client.readResource({ uri: "ui://editsvgcode/preview.html" })).rejects.toThrow();
   });
 

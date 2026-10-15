@@ -80,7 +80,7 @@ export default defineConfig({
     proxy: Object.fromEntries(['/mcp', '/oauth', '/.well-known/oauth-'].map((prefix) => [prefix, {
       target: 'http://127.0.0.1:5001',
       xfwd: true,
-      rewrite: (path: string) => `/editsvgcode-dev/us-central1/mcp${path}`,
+      rewrite: (path: string) => `/editsvgcode-dev/europe-west1/mcp${path}`,
     }])),
   },
   test: {

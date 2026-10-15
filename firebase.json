@@ -51,19 +51,19 @@
     "rewrites": [
       {
         "source": "/mcp",
-        "function": { "functionId": "mcp", "region": "us-central1" }
+        "function": { "functionId": "mcp", "region": "europe-west1" }
       },
       {
         "source": "/oauth/**",
-        "function": { "functionId": "mcp", "region": "us-central1" }
+        "function": { "functionId": "mcp", "region": "europe-west1" }
       },
       {
         "source": "/.well-known/oauth-*/**",
-        "function": { "functionId": "mcp", "region": "us-central1" }
+        "function": { "functionId": "mcp", "region": "europe-west1" }
       },
       {
         "source": "/.well-known/oauth-*",
-        "function": { "functionId": "mcp", "region": "us-central1" }
+        "function": { "functionId": "mcp", "region": "europe-west1" }
       },
       {
         "source": "**",

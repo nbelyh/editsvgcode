@@ -56,8 +56,10 @@ sign in. Deploy to beta with `npm run deploy:mcp:beta` — and only with the use
 `npm run deploy`; Hosting can refuse a rewrite to a function that does not exist yet, and
 `/mcp` would fail until it does.
 Functions need the Blaze plan. The `/connect` page ships with the editor (hosting deploy).
-The region (`us-central1`, in `functions/src/index.ts` and the
-rewrite in `firebase.json`) should match the Firestore database's location.
+The region (`europe-west1`, in `functions/src/index.ts`, the rewrites in `firebase.json` and
+the dev proxy in `vite.config.ts`) matches the Firestore databases' location (`eur3`); every
+request reads and writes them. Moving it means deploying the function in the new region,
+deploying Hosting with the new rewrites, then deleting the old function.
 
 ## Steps
 
