@@ -117,10 +117,14 @@ export function measureElements(svgCode: string, selector: string, limit = Infin
  * Measure bounding boxes of elements matching a CSS selector in the given SVG code.
  * Returns a formatted string for the model.
  */
-export function getElementBounds(svgCode: string, selector: string): string {
+export function getElementBounds(
+  svgCode: string,
+  selector: string,
+  measure: (svg: string, selector: string, limit: number) => Measurement | { error: string } = measureElements,
+): string {
   // Limit results to avoid overwhelming the model
   const maxResults = 30;
-  const measured = measureElements(svgCode, selector, maxResults);
+  const measured = measure(svgCode, selector, maxResults);
   if ('error' in measured) return measured.error;
   const { matched, boxes: results } = measured;
 

@@ -692,6 +692,50 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Where a start tag's style attribute declares `property`: the span of its value within the
+ * tag text, without any `!important`, and the attribute's quote. Null when it does not.
+ */
+function inlineDeclaration(tag: string, property: string): { start: number; end: number; quote: string } | null {
+  if (property.toLowerCase() === 'style') return null;
+  const style = /\sstyle\s*=\s*(["'])([\s\S]*?)\1/.exec(tag);
+  if (!style) return null;
+  const valueAt = style.index + style[0].length - 1 - style[2].length;
+  const decl = new RegExp(`(^|;)\\s*${escapeRegExp(property)}\\s*:\\s*`, 'i').exec(style[2]);
+  if (!decl) return null;
+  const from = decl.index + decl[0].length;
+  const rest = style[2].slice(from);
+  // An entity (&quot; round a font name) ends in ';' too, and is part of the value, not its end.
+  const value = /^(?:&#?\w+;|[^;])*?(?=\s*(?:!\s*important\s*)?(?:;|$))/i.exec(rest);
+  const length = value ? value[0].length : 0;
+  return { start: valueAt + from, end: valueAt + from + length, quote: style[1] };
+}
+
+/** Properties whose attribute value reads the same as CSS: colours, opacities, keywords, names. */
+const SAME_IN_CSS = new Set([
+  'fill', 'stroke', 'color', 'stop-color', 'flood-color', 'lighting-color', 'opacity', 'fill-opacity',
+  'stroke-opacity', 'stop-opacity', 'flood-opacity', 'fill-rule', 'clip-rule', 'stroke-linecap', 'stroke-linejoin',
+  'stroke-miterlimit', 'stroke-width', 'stroke-dasharray', 'stroke-dashoffset', 'display', 'visibility',
+  'font-family', 'font-weight', 'font-style', 'font-variant', 'text-anchor', 'dominant-baseline', 'text-decoration',
+  'paint-order', 'mix-blend-mode', 'vector-effect', 'pointer-events',
+]);
+/** Lengths CSS wants a unit on, where an attribute takes a bare number as user units. */
+const NEEDS_UNIT = new Set(['font-size', 'letter-spacing', 'word-spacing']);
+
+/**
+ * An attribute value as the same declaration in CSS, or null where the two syntaxes differ
+ * (transform, x, width…): written into a style unchanged, "font-size: 20" is invalid CSS, and the
+ * declaration would be dropped while the edit reported success.
+ */
+function asInlineCss(property: string, value: string): string | null {
+  // "red; display: none" would add a declaration of its own.
+  if (/[;{}]/.test(value)) return null;
+  const name = property.toLowerCase();
+  if (SAME_IN_CSS.has(name)) return value;
+  if (NEEDS_UNIT.has(name)) return /^\s*-?(\d+\.?\d*|\.\d+)\s*$/.test(value) ? `${value.trim()}px` : value;
+  return null;
+}
+
 /** Escape a value for a double-quoted attribute. */
 function escapeAttr(s: string): string {
   return s.replace(/[&<>"]/g, (c) => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;'));
@@ -750,10 +794,26 @@ export function planAttributeEdits(
     }
 
     const resolved: TextEditRange[] = [];
+    // Elements whose own style attribute already declares the property: an inline style beats
+    // a presentation attribute, so setting fill= on a traced path (style="fill: #F57F14;") was
+    // reported as applied and changed nothing. The value goes into that declaration instead.
+    const restyled: Element[] = [];
+    // Elements whose style sets a property whose attribute syntax is not CSS (transform, x): the
+    // attribute is set as asked, and the style still wins, so it is said.
+    const outranked: Element[] = [];
     for (const el of found) {
       const tag = tags.get(el);
       if (!tag) continue;
       const text = source.slice(tag.start, tag.end);
+      const inline = edit.value === null ? null : inlineDeclaration(text, edit.name);
+      const css = inline && edit.value !== null ? asInlineCss(edit.name, edit.value) : null;
+      if (inline && css !== null) {
+        const value = escapeAttr(css).replace(/'/g, inline.quote === "'" ? '&apos;' : "'");
+        resolved.push({ start: tag.start + inline.start, end: tag.start + inline.end, replacement: value });
+        restyled.push(el);
+        continue;
+      }
+      if (inline) outranked.push(el);
       const attr = new RegExp(`\\s${escapeRegExp(edit.name)}\\s*=\\s*(["'])[\\s\\S]*?\\1`);
       const m = attr.exec(text);
 
@@ -777,7 +837,14 @@ export function planAttributeEdits(
     ranges.push(...resolved);
     const changed = resolved.length;
 
-    const overridden = changed > 0 ? cssRulesOverriding(doc, found, edit.name) : [];
+    // An inline style also beats a <style> rule, so only the elements given the attribute can
+    // lose to one.
+    const attributed = found.filter((el) => !restyled.includes(el));
+    const overridden = changed > restyled.length ? cssRulesOverriding(doc, attributed, edit.name) : [];
+    const intoStyle = restyled.length === 0 ? undefined
+      : `"${edit.name}" is set in the style attribute of ${restyled.length === changed ? (changed === 1 ? 'this element' : `all ${changed} of these`) : `${restyled.length} of these`}, which beats a ${edit.name}= attribute, so the new value was written there.`;
+    const styleWins = outranked.length === 0 ? undefined
+      : `NOTE: the attribute was set, but the style attribute of ${outranked.length === 1 ? 'the element' : `${outranked.length} of these`} also sets "${edit.name}", which overrides it — the drawing will not change there. Set "style" instead, writing the whole declaration in CSS.`;
     outcomes.push(changed > 0
       ? {
           selector: edit.selector,
@@ -788,10 +855,14 @@ export function planAttributeEdits(
           // a class rule setting the same property wins and the edit has no visible
           // effect. Silently succeeding while nothing changes on screen is the
           // failure this whole approach exists to avoid, so say it.
-          ...(overridden.length > 0 ? { ineffective: true as const } : {}),
-          detail: overridden.length > 0
-            ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Change the rule instead, with set_style_rule.`
-            : undefined,
+          ...(overridden.length > 0 || styleWins ? { ineffective: true as const } : {}),
+          detail: [
+            overridden.length > 0
+              ? `NOTE: the attribute was set, but "${edit.name}" is also set by CSS (${overridden.slice(0, 3).join(', ')}), which overrides a presentation attribute — the drawing will not change. Change the rule instead, with set_style_rule.`
+              : '',
+            styleWins ?? '',
+            intoStyle ?? '',
+          ].filter(Boolean).join(' ') || undefined,
         }
       : { selector: edit.selector, status: 'failed', matched: found.length, ranges: [], detail: `matched ${found.length} element(s), none of which has a "${edit.name}" attribute to remove` });
   }

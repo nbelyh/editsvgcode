@@ -5,6 +5,7 @@ import { createCustomToken, uidFromFirebaseToken } from "./firebase";
 import { handleRequest, type Deps } from "./handler";
 import { FirestoreOAuthStore } from "./oauth-store";
 import { FirestoreTicketStore, imageApiAsUser } from "./pictures";
+import { FirestoreExportStore } from "./exports";
 
 /**
  * Next to the Firestore databases (eur3, Europe), which every request reads and writes. The
@@ -39,6 +40,7 @@ const deps: Deps = {
   pictures: apiUrl && webApiKey
     ? { url: pictureUrl(), tickets: new FirestoreTicketStore(), callImageApi: imageApiAsUser({ apiUrl, webApiKey, createCustomToken }) }
     : undefined,
+  exports: new FirestoreExportStore(),
 };
 
 /**

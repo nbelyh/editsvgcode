@@ -228,6 +228,37 @@ export async function fetchIcons(
   return { icons };
 }
 
+/**
+ * One icon by its id ("tabler:home"), as a search would have returned it: for a client that
+ * shows the results itself and asks for the one picked by name (the MCP server's search_icons).
+ */
+export async function fetchIcon(id: string, signal?: AbortSignal): Promise<IconResult | { error: string }> {
+  const [prefix, name] = id.trim().split(':');
+  if (!prefix || !name || !/^[a-z0-9-]+$/.test(prefix) || !/^[a-z0-9-]+$/.test(name)) {
+    return { error: `"${id}" is not an icon name; use one a search listed, such as tabler:home.` };
+  }
+  try {
+    const [setRes, infoRes] = await Promise.all([
+      fetch(`${ICONIFY_API}/${prefix}.json?icons=${encodeURIComponent(name)}`, { signal }),
+      fetch(`${ICONIFY_API}/collections?prefixes=${encodeURIComponent(prefix)}`, { signal }),
+    ]);
+    if (!setRes.ok) return { error: `The icon library did not answer (HTTP ${setRes.status}). Try again in a moment.` };
+    const svg = svgOf(await setRes.json() as IconifyIconSet, name);
+    if (!svg) return { error: `There is no icon "${id}". Use a name a search listed.` };
+    const col = infoRes.ok ? ((await infoRes.json()) as Record<string, IconifyCollectionInfo>)[prefix] : undefined;
+    return {
+      name: `${prefix}:${name}`,
+      svg,
+      setName: col?.name ?? prefix,
+      license: col?.license?.title ?? 'Unknown',
+      licenseUrl: col?.license?.url ?? col?.author?.url,
+      needsAttribution: !NO_ATTRIBUTION_SPDX.has(col?.license?.spdx ?? ''),
+    };
+  } catch {
+    return { error: 'The icon library could not be reached. Try again in a moment.' };
+  }
+}
+
 /** An SVG's size in its own units: the viewBox, else width and height; null when it has neither. */
 function sizeOf(svg: string): { x: number; y: number; width: number; height: number } | null {
   const root = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;

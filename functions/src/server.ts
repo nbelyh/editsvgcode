@@ -2,11 +2,17 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { buildSvgContext } from "../../src/lib/svg-ai";
+import { fetchIcon, fetchIcons, formatIconForModel } from "../../src/lib/icon-search";
+import { buildSvgContext, CLIP_MARKER } from "../../src/lib/svg-ai";
+import { looksTraced, TRACED_NOTE } from "../../src/lib/traced";
+import { getElementBounds } from "../../src/lib/svg-bounds";
+import { renderSnapshot, type SnapshotOptions } from "../../src/lib/svg-snapshot";
 import { installDom } from "./dom";
 import { applyEditTool, runReadTool, svgBytes, EDIT_TOOLS, MAX_SVG_BYTES, READ_TOOLS } from "./edits";
 import { newDocumentId, type DocumentStore, type StoredDocument } from "./documents";
 import { DEFAULT_IMAGE_MODEL, HOLD_MS, IMAGE_MODELS, issueTicket, type TicketStore } from "./pictures";
+import { EXPORT_TTL_MS, fileName, issueExport, PNG_SIZES, type ExportFormat, type ExportStore } from "./exports";
+import { iconSheet, measureWithResvg, resvgBackend } from "./render";
 import { TOOLS } from "./tools";
 import { readWidgetHtml, WIDGET_MIME_TYPE, WIDGET_PAGES, widgetMeta } from "./widget";
 
@@ -20,6 +26,9 @@ export interface McpContext {
   /** Pictures: where the picture widget fetches one (…/picture, see pictures.ts), and the
    *  one-time tickets behind those links. Unset, generate_image says pictures are unavailable. */
   pictures?: { url: string; tickets: TicketStore };
+  /** Download links (exports.ts): where they point, without the token, and the tickets behind
+   *  them. Unset, export_document says downloads are unavailable. */
+  exports?: { url: string; store: ExportStore };
 }
 
 const INSTRUCTIONS = `editsvgcode edits SVG drawings that live in the user's editsvgcode.com account.
@@ -29,6 +38,10 @@ When the user attaches an SVG file or wants to give you one, call upload_documen
 When the user asks to generate an image or picture, or wants an illustration, a character, an animal, a scene — anything better painted than drawn with a few shapes — call generate_image, even when they say SVG: the picture is traced into SVG. It puts a card in the chat where the user sees the price and decides; do not avoid it to save their credits. Draw icons and simple shapes yourself, or when the user asks for hand-made shapes.
 To change such a picture — add or remove a detail, change a pose, an expression, the style — call modify_image with its document id, rather than generating a new one: the image model redraws it from the drawing as it is. Recolouring and small changes to shapes are better done with the edit tools, which cost nothing.
 Prefer the structural tools (set_attribute, set_text, set_style_rule, insert_element, remove_element) over replace_lines, and replace_lines over replace_svg: they change only what they address, so coordinates and formatting survive. Use query to find out what an address matches before editing many elements.
+You do not see what show_document shows the user. To see the drawing yourself, call get_png_image: before recolouring or removing part of a traced picture, highlight the candidate paths to find which one is the part meant, and look again to check the result.
+To change a drawing while keeping the original, or one someone else shared, copy_document it first and edit the copy.
+For a recognizable object or symbol, search_icons finds an open-source icon to insert instead of drawing one.
+When a change to a generated or traced picture is too complex to make well with the edit tools — something to add, remove or reshape, a pose, an expression, a part with no shape of its own — use modify_image rather than drawing paths by hand: it redraws the picture from the drawing as it is.
 Every edit is saved immediately. Line numbers refer to the document as it is NOW; after an edit that adds or removes lines, re-read before using line numbers again.`;
 
 function text(t: string, isError = false): CallToolResult {
@@ -87,12 +100,56 @@ function canEdit(doc: StoredDocument, uid: string): boolean {
   return doc.uid === uid || doc.uid === null;
 }
 
+/** Up to this size a drawing just made is shown back whole, numbered; beyond it, as an outline. */
+const ECHO_CHARS = 4000;
+/** An outline's lines are cut here, marked as clipped lines are, so none is copied back as whole. */
+const OUTLINE_LINE_CHARS = 160;
+const OUTLINE_LINES = 300;
+
+/**
+ * A drawing the model has just written, or copied: its numbered lines, to address them by, but
+ * not all of it again. Sending a 20 KB traced picture back right after it was sent doubled the
+ * cost of every create.
+ */
+function outline(svg: string): string {
+  const source = normalized(svg);
+  if (source.length <= ECHO_CHARS) return buildSvgContext(source);
+  const lines = source.split("\n");
+  const clip = (line: string) => line.length <= OUTLINE_LINE_CHARS ? line
+    : `${line.slice(0, OUTLINE_LINE_CHARS)} [... ${line.length - OUTLINE_LINE_CHARS} ${CLIP_MARKER} ...]`;
+  const numbered = (from: number, list: string[]) => list.map((l, i) => `${from + i}: ${clip(l)}`);
+  const shown = lines.length <= OUTLINE_LINES ? numbered(1, lines)
+    : [...numbered(1, lines.slice(0, OUTLINE_LINES - 50)),
+      `[... lines ${OUTLINE_LINES - 49}–${lines.length - 50} not shown ...]`,
+      ...numbered(lines.length - 49, lines.slice(-50))];
+  const kb = Math.round(source.length / 1024);
+  return `SVG document (${lines.length} lines, ${kb} KB), as an outline: long lines are clipped; read_svg_lines returns any line in full.\n\`\`\`\n${shown.join("\n")}\n\`\`\``;
+}
+
+/** Said of a traced drawing when it is opened, as the editor says it each turn (traced.ts). */
+function tracedNote(svg: string): string {
+  return looksTraced(svg) ? `\n${TRACED_NOTE}` : "";
+}
+
+/** The text every address is read against, as the editor reads it (api-client.ts normalizedSvg). */
+function normalized(svg: string): string {
+  return svg.replace(/\r\n/g, "\n");
+}
+
+const STYLES = ["outline", "filled", "any"] as const;
+const PALETTES = ["colored", "monochrome", "any"] as const;
+function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T): T {
+  return list.includes(value as T) ? (value as T) : fallback;
+}
+/** Icons shown from one search: a sheet of 4 × 3 still reads at a glance. */
+const MAX_ICONS = 12;
+
 function describe(doc: StoredDocument, ctx: McpContext): string {
   const owner = doc.uid === ctx.uid
     ? `yours, ${doc.visibility}`
     : doc.uid === null
       ? `no owner, ${doc.visibility} — anyone signed in can edit it`
-      : "someone else's — read only; create_document a copy to change it";
+      : "someone else's — read only; copy_document it to change a copy";
   const title = doc.title ? ` "${doc.title}"` : "";
   return `Document ${doc.id}${title} (${owner}). Editor: ${ctx.editorUrl}/${doc.id}`;
 }
@@ -108,7 +165,66 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
     const title = String(args.title ?? "").slice(0, 200);
     const id = await ctx.store.create(ctx.uid, svg, title);
     const doc: StoredDocument = { id, text: svg, uid: ctx.uid, visibility: "private", title };
-    return withData(`${describe(doc, ctx)}\n\n${buildSvgContext(svg)}`, { documentId: id });
+    return withData(`${describe(doc, ctx)}\n\n${outline(svg)}`, { documentId: id });
+  }
+
+  // A link to the file itself (exports.ts), for the user or another program: the model never
+  // types the drawing out to hand it over.
+  if (name === "export_document") {
+    if (!ctx.exports) return text("Downloads are not available on this server.", true);
+    const id = documentIdOf(args.document_id);
+    const doc = id ? await ctx.store.get(id) : null;
+    if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
+    const format: ExportFormat = args.format === "png" ? "png" : "svg";
+    const asked = args.size === undefined || args.size === null || args.size === "" ? NaN : Number(args.size);
+    const size = Number.isFinite(asked) ? Math.round(Math.min(PNG_SIZES.max, Math.max(PNG_SIZES.min, asked))) : PNG_SIZES.default;
+    const token = await issueExport(ctx.exports.store, { uid: ctx.uid, documentId: doc.id, format, size });
+    const url = `${ctx.exports.url}/${token}`;
+    const what = format === "svg" ? "the SVG file" : `a PNG ${size} pixels on its longest side`;
+    const name = fileName(doc.title, doc.id, format);
+    return withData(`Download link for ${what} of document ${doc.id}, saved as ${name}: ${url}\nIt works without signing in and lasts ${EXPORT_TTL_MS / 60_000} minutes, serving the drawing as it is when fetched. Give it to the user as a link, or fetch it: curl -L -o ${name} "${url}"`, { url, format, fileName: name });
+  }
+
+  // On the server, so a large drawing is never re-typed, and a shared one can be changed as a copy.
+  if (name === "copy_document") {
+    const id = documentIdOf(args.document_id);
+    const doc = id ? await ctx.store.get(id) : null;
+    if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id ?? "")}" you can open.`, true);
+    const title = (String(args.title ?? "").trim() || (doc.title ? `${doc.title} (copy)` : "Copy")).slice(0, 200);
+    const copyId = await ctx.store.create(ctx.uid, doc.text, title);
+    const copy: StoredDocument = { id: copyId, text: doc.text, uid: ctx.uid, visibility: "private", title };
+    return withData(`Copied document ${doc.id}; edit the copy. ${describe(copy, ctx)}${tracedNote(doc.text)}\n\n${outline(doc.text)}`, { documentId: copyId });
+  }
+
+  // The editor shows a search's icons for the user to click; here the model picks from a sheet
+  // of them, and asks for the one it chose by name.
+  if (name === "search_icons") {
+    if (args.pick !== undefined && String(args.pick).trim()) {
+      const icon = await fetchIcon(String(args.pick));
+      if ("error" in icon) return text(icon.error, true);
+      let into = "";
+      if (args.document_id !== undefined) {
+        const id = documentIdOf(args.document_id);
+        const doc = id ? await ctx.store.get(id) : null;
+        if (!doc || !canRead(doc, ctx.uid)) return text(`There is no document "${String(args.document_id)}" you can open.`, true);
+        into = normalized(doc.text);
+      }
+      return text(formatIconForModel(icon, into).replace(/^User selected icon:/, "Icon:"));
+    }
+    const query = String(args.query ?? "").trim();
+    if (!query) return text("Give one or two keywords in \"query\".", true);
+    const { icons, error } = await fetchIcons(query, oneOf(STYLES, args.style, "any"), args.noAttribution !== false, oneOf(PALETTES, args.palette, "any"));
+    if (error || icons.length === 0) return text(error ?? "No icons found.", true);
+    const shown = icons.slice(0, MAX_ICONS);
+    const rows = shown.map((icon, i) => `${i + 1}. ${icon.name} — ${icon.setName}, ${icon.license}${icon.needsAttribution ? " (needs attribution)" : ""}`);
+    const listing = `${shown.length} icons for "${query}", numbered as in the picture:\n${rows.join("\n")}\n\nCall search_icons again with pick set to the chosen name, and document_id, to get it ready to insert. If none fits, search with another word, or use generate_image for a picture of its own.`;
+    let sheet: string | null = null;
+    try {
+      sheet = iconSheet(shown);
+    } catch {
+      // The names are still there to pick by.
+    }
+    return { content: [{ type: "text", text: listing }, ...(sheet ? [{ type: "image" as const, data: sheet, mimeType: "image/png" }] : [])] };
   }
 
   // Only the card: the user presses Generate on it, and the picture widget does the rest.
@@ -211,6 +327,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
   const id = documentIdOf(args.document_id);
   if (!id) return text(`"${String(args.document_id ?? "")}" is not a document id or editor link.`, true);
   const isRead = name === "open_document" || name === "show_document" || name === "get_document_svg"
+    || name === "get_png_image" || name === "get_element_bounds"
     || (READ_TOOLS as readonly string[]).includes(name);
   const isEdit = (EDIT_TOOLS as readonly string[]).includes(name);
   if (!isRead && !isEdit) return text(`Unknown tool "${name}".`, true);
@@ -221,7 +338,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
   if (isRead) {
     const doc = await ctx.store.get(id);
     if (!doc || !canRead(doc, ctx.uid)) return text(missing, true);
-    if (name === "open_document") return text(`${describe(doc, ctx)}\n\n${buildSvgContext(doc.text)}`);
+    if (name === "open_document") return text(`${describe(doc, ctx)}${tracedNote(doc.text)}\n\n${buildSvgContext(doc.text)}`);
     // The widget is handed only the id, and fetches the markup itself through get_document_svg.
     if (name === "show_document") {
       return withData(`Showing the drawing to the user. ${describe(doc, ctx)}`, { documentId: doc.id, link: `${ctx.editorUrl}/${doc.id}` });
@@ -232,6 +349,20 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
         structuredContent: { svg: doc.text, title: doc.title, link: `${ctx.editorUrl}/${doc.id}` },
       };
     }
+    // The editor's get_png_image and get_element_bounds, drawn and measured by resvg (render.ts).
+    if (name === "get_png_image") {
+      const shot = await renderSnapshot(normalized(doc.text), args as SnapshotOptions, resvgBackend);
+      if (!shot.dataUrl) return text(shot.text, true);
+      return {
+        content: [
+          { type: "text", text: shot.text },
+          { type: "image", data: shot.dataUrl.replace(/^data:image\/png;base64,/, ""), mimeType: "image/png" },
+        ],
+      };
+    }
+    if (name === "get_element_bounds") {
+      return text(getElementBounds(normalized(doc.text), String(args.selector ?? ""), measureWithResvg));
+    }
     return text(runReadTool(name, args, doc.text));
   }
 
@@ -241,7 +372,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
   await ctx.store.update(id, (current) => {
     if (!canRead(current, ctx.uid)) return null;
     if (!canEdit(current, ctx.uid)) {
-      message = `Document ${id} belongs to someone else, so it cannot be changed. create_document a copy of it to edit.`;
+      message = `Document ${id} belongs to someone else, so it cannot be changed. copy_document it, and edit the copy.`;
       return null;
     }
     const result = applyEditTool(name, args, current.text);

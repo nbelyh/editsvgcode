@@ -1,5 +1,5 @@
 /**
- * The editing modules parse with the browser's `DOMParser`, and Node has none. jsdom's is the one
+ * The editing modules parse with the browser's `DOMParser` (and serialize with `XMLSerializer`), and Node has neither. jsdom's is the one
  * the editor's own tests run those modules under, so the server parses — and reports a
  * malformed document — the way the editor does.
  *
@@ -7,8 +7,11 @@
  * at startup, and jsdom is heavy enough to slow the cold start of endpoints that never need it.
  */
 export async function installDom(): Promise<void> {
-  const g = globalThis as { DOMParser?: unknown };
-  if (g.DOMParser) return;
+  const g = globalThis as { DOMParser?: unknown; XMLSerializer?: unknown };
+  if (g.DOMParser && g.XMLSerializer) return;
   const { JSDOM } = await import("jsdom");
-  g.DOMParser ??= new JSDOM("").window.DOMParser;
+  const { window } = new JSDOM("");
+  g.DOMParser ??= window.DOMParser;
+  // The picture tools (render.ts, svg-snapshot.ts) write their layers back out as markup.
+  g.XMLSerializer ??= window.XMLSerializer;
 }

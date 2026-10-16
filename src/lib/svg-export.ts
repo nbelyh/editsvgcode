@@ -370,3 +370,20 @@ export function reactComponent(svg: string, fileName: string): string | { error:
     '',
   ].join('\n');
 }
+
+/**
+ * A drawing as the image model is given it to change (modify_image): 1024 pixels wide, as a PNG
+ * data URL, transparent where the drawing is. The MCP picture card and the editor's chat both
+ * use it, so a drawing reaches the image model the same way from either.
+ */
+export async function pictureToChange(svg: string): Promise<{ blob: Blob; dataUrl: string } | { error: string }> {
+  const rendered = await renderImage(svg, { size: { width: 1024 }, format: 'png', background: null });
+  if ('error' in rendered) return rendered;
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('The picture could not be read back.'));
+    reader.readAsDataURL(rendered.blob);
+  });
+  return { blob: rendered.blob, dataUrl };
+}

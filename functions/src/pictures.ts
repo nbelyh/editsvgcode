@@ -121,6 +121,8 @@ export async function handlePicture(method: string, token: string, body: Buffer 
   const ticket = await deps.tickets.take(hashOf(token));
   const now = deps.now?.() ?? Date.now();
   if (!ticket || ticket.expiresAt.getTime() < now) {
+    // An expired link made nothing, so its card may ask again rather than wait out the hold.
+    if (ticket?.target) await deps.tickets.release(ticket.target);
     return json(410, { error: "This link has expired or was used. Press the button again." });
   }
   // A link is for one kind of request; taken either way, so a wrong call cannot be retried.
@@ -129,10 +131,17 @@ export async function handlePicture(method: string, token: string, body: Buffer 
     return json(400, { error: "This link is for another kind of picture." });
   }
 
-  const res = await deps.callImageApi(ticket.uid, {
-    kind: ticket.kind, prompt: ticket.prompt, model: ticket.model, outlines: ticket.outlines, detail: ticket.detail,
-    ...(ticket.kind === "modify" ? { image: body!.toString("base64") } : {}),
-  });
+  let res: Response;
+  try {
+    res = await deps.callImageApi(ticket.uid, {
+      kind: ticket.kind, prompt: ticket.prompt, model: ticket.model, outlines: ticket.outlines, detail: ticket.detail,
+      ...(ticket.kind === "modify" ? { image: body!.toString("base64") } : {}),
+    });
+  } catch {
+    // Sign-in for the API or the network failed: nothing was made or charged.
+    if (ticket.target) await deps.tickets.release(ticket.target);
+    return json(502, { error: "The picture could not be made. Press the button again." });
+  }
   if (!res.ok) {
     // Nothing was made, so the card may ask again (after buying credits, say).
     if (ticket.target) await deps.tickets.release(ticket.target);

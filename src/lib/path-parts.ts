@@ -464,7 +464,7 @@ export function baseLayerNote(el: Element, area: number, drawingArea: number): s
   const all = Array.from(el.ownerDocument.getElementsByTagName('*'));
   const following = all.slice(all.indexOf(el) + 1).filter((e) => DRAWN.has(e.tagName.toLowerCase())).length;
   if (following < 5) return null;
-  return `${pathOf(el)} is a base layer: one shape covering ${pct(Math.min(1, area / drawingArea))} of the drawing, with ${following} elements drawn over it. In traced art this is the outline and every dark area of the whole figure at once, so it is never one part such as a hat or a coat, even where that part looks black. The colours of the parts are in the smaller paths drawn over it; recolouring this one changes every outline.`;
+  return `${pathOf(el)} is a base layer: one shape covering ${pct(Math.min(1, area / drawingArea))} of the drawing, with ${following} elements drawn over it. In traced art this is the outline and every dark area of the whole figure at once, so it is never one part such as a hat or a coat, even where that part looks black. The colours of the parts are in the smaller paths drawn over it; recolouring this one changes every outline. Where no smaller path draws the part — a dark coat that is this layer showing through — no edit reaches the part alone: modify_image changes it in the picture.`;
 }
 
 /** The drawing's area in viewBox units, or 0 when it has no usable viewBox or size. */
@@ -488,18 +488,44 @@ export function describePathParts(source: string, selector: string): string {
   if (found.length === 0) return `Nothing matched "${selector}": ${describeNoMatch(doc, selector)}`;
   const extents = elementExtents(source, doc);
   const drawing = drawingArea(doc);
-  const MAX_PATHS = 10, MAX_PARTS = 40;
-  const blocks = found.slice(0, MAX_PATHS).map((el) => {
+  // A path of one shape costs a line, and a traced picture is mostly those: listing every path in
+  // turn stopped at ten, and asking about all 22 paths of a fox took three calls. So the one-shape
+  // paths are named together, and only the paths given a block of their own count toward the cap.
+  const MAX_DETAILED = 10, MAX_PARTS = 40, MAX_PATHS = 300;
+  const blocks: string[] = [];
+  const single: string[] = [];
+  let detailed = 0, skipped = 0;
+  /** Room for one more block of its own; past the cap the path is only counted. */
+  const room = () => {
+    if (detailed < MAX_DETAILED) {
+      detailed++;
+      return true;
+    }
+    skipped++;
+    return false;
+  };
+  for (const el of found.slice(0, MAX_PATHS)) {
     const extent = extents.get(el);
     const where = `${pathOf(el)}${extent ? ` (line ${lineOfOffset(source, extent.start)})` : ''}`;
     const refusal = unsplittable(el);
-    if (refusal) return `${where}: cannot be split — ${refusal}.`;
+    if (refusal) {
+      if (room()) blocks.push(`${where}: cannot be split — ${refusal}.`);
+      continue;
+    }
     const parts = pathParts(el.getAttribute('d') ?? '', splitRiskOf(el, doc));
-    if ('error' in parts) return `${where}: its path data could not be read (${parts.error}).`;
+    if ('error' in parts) {
+      if (room()) blocks.push(`${where}: its path data could not be read (${parts.error}).`);
+      continue;
+    }
     const whole = parts.map((p) => p.box).reduce(union, emptyBox());
     // Boxes are before any transform; a traced path is only translated, so its area holds.
     const base = baseLayerNote(el, boxArea(whole), drawing);
-    if (parts.length <= 1) return `${where}: one shape — there is nothing to split.${base ? ` ${base}` : ''}`;
+    if (parts.length <= 1) {
+      if (!base) single.push(where);
+      else if (room()) blocks.push(`${where}: one shape — there is nothing to split. ${base}`);
+      continue;
+    }
+    if (!room()) continue;
     const w = whole.maxX - whole.minX || 1, h = whole.maxY - whole.minY || 1;
     const rows = parts
       .map((p, k) => ({ p, k }))
@@ -510,10 +536,16 @@ export function describePathParts(source: string, selector: string): string {
         return `  part ${k + 1}: x=${fmt(Math.round(p.box.minX))} y=${fmt(Math.round(p.box.minY))} w=${fmt(Math.round(p.box.maxX - p.box.minX))} h=${fmt(Math.round(p.box.maxY - p.box.minY))} — centred ${pct(cx)} across, ${pct(cy)} down; ${pct(boxArea(p.box) / (w * h))} of the path's box${p.subpaths > 1 ? `; ${p.subpaths} subpaths kept together` : ''}`;
       });
     const more = parts.length > MAX_PARTS ? `\n  … and ${parts.length - MAX_PARTS} smaller parts` : '';
-    return `${where}: ${parts.length} separate parts, numbered in document order (largest listed first):\n${rows.join('\n')}${more}${base ? `\n  ${base}` : ''}`;
-  });
+    blocks.push(`${where}: ${parts.length} separate parts, numbered in document order (largest listed first):\n${rows.join('\n')}${more}${base ? `\n  ${base}` : ''}`);
+  }
+  if (single.length === 1) blocks.push(`${single[0]}: one shape — there is nothing to split.`);
+  else if (single.length > 1) blocks.push(`${single.length} paths are one shape each — nothing to split: ${single.join(', ')}.`);
   const header = 'Boxes are in the path\'s own coordinates, before any transform. "Across" and "down" place a part\'s centre within the whole path\'s box, from the left and from the top. Judge which part is which from where it sits and its shape, and say in your reply which parts you took for what.';
-  const extra = found.length > MAX_PATHS ? `\n… ${found.length - MAX_PATHS} more paths matched; address them one at a time.` : '';
+  const notes = [
+    skipped > 0 ? `… ${skipped} more paths matched that need a block of their own; list them with a narrower address.` : '',
+    found.length > MAX_PATHS ? `… ${found.length - MAX_PATHS} more paths matched past the first ${MAX_PATHS}; list them with a narrower address.` : '',
+  ].filter(Boolean);
+  const extra = notes.length > 0 ? `\n${notes.join('\n')}` : '';
   return `${header}\n${blocks.join('\n')}${extra}\nTo colour parts differently, split_path the path, giving a fill for each part you are changing; parts you leave out keep the colour they have.`;
 }
 

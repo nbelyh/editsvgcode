@@ -14,7 +14,7 @@
 
 import { parseSvg, intrinsicSize, base64 } from './svg-export';
 import { resolveSelector, isSelectorError, describeNoMatch, describeMatches, isLineAddress, lineAddressToPath } from './svg-dom';
-import { measureElements } from './svg-bounds';
+import { measureElements, type Measurement } from './svg-bounds';
 import { baseLayerNote, drawingArea } from './path-parts';
 
 export const SNAPSHOT_SIZES = [256, 512, 1024] as const;
@@ -29,9 +29,9 @@ const HIGHLIGHT_COLOURS = [
 ];
 export const MAX_HIGHLIGHTS = HIGHLIGHT_COLOURS.length;
 /** How far the outline reaches past the highlighted shapes, in picture pixels. */
-const OUTLINE_PX = 3;
+export const OUTLINE_PX = 3;
 /** What is left of everything that is not highlighted. */
-const FADED_ALPHA = 0.25;
+export const FADED_ALPHA = 0.25;
 const MARK = 'data-esvg-highlight';
 /** How many of one address's matches the text names by path and line. */
 const MAX_LISTED = 6;
@@ -54,6 +54,30 @@ export interface SnapshotOptions {
 export interface Snapshot {
   text: string;
   dataUrl?: string;
+}
+
+/**
+ * What a picture is made of, as markup sized to the picture: the drawing, faded when anything
+ * is highlighted; per highlighted address the drawing with only its matches showing, to ring in
+ * that address's colour; and all the matches together, drawn last in their own colours.
+ */
+export interface PaintJob {
+  width: number;
+  height: number;
+  base: string;
+  rings: { markup: string; css: string }[];
+  /** Null when nothing is highlighted. */
+  top: string | null;
+}
+
+/**
+ * How a picture is measured and drawn. The editor draws through the browser (canvas, getBBox);
+ * the MCP server, which has no browser, through resvg (functions/src/render.ts).
+ */
+export interface SnapshotBackend {
+  measure(svg: string, selector: string): Measurement | { error: string };
+  /** The PNG as a data URL, or what went wrong, said to the model. */
+  paint(job: PaintJob): Promise<{ dataUrl: string } | { error: string }>;
 }
 
 /** One highlighted address: what it matched, and the sentence the model reads about it. */
@@ -90,7 +114,7 @@ function loadImage(markup: string): Promise<HTMLImageElement | null> {
 }
 
 /** What one address matched in `doc`, measured in the source `svg`, and how to say so. */
-function resolveGroup(doc: Document, svg: string, address: string, colour: Group['colour'], area: number): Group {
+function resolveGroup(doc: Document, svg: string, address: string, colour: Group['colour'], area: number, backend: SnapshotBackend): Group {
   // A line is read against the source: this copy has had its root resized, and the
   // export parser it came from keeps no record of lines.
   const target = isLineAddress(address) ? lineAddressToPath(svg, address) : address;
@@ -99,7 +123,7 @@ function resolveGroup(doc: Document, svg: string, address: string, colour: Group
   if (isSelectorError(found)) return { colour, elements: [], note: `"${address}": ${found.error}` };
   if (found.length === 0) return { colour, elements: [], note: `"${address}" ${describeNoMatch(doc, target)}` };
 
-  const measured = measureElements(svg, target);
+  const measured = backend.measure(svg, target);
   const boxes = 'error' in measured ? [] : measured.boxes;
   const count = `${found.length} element${found.length === 1 ? '' : 's'} match${found.length === 1 ? 'es' : ''} "${address}"`;
   if (boxes.length === 0) return { colour, elements: [], note: `${count}, but none of them is drawn, so nothing is outlined.` };
@@ -171,7 +195,7 @@ function cropOf(value: unknown): Crop | null {
  * Render the drawing, optionally highlighted and cropped. Never throws: whatever goes
  * wrong is said in `text`, which is what the model reads.
  */
-export async function renderSnapshot(svg: string, options: SnapshotOptions = {}): Promise<Snapshot> {
+export async function renderSnapshot(svg: string, options: SnapshotOptions = {}, backend: SnapshotBackend = browserBackend): Promise<Snapshot> {
   const parsed = parseSvg(svg);
   if ('error' in parsed) return { text: 'Error: the document is not well-formed SVG, so it cannot be drawn. Fix the markup first.' };
 
@@ -215,12 +239,11 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
   // and was called the base layer under the whole figure — which the model is told never to
   // recolour.
   const area = drawingArea(parsed.doc);
-  const groups = addresses.map((address, i) => resolveGroup(doc, svg, address, HIGHLIGHT_COLOURS[i], area));
+  const groups = addresses.map((address, i) => resolveGroup(doc, svg, address, HIGHLIGHT_COLOURS[i], area, backend));
   const shown = groups.filter((g) => g.elements.length > 0);
   if (addresses.length > 0 && shown.length === 0) return { text: groups.map((g) => g.note).join(' ') };
 
-  const base = await loadImage(new XMLSerializer().serializeToString(doc));
-  if (!base) return { text: FAILED };
+  const base = new XMLSerializer().serializeToString(doc);
 
   // The same drawing with everything hidden except some of the matches. visibility, unlike
   // display or opacity, can be switched back ON below a hidden ancestor — so a match inside
@@ -235,55 +258,17 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
   const only = (indexes: number[]) => {
     const marks = indexes.map((i) => `[${MARK}-${i}], [${MARK}-${i}] *`).join(', ');
     style.textContent = `* { visibility: hidden !important; } svg { visibility: visible !important; } ${marks} { visibility: visible !important; }`;
-    return loadImage(new XMLSerializer().serializeToString(doc));
+    return new XMLSerializer().serializeToString(doc);
   };
 
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return { text: FAILED };
-  // Transparent areas would otherwise reach the model as black.
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, width, height);
-  ctx.globalAlpha = shown.length > 0 ? FADED_ALPHA : 1;
-  ctx.drawImage(base, 0, 0, width, height);
-  ctx.globalAlpha = 1;
-
-  if (shown.length > 0) {
-    // Each address's matches as one solid silhouette in its colour, stamped in a ring around
-    // their real position — an outline — and then every match on top in its own colours.
-    const tint = document.createElement('canvas');
-    tint.width = width;
-    tint.height = height;
-    const tctx = tint.getContext('2d');
-    if (!tctx) return { text: FAILED };
-    for (let i = 0; i < shown.length; i++) {
-      const img = await only([i]);
-      if (!img) return { text: FAILED };
-      tctx.globalCompositeOperation = 'source-over';
-      tctx.clearRect(0, 0, width, height);
-      tctx.drawImage(img, 0, 0, width, height);
-      tctx.globalCompositeOperation = 'source-in';
-      tctx.fillStyle = shown[i].colour.css;
-      tctx.fillRect(0, 0, width, height);
-      for (let k = 0; k < 16; k++) {
-        const a = (k / 16) * Math.PI * 2;
-        ctx.drawImage(tint, Math.cos(a) * OUTLINE_PX, Math.sin(a) * OUTLINE_PX);
-      }
-    }
-    const all = await only(shown.map((_, i) => i));
-    if (!all) return { text: FAILED };
-    ctx.drawImage(all, 0, 0, width, height);
-  }
-
-  let dataUrl: string;
-  try {
-    dataUrl = canvas.toDataURL('image/png');
-  } catch {
-    // A canvas the browser considers tainted will not hand its pixels out.
-    return { text: 'Error: the browser would not export this picture.' };
-  }
+  const painted = await backend.paint({
+    width,
+    height,
+    base,
+    rings: shown.map((g, i) => ({ markup: only([i]), css: g.colour.css })),
+    top: shown.length > 0 ? only(shown.map((_, i) => i)) : null,
+  });
+  if ('error' in painted) return { text: painted.error };
 
   const parts = [`${width}×${height} PNG of ${crop ? `the region ${boxText(region)}` : `the whole drawing (viewBox ${boxText(whole)})`}.`];
   parts.push(...groups.map((g) => g.note));
@@ -291,5 +276,62 @@ export async function renderSnapshot(svg: string, options: SnapshotOptions = {})
     parts.push('Highlighted elements are drawn in their own colours, ringed in the outline colour named, over everything else, which is faded.');
   }
   parts.push('Transparent areas are shown white.');
-  return { text: parts.join(' '), dataUrl };
+  return { text: parts.join(' '), dataUrl: painted.dataUrl };
+}
+
+/** The editor's: the browser draws each layer as an image and they are composited on a canvas. */
+export const browserBackend: SnapshotBackend = {
+  measure: (svg, selector) => measureElements(svg, selector),
+  paint: paintOnCanvas,
+};
+
+async function paintOnCanvas({ width, height, base: baseMarkup, rings, top }: PaintJob): Promise<{ dataUrl: string } | { error: string }> {
+  const base = await loadImage(baseMarkup);
+  if (!base) return { error: FAILED };
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { error: FAILED };
+  // Transparent areas would otherwise reach the model as black.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.globalAlpha = top ? FADED_ALPHA : 1;
+  ctx.drawImage(base, 0, 0, width, height);
+  ctx.globalAlpha = 1;
+
+  if (top) {
+    // Each address's matches as one solid silhouette in its colour, stamped in a ring around
+    // their real position — an outline — and then every match on top in its own colours.
+    const tint = document.createElement('canvas');
+    tint.width = width;
+    tint.height = height;
+    const tctx = tint.getContext('2d');
+    if (!tctx) return { error: FAILED };
+    for (const ring of rings) {
+      const img = await loadImage(ring.markup);
+      if (!img) return { error: FAILED };
+      tctx.globalCompositeOperation = 'source-over';
+      tctx.clearRect(0, 0, width, height);
+      tctx.drawImage(img, 0, 0, width, height);
+      tctx.globalCompositeOperation = 'source-in';
+      tctx.fillStyle = ring.css;
+      tctx.fillRect(0, 0, width, height);
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2;
+        ctx.drawImage(tint, Math.cos(a) * OUTLINE_PX, Math.sin(a) * OUTLINE_PX);
+      }
+    }
+    const all = await loadImage(top);
+    if (!all) return { error: FAILED };
+    ctx.drawImage(all, 0, 0, width, height);
+  }
+
+  try {
+    return { dataUrl: canvas.toDataURL('image/png') };
+  } catch {
+    // A canvas the browser considers tainted will not hand its pixels out.
+    return { error: 'Error: the browser would not export this picture.' };
+  }
 }

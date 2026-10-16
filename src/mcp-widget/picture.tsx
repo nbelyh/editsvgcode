@@ -9,7 +9,7 @@ import { Preview } from '../components/Preview';
 import { ImageGenerationControls } from '../components/TraceControls';
 import { PictureStyleOptions } from '../components/aichat/PictureStyleOptions';
 import { traceToFit, type VectorizerParams } from '../lib/trace';
-import { renderImage } from '../lib/svg-export';
+import { pictureToChange } from '../lib/svg-export';
 import type { ImageStyle } from '../lib/models';
 import { theme } from '../theme';
 import { tellModel, textOf } from './bridge';
@@ -189,7 +189,7 @@ function Widget() {
       let picture: Blob | null = null;
       if (modify) {
         if (!source) throw new Error('The drawing could not be loaded.');
-        const rendered = await renderImage(source.svg, { size: { width: 1024 }, format: 'png', background: null });
+        const rendered = await pictureToChange(source.svg);
         if ('error' in rendered) throw new Error(rendered.error);
         picture = rendered.blob;
       }

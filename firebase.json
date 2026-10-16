@@ -54,6 +54,10 @@
         "function": { "functionId": "mcp", "region": "europe-west1" }
       },
       {
+        "source": "/mcp/export/**",
+        "function": { "functionId": "mcp", "region": "europe-west1" }
+      },
+      {
         "source": "/oauth/**",
         "function": { "functionId": "mcp", "region": "europe-west1" }
       },

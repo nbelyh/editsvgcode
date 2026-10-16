@@ -693,6 +693,84 @@ describe('a presentation attribute a CSS rule overrides', () => {
   });
 });
 
+// Every traced picture colours its paths with style="fill: …", which beats fill=. Setting the
+// attribute was reported as applied and the drawing stayed as it was.
+describe('a presentation attribute the element\'s own style sets', () => {
+  const apply = (src: string, ranges: { start: number; end: number; replacement: string }[]) => {
+    let out = src;
+    for (const r of [...ranges].sort((a, b) => b.start - a.start)) out = out.slice(0, r.start) + r.replacement + out.slice(r.end);
+    return out;
+  };
+
+  it('writes the value into the style declaration, and says so', () => {
+    const src = '<svg><path d="M0 0" transform="translate(1,2)" style="fill: #F57F14;"/></svg>';
+    const { ranges, outcomes } = planAttributeEdits(src, [{ selector: 'path', name: 'fill', value: '#EEF2F5' }]);
+    expect(apply(src, ranges)).toBe('<svg><path d="M0 0" transform="translate(1,2)" style="fill: #EEF2F5;"/></svg>');
+    expect(outcomes[0].status).toBe('applied');
+    expect(outcomes[0].ineffective).toBeUndefined();
+    expect(outcomes[0].detail).toMatch(/style attribute of this element/);
+  });
+
+  it('leaves the other declarations, !important and the attribute\'s quotes as they were', () => {
+    const src = "<svg><rect style='stroke:#000;FILL : red !important;opacity:.5' fill=\"blue\"/></svg>";
+    const { ranges } = planAttributeEdits(src, [{ selector: 'rect', name: 'fill', value: 'url(#g)' }]);
+    expect(apply(src, ranges)).toBe("<svg><rect style='stroke:#000;FILL : url(#g) !important;opacity:.5' fill=\"blue\"/></svg>");
+  });
+
+  it('does not take a longer property for the one asked', () => {
+    const src = '<svg><rect style="fill-opacity: 0.5"/></svg>';
+    const { ranges } = planAttributeEdits(src, [{ selector: 'rect', name: 'fill', value: 'red' }]);
+    expect(apply(src, ranges)).toBe('<svg><rect style="fill-opacity: 0.5" fill="red"/></svg>');
+  });
+
+  it('sets the attribute on the elements whose style does not declare it', () => {
+    const src = '<svg><path style="fill: #111"/><path fill="#222"/></svg>';
+    const { ranges, outcomes } = planAttributeEdits(src, [{ selector: 'path', name: 'fill', value: '#fff' }]);
+    expect(apply(src, ranges)).toBe('<svg><path style="fill: #fff"/><path fill="#fff"/></svg>');
+    expect(outcomes[0].detail).toMatch(/1 of these/);
+  });
+
+  it('beats a <style> rule too, so no warning is given for those elements', () => {
+    const src = '<svg><style>.a {fill: red}</style><path class="a" style="fill: blue"/></svg>';
+    const { outcomes } = planAttributeEdits(src, [{ selector: '.a', name: 'fill', value: 'green' }]);
+    expect(outcomes[0].ineffective).toBeUndefined();
+    expect(outcomes[0].detail).not.toMatch(/overrides/);
+  });
+
+  it('gives a bare font size a unit, which CSS needs and an attribute does not', () => {
+    const src = '<svg><text style="font-size: 14px">a</text></svg>';
+    const { ranges } = planAttributeEdits(src, [{ selector: 'text', name: 'font-size', value: '20' }]);
+    expect(apply(src, ranges)).toBe('<svg><text style="font-size: 20px">a</text></svg>');
+  });
+
+  it('sets a property whose attribute syntax is not CSS as the attribute, and says the style wins', () => {
+    const src = '<svg><rect style="transform: rotate(45deg)"/></svg>';
+    const { ranges, outcomes } = planAttributeEdits(src, [{ selector: 'rect', name: 'transform', value: 'translate(10 20)' }]);
+    expect(apply(src, ranges)).toBe('<svg><rect style="transform: rotate(45deg)" transform="translate(10 20)"/></svg>');
+    expect(outcomes[0].ineffective).toBe(true);
+    expect(outcomes[0].detail).toMatch(/style attribute of the element also sets "transform"/);
+  });
+
+  it('takes an entity in the old value as part of it, not as the end of the declaration', () => {
+    const src = '<svg><text style="font-family: &quot;Open Sans&quot;, serif; fill: red">a</text></svg>';
+    const { ranges } = planAttributeEdits(src, [{ selector: 'text', name: 'font-family', value: 'Georgia' }]);
+    expect(apply(src, ranges)).toBe('<svg><text style="font-family: Georgia; fill: red">a</text></svg>');
+  });
+
+  it('does not write a value that would add a declaration of its own', () => {
+    const src = '<svg><path style="fill: #111"/></svg>';
+    const { ranges, outcomes } = planAttributeEdits(src, [{ selector: 'path', name: 'fill', value: 'red; display: none' }]);
+    expect(apply(src, ranges)).toBe('<svg><path style="fill: #111" fill="red; display: none"/></svg>');
+    expect(outcomes[0].ineffective).toBe(true);
+  });
+
+  it('removing the attribute still removes the attribute only', () => {
+    const src = '<svg><path fill="red" style="fill: blue"/></svg>';
+    const { ranges } = planAttributeEdits(src, [{ selector: 'path', name: 'fill', value: null }]);
+    expect(apply(src, ranges)).toBe('<svg><path style="fill: blue"/></svg>');
+  });
+});
+
 // resolveWithin — the same addressing rooted at an element rather than a
 // document, so a detached subtree (get_element_bounds renders into one) can
 // take both address forms instead of CSS only.

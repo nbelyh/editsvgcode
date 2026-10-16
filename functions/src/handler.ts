@@ -4,6 +4,9 @@ import { createMcpServer } from "./server";
 import type { DocumentStore } from "./documents";
 import type { OAuthStore } from "./oauth-store";
 import { handlePicture, type CallImageApi, type TicketStore } from "./pictures";
+import { handleExport, type ExportStore } from "./exports";
+import { drawPng } from "./render";
+import { installDom } from "./dom";
 import { corsHeaders, handleOAuth, resourceMetadataUrl, uidFromAccessToken, type HttpOut, type OAuthConfig } from "./oauth";
 
 export interface Deps {
@@ -21,6 +24,9 @@ export interface Deps {
    *  links as the widget reaches them, the tickets behind them, and the API called as the user.
    *  Unset, generate_image says pictures are unavailable. */
   pictures?: { url: string; tickets: TicketStore; callImageApi: CallImageApi };
+  /** Download links (exports.ts), served at /mcp/export/<token> through the Hosting rewrite.
+   *  Unset, export_document says downloads are unavailable. */
+  exports?: ExportStore;
   now?: () => number;
 }
 
@@ -85,6 +91,19 @@ export async function handleRequest(req: Request, res: ServerResponse, deps: Dep
     return;
   }
 
+  // A download link: its token is the credential too. /mcp/export/… through Hosting and the dev
+  // proxy, /export/… at the function's own address.
+  const download = /^(?:\/mcp)?\/export\/([^/]+)$/.exec(path);
+  if (download && deps.exports) {
+    await installDom(); // drawPng reads the drawing as the editor does
+    const out = await handleExport(req.method ?? "GET", download[1], {
+      exports: deps.exports, documents: deps.documents, drawPng, now: deps.now,
+    });
+    res.writeHead(out.status, out.headers);
+    res.end(req.method === "HEAD" ? undefined : out.body);
+    return;
+  }
+
   const oauth = await handleOAuth({
     method: req.method ?? "GET",
     path,
@@ -128,7 +147,8 @@ async function handleMcp(req: Request, res: ServerResponse, deps: Deps, origin: 
 
   for (const [k, v] of Object.entries(cors)) res.setHeader(k, v);
   const pictures = deps.pictures ? { url: deps.pictures.url, tickets: deps.pictures.tickets } : undefined;
-  const server = createMcpServer({ uid, store: deps.documents, editorUrl, pictures });
+  const exports = deps.exports ? { url: `${origin}/mcp/export`, store: deps.exports } : undefined;
+  const server = createMcpServer({ uid, store: deps.documents, editorUrl, pictures, exports });
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);

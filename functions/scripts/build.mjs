@@ -2,8 +2,8 @@
 // that tools display in the chat — lib/widget.html (preview and picker) and lib/picture.html.
 import { build } from "esbuild";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -27,6 +27,21 @@ const inlineVtracerWasm = {
         instance.exports.__wbindgen_start();
         export { BinaryImageConverter, ColorImageConverter, main } from "./vtracer_webapp_bg.js";
       `,
+    }));
+  },
+};
+
+/** Vite's "?raw": the file's text as the default export (src/lib/doc-origin.ts imports the starter drawing so). */
+const rawText = {
+  name: "raw-text",
+  setup(b) {
+    b.onResolve({ filter: /\?raw$/ }, (args) => ({
+      path: join(args.resolveDir, args.path.slice(0, -"?raw".length)),
+      namespace: "raw-text",
+    }));
+    b.onLoad({ filter: /.*/, namespace: "raw-text" }, async (args) => ({
+      contents: await readFile(args.path, "utf8"),
+      loader: "text",
     }));
   },
 };
@@ -89,6 +104,7 @@ await build({
   target: "node22",
   packages: "external",
   outfile: "lib/index.js",
+  plugins: [rawText],
   // Each widget's ui:// address names its content (src/widget.ts), so a changed page is fetched anew.
   define: { __WIDGET_HASHES__: JSON.stringify({ preview: preview.hash, picture: picture.hash }) },
   logLevel: "warning",

@@ -293,3 +293,35 @@ describe('list_path_parts — the base layer of a traced drawing', () => {
     expect(describePathParts(traced(SILHOUETTE, [10, 20].map(small)), 'line 2')).not.toContain('base layer');
   });
 });
+
+describe('list_path_parts over many paths', () => {
+  // A traced picture is mostly one-shape paths. Listed in turn, they used up the ten paths an
+  // answer covered, and asking about all 22 paths of a fox took three calls.
+  const shape = (x: number, y: number) => `M${x} ${y} h4 v4 h-4 Z`;
+  const doc = (paths: string[]) =>
+    ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">', ...paths.map((d) => `  <path d="${d}" style="fill: #123456;"/>`), '</svg>'].join('\n');
+
+  it('names every one-shape path in one line', () => {
+    const out = describePathParts(doc(Array.from({ length: 22 }, (_, i) => shape(i * 8, 0))), 'path');
+    expect(out).toContain('22 paths are one shape each — nothing to split: /svg[1]/path[1] (line 2), /svg[1]/path[2] (line 3)');
+    expect(out).toContain('/svg[1]/path[22] (line 23).');
+    expect(out).not.toContain('more paths');
+  });
+
+  it('lists the parts of ten paths in full, and says how many more have parts', () => {
+    const twoParts = (i: number) => `${shape(i * 8, 0)} ${shape(i * 8, 100)}`;
+    const out = describePathParts(doc([...Array.from({ length: 12 }, (_, i) => twoParts(i)), shape(0, 50)]), 'path');
+    expect(out.match(/2 separate parts/g)).toHaveLength(10);
+    expect(out).toContain('… 2 more paths matched that need a block of their own; list them with a narrower address.');
+    expect(out).toContain('/svg[1]/path[13] (line 14): one shape — there is nothing to split.');
+  });
+});
+
+describe('list_path_parts over many unsplittable paths', () => {
+  it('lists ten of them, and counts the rest', () => {
+    const paths = Array.from({ length: 30 }, (_, i) => `  <path d="M${i} 0 h1 v1 h-1 Z M${i} 5 h1 v1 h-1 Z" marker-end="url(#m)"/>`);
+    const out = describePathParts(['<svg xmlns="http://www.w3.org/2000/svg">', ...paths, '</svg>'].join('\n'), 'path');
+    expect(out.match(/cannot be split/g)).toHaveLength(10);
+    expect(out).toContain('… 20 more paths matched that need a block of their own');
+  });
+});

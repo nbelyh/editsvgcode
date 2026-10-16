@@ -76,6 +76,35 @@ export const TOOLS: Tool[] = [
     annotations: READ,
   },
   {
+    name: "copy_document",
+    title: "Copy a drawing",
+    description: "Copy a drawing into a new one of the user's own, private, and return its id and editor link. For editing while keeping the original as it is, and for changing a drawing someone else shared, which cannot be edited itself. The copy is made on the server: nothing is re-typed, however large the drawing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: DOCUMENT_ID,
+        title: { type: "string", description: "A title for the copy. Without one it is the original's title with \"(copy)\" after it." },
+      },
+      required: ["document_id"],
+    },
+    annotations: { ...WRITE, idempotentHint: false },
+  },
+  {
+    name: "export_document",
+    title: "Download a drawing",
+    description: "A download link for a drawing, as an SVG file or a PNG picture, for the user to click or for another program to fetch (in a terminal, curl -L -o file.svg <link>). The tools give you the drawing to read; this gives the file itself, so nothing has to be typed out again. The link works without signing in and lasts 15 minutes, and always serves the drawing as it is then. Text in a PNG is set in a standard font; for the drawing's own fonts, export from the editor.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: DOCUMENT_ID,
+        format: { type: "string", enum: ["svg", "png"], description: "svg for the file as saved, png for a picture of it." },
+        size: { type: "number", description: "For png: the longest side in pixels, 16 to 4096. 1024 unless the user asks." },
+      },
+      required: ["document_id", "format"],
+    },
+    annotations: READ,
+  },
+  {
     name: "upload_document",
     title: "Upload an SVG file",
     description: "Upload an SVG file from the user's computer: shows a picker in the chat with a box to drop the file into, and the user's saved drawings. It is the way in for a file the user has, has attached or is about to upload: files attached to the chat do not reach this server, and copying one into create_document is slow. The user drops the file into the box; the picker saves it to their account, and a note then names the new document for open_document.",
@@ -158,9 +187,27 @@ export const TOOLS: Tool[] = [
     _meta: { ui: { visibility: ["app"] } },
   },
   {
+    name: "search_icons",
+    title: "Find an icon",
+    description: "Search a library of 200K+ open-source SVG icons by keyword. Returns up to 12 matches, numbered, with their names and licences, and a picture of them side by side to choose from. Then call it again with pick set to the chosen icon's name (and document_id) to get that icon ready to insert into the drawing as its own <svg> tag, with its box worked out. For a recognizable object, symbol or brand logo added to a drawing, or as the whole drawing. Not for scattering simple shapes such as stars or dots: draw those yourself with insert_element.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "One or two simple English keywords, e.g. 'car', 'pencil', 'home': the most common everyday word, not the user's sentence." },
+        style: { type: "string", enum: ["outline", "filled", "any"], description: "'outline' for line icons, 'filled' for solid ones, 'any' if unclear." },
+        palette: { type: "string", enum: ["colored", "monochrome", "any"], description: "'colored' for multicolour, emoji-style icons; 'monochrome' for one colour that can be recoloured; 'any' if unclear." },
+        noAttribution: { type: "boolean", description: "Only icons whose licence needs no attribution (MIT, Apache-2.0…). True unless the user says attribution is fine." },
+        pick: { type: "string", description: "The name of the icon chosen from an earlier search, e.g. tabler:home: returns it ready to insert instead of searching." },
+        document_id: { ...DOCUMENT_ID, description: `With pick: the drawing it goes into, so its box is worked out in that drawing's units. ${DOCUMENT_ID.description}` },
+      },
+      required: ["query"],
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  {
     name: "show_document",
     title: "Show the drawing",
-    description: "Show the drawing to the user, rendered, in the chat — the only way they see it. Each call adds a preview to the chat, so one after create_document or open_document and one when a round of edits is done is enough; one after every edit call floods the chat.",
+    description: "Show the drawing to the user, rendered, in the chat — the only way they see it. Each call adds a preview to the chat, so one after create_document or open_document and one when a round of edits is done is enough; one after every edit call floods the chat. You do not see this preview; get_png_image shows you the drawing.",
     inputSchema: { type: "object", properties: { document_id: DOCUMENT_ID }, required: ["document_id"] },
     annotations: READ,
     _meta: { ui: { resourceUri: WIDGET_URI } },
@@ -211,8 +258,25 @@ export const TOOLS: Tool[] = [
   onDocument("list_path_parts", "List the shapes in a path", "List the separate shapes inside <path> elements, numbered, with their size and position. A traced drawing keeps every region of one colour in one path; split_path takes these numbers.", {
     selector: { type: "string", description: ADDRESS },
   }, ["selector"], READ),
+  onDocument("get_png_image", "Look at the drawing", "Look at the drawing: render it as it is now to a PNG, returned to you with a description. show_document shows the drawing to the user; this is how you see it yourself. Use it when the answer is in the pixels — above all to check which anonymous element is the part the user means before you recolour, split or delete it, and to check an edit came out as meant. Give up to four candidate addresses as highlight: each one's matches are drawn in their own colours, ringed in an outline colour of its own, over everything else faded, and the text says which colour is which address, how many matched and where. Then edit with the address whose outline is on the part — a plain picture does not tell you which element is which. crop draws one region of the viewBox at the full picture size, for detail a whole-drawing picture loses. It cannot tell you what the markup contains — ids, attribute values, how many elements there are — query answers that.", {
+    highlight: {
+      type: "array",
+      items: { type: "string" },
+      description: "Up to four addresses, each outlined in its own colour: magenta, cyan, green, blue in the order given. Each is a line (\"line 9\") or a positional path (/svg[1]/g[2]/path[7]) naming one element, or a CSS selector naming a set. Leave it out for a plain picture.",
+    },
+    crop: {
+      type: "object",
+      properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
+      required: ["x", "y", "width", "height"],
+      description: "A region in viewBox units, drawn at the full picture size. Leave it out for the whole drawing.",
+    },
+    size: { type: "number", enum: [256, 512, 1024], description: "Longest side in pixels: 512 unless 512 cannot show what you need." },
+  }, [], READ),
+  onDocument("get_element_bounds", "Measure elements", "Measure the bounding box (x, y, width, height) of elements, in viewBox units, as drawn: transforms applied, so results are accurate for complex paths. Use it to know where things are before placing, aligning or resizing. It measures only what is DRAWN — gradients, <defs> contents and hidden elements never appear, so use query to know what exists.", {
+    selector: { type: "string", description: `${ADDRESS} "*" measures every direct child of the root.` },
+  }, ["selector"], READ),
 
-  onDocument("set_attribute", "Set an attribute", "Set or remove an attribute on the addressed elements — the way to recolour, resize or move a shape. Only that attribute changes; the rest of the markup is left exactly as it was. Tells you when a <style> rule overrides the attribute, so the change would not show.", edits({
+  onDocument("set_attribute", "Set an attribute", "Set or remove an attribute on the addressed elements — the way to recolour, resize or move a shape. Only that attribute changes; the rest of the markup is left exactly as it was. Where the element's own style attribute already sets the property (style=\"fill: …\", as in every traced picture), the new value is written into that declaration, which would otherwise win. Tells you when a <style> rule overrides the attribute, so the change would not show.", edits({
     name: { type: "string", description: "Attribute name, e.g. fill, stroke-width, transform." },
     value: { type: ["string", "null"], description: "The new value, or null to remove the attribute." },
   }, ["name", "value"]), ["edits"], WRITE),

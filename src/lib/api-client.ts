@@ -8,6 +8,8 @@ import { generateImage, modifyImage } from './image-gen';
 import { fetchIcons, formatIconForModel, type IconResult } from './icon-search';
 import { getElementBounds } from './svg-bounds';
 import { renderSnapshot } from './svg-snapshot';
+import { pictureToChange } from './svg-export';
+import { looksTraced, TRACED_NOTE } from './traced';
 import { fadedOutWarning } from './faded-out';
 import { pictureItem, withPictures, type TurnPicture } from './chat-pictures';
 import { pictureForModel } from './pasted-image';
@@ -367,8 +369,11 @@ export async function sendChatRequest(
     // When a previously generated image exists, tell the model so it knows modify_image is available.
     // An attached picture takes its place: modify_image then edits that one.
     ...(lastPngDataUrl && !picture
-      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was traced from a picture (made with generate_image or modify_image earlier in this conversation, or attached by the user and traced), and its source PNG is available for further editing. Two different kinds of request, two different tools. (1) To change WHAT THE PICTURE SHOWS — add a hat, change the pose, put it somewhere else — prefer modify_image: the traced paths are machine-generated and hopeless to redraw by hand. (2) To change a PROPERTY OF THE MARKUP — above all COLOUR, and also size, opacity or position — edit the SVG directly with set_attribute, and do NOT regenerate the image for it. Every traced element is a <path> with no id and no class, carrying its colour in a style attribute: <path d="M0 0 C5 3 ..." transform="translate(364,94)" style="fill: #1C1817;"/>. So address them by that value — selector `path[style="fill: #1C1817;"]`, name "style", value "fill: #0E0C0B;" — and one edit recolours every path wearing that colour. Copy each hex EXACTLY as it appears, upper-case included; a lower-cased or reformatted value matches nothing. SCOPE THIS BY WHAT WAS ASKED. Addressing by value is right for the picture as a whole — "make it darker", "change the colours". If instead the user points at one path — "this one", "the selected shape" — take the address from the Selected element block below and change that path alone: recolouring every path of its shade would repaint parts of the picture nobody mentioned, and once two shades are merged nothing can tell them apart again. Setting "fill" instead of "style" is reported as applied but changes nothing on screen, because the inline style wins. Do NOT use replace_lines here: the path data fills the line, so re-emitting it to change six characters of colour will exhaust the response long before the drawing is done.' }]
+      ? [{ role: 'developer', content: 'IMPORTANT: The current SVG was traced from a picture (made with generate_image or modify_image earlier in this conversation, or attached by the user and traced), and its source PNG is available for further editing. Two different kinds of request, two different tools. (1) To change WHAT THE PICTURE SHOWS — add a hat, change the pose, put it somewhere else — prefer modify_image: the traced paths are machine-generated and hopeless to redraw by hand. (2) To change a PROPERTY OF THE MARKUP — above all COLOUR, and also size, opacity or position — edit the SVG directly with set_attribute, and do NOT regenerate the image for it. Every traced element is a <path> with no id and no class, carrying its colour in a style attribute: <path d="M0 0 C5 3 ..." transform="translate(364,94)" style="fill: #1C1817;"/>. So address them by that value — selector `path[style="fill: #1C1817;"]`, name "style", value "fill: #0E0C0B;" — and one edit recolours every path wearing that colour. Copy each hex EXACTLY as it appears, upper-case included; a lower-cased or reformatted value matches nothing. SCOPE THIS BY WHAT WAS ASKED. Addressing by value is right for the picture as a whole — "make it darker", "change the colours". If instead the user points at one path — "this one", "the selected shape" — take the address from the Selected element block below and change that path alone: recolouring every path of its shade would repaint parts of the picture nobody mentioned, and once two shades are merged nothing can tell them apart again. set_attribute with name "fill" works too: the value is written into that style declaration. Do NOT use replace_lines here: the path data fills the line, so re-emitting it to change six characters of colour will exhaust the response long before the drawing is done.' }]
       : []),
+    // A traced drawing whose picture is not in this chat (opened later, imported) is still one:
+    // the model is told so, and that modify_image redraws it from the drawing as it is.
+    ...(!lastPngDataUrl && !picture && looksTraced(normalizedSvg) ? [{ role: 'developer', content: TRACED_NOTE }] : []),
     ...(picture ? [{ role: 'developer', content: ATTACHED_PICTURE_NOTE }] : []),
     ...(!picture && reference ? [{ role: 'developer', content: REFERENCE_PICTURE_NOTE }] : []),
     { role: 'developer', content: svgContext },
@@ -696,11 +701,17 @@ export async function sendChatRequest(
         latestCredits = result.credits;
         currentPngDataUrl = result.pngDataUrl;
       } else if (item.name === 'modify_image') {
+        // No picture in this chat — a traced drawing opened later, a detailed one drawn by hand:
+        // the image model starts from the drawing as it is now, as the MCP picture card does.
+        if (!currentPngDataUrl) {
+          const drawn = await pictureToChange(runningSvg);
+          if (!('error' in drawn)) currentPngDataUrl = drawn.dataUrl;
+        }
         if (!currentPngDataUrl) {
           // Same reason as the refused line edit: without this the call would
           // render as "Accepted" despite doing nothing.
           args.notExecuted = true;
-          toolOutput = 'Error: No previously generated image available to modify. Use generate_image to create a new image first.';
+          toolOutput = 'Error: the drawing could not be drawn as a picture for the image model. Use generate_image to make a new picture instead.';
         } else {
           onProgress?.('modifying-image');
           let result;
