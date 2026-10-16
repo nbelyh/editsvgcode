@@ -12,6 +12,7 @@ import { loadChatMessages, scheduleSaveChatMessages, clearChatMessages, getChatA
 import { friendlyError } from '../../lib/firebase';
 import { addressForLineRange } from '../../lib/svg-dom';
 import { DEFAULT_PRICING } from '../../lib/pricing';
+import { isReplannable, replan } from '../../lib/replan';
 import { EDIT_MODELS, IMAGE_MODELS, resolveEditModel, resolveImageModel, resolveImageStyle, type ImageStyle, type ReasoningEffort } from '../../lib/models';
 import { ChatThread } from './ChatThread';
 import { ChatComposer } from './ChatComposer';
@@ -45,6 +46,9 @@ const SIGNED_IN_KEY = 'esvg-signed-in';
 // findings are already replayed as history, so the point is to stop it starting
 // the search from scratch.
 const CONTINUE_TEXT = 'Continue from where you stopped. Use what you already found instead of searching again, and make the edit now.';
+
+/** The chat model a picture card offers instead of the image model (handleRetryStronger). */
+const STRONGER_MODEL = 'claude-sonnet-5-5';
 
 // What the image model is asked by "Redraw as an illustration". The server adds its own rules
 // for flat fills and keeping what the instruction does not change.
@@ -168,6 +172,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   // signal — vectorizing an image — and must not reset the live view or the run state of a
   // turn sent after it.
   const turnRef = useRef(0);
+  /** The drawing each turn's edits were planned against, by turn id, so one card of several can be
+   *  rejected and the others planned again without it (replan.ts). Kept for this session only. */
+  const turnSnapshotsRef = useRef(new Map<string, string>());
   const handleLiveUpdate = useCallback((update: ChatLiveUpdate) => {
     if (update.kind === 'start') live.reset();
     else if (update.kind === 'text') live.appendText(update.delta);
@@ -792,6 +799,9 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
       firstTurn: !messages.some((m) => m.role === 'user'),
       doc: docOrigin(svgCode),
     };
+    turnSnapshotsRef.current.set(turnInfo.id, svgCode.replace(/\r\n/g, '\n'));
+    // Only recent turns' cards are still open to a single reject; a large drawing is kept once a turn.
+    while (turnSnapshotsRef.current.size > 10) turnSnapshotsRef.current.delete(turnSnapshotsRef.current.keys().next().value!);
     live.reset();
     // Sending asks to see the reply: follow it even from further up the thread.
     pinnedRef.current = true;
@@ -989,6 +999,7 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
   }, [live]);
 
   const handleNewChat = useCallback(() => {
+    turnSnapshotsRef.current.clear();
     setMessages([]);
     setInput('');
     setIconPickIcons(null);
@@ -1162,6 +1173,44 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     const tc = msg?.toolCalls?.[tcIndex];
     const userMsg = messages[msgIndex - 1];
 
+    // One card of several: only it goes. Each card holds the drawing with every edit of the turn
+    // up to its own, so rejecting one used to take the whole turn with it. The others are planned
+    // again without it; where that cannot be done, it goes with the cards after it, which carry it.
+    const calls = msg?.toolCalls ?? [];
+    const cards = calls.map((t, j) => j).filter((j) => calls[j].arguments.svg && calls[j].status !== 'rejected');
+    if (tc && !userMsg?.action && cards.length > 1 && cards.includes(tcIndex)) {
+      const rest = cards.filter((j) => j !== tcIndex);
+      const snapshot = turnSnapshotsRef.current.get(msg.turn?.id ?? '');
+      const svgs = snapshot && cards.every((j) => isReplannable(calls[j].name))
+        ? replan(snapshot, rest.map((j) => ({ name: calls[j].name, args: calls[j].arguments })))
+        : null;
+      // Without a new plan the card goes with every card after it, which carry its change.
+      const dropped = svgs ? [tcIndex] : cards.filter((j) => j >= tcIndex);
+      // An accepted card after it put its change in the drawing too: the drawing follows.
+      const laterAccepted = cards.filter((j) => j > tcIndex && calls[j].status === 'accepted');
+      if (svgs) {
+        const last = [...rest].reverse().find((j) => calls[j].status === 'accepted');
+        if (last !== undefined && last > tcIndex) onAcceptSvg(svgs[rest.indexOf(last)]);
+      } else if (laterAccepted.length > 0 && calls[laterAccepted[0]].prevSvg) {
+        onRestore(calls[laterAccepted[0]].prevSvg!);
+      }
+      trackAiReject(proposalMeta(msg, tc.name, userMsg, model, effort));
+      onPreviewSvg(null);
+      // The model's record of the turn says these edits were applied; it is told otherwise.
+      const rejected = dropped.map((j) => String(calls[j].arguments.summary || calls[j].name)).join('; ');
+      const note = { role: 'developer', content: `The user rejected these edits from the turn above, so they are not in the drawing: ${rejected}.` };
+      setMessages((prev) => prev.map((m, i) => i !== msgIndex ? m : {
+        ...m,
+        rawItems: m.rawItems ? [...m.rawItems, note] : m.rawItems,
+        toolCalls: m.toolCalls?.map((t, j) => {
+          if (dropped.includes(j)) return { ...t, status: 'rejected' as const };
+          const at = svgs ? rest.indexOf(j) : -1;
+          return at >= 0 ? { ...t, arguments: { ...t.arguments, svg: svgs![at] } } : t;
+        }),
+      }));
+      return;
+    }
+
     // Both messages go, and the chat is saved here: rejecting the only turn empties it, and an
     // empty chat is not saved by the effect that saves the others.
     const kept = messages.filter((_, i) => i !== msgIndex - 1 && i !== msgIndex);
@@ -1227,6 +1276,31 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
     setModel(v);
     localStorage.setItem('esvg-model', v);
   }, []);
+
+  // A small model that reaches for the image model to change a traced picture often could not
+  // find the part in the shapes; a stronger one edits them directly (Claude added the two paths a
+  // horse's eyes needed, where qwen and gpt-5.4-mini could not). The picture card offers it.
+  const strongerModel = useMemo(() => {
+    const strong = EDIT_MODELS.find((m) => m.value === STRONGER_MODEL);
+    if (!strong || (currentModelDef?.credits ?? 0) >= strong.credits) return null;
+    return { label: strong.label, credits: strong.credits, available: !strong.pro || tier === 'pro', value: strong.value };
+  }, [currentModelDef, tier]);
+
+  /** The turn again, from the user's message, with the stronger model. */
+  const handleRetryStronger = useCallback(() => {
+    if (!strongerModel?.available) return;
+    const at = messages.map((m) => m.role).lastIndexOf('user');
+    const userMsg = messages[at];
+    handleStop();
+    if (!userMsg) return;
+    const kept = messages.slice(0, at);
+    setMessages(kept);
+    scheduleSaveChatMessages(fileId, kept);
+    handleModelChange(strongerModel.value);
+    setInput(userMsg.content);
+    setAttachment(userMsg.picture ?? null);
+    pendingSendRef.current = true;
+  }, [strongerModel, messages, handleStop, fileId, handleModelChange]);
 
   const handleImageModelChange = useCallback((v: string) => {
     setImageModel(v);
@@ -1316,6 +1390,8 @@ export function AiChat({ svgCode, fileId, documentReady, selectedElement, select
           onImageStyleChange={handleImageStyleChange}
           onImageConfirm={handleImageConfirmYes}
           onImageDecline={handleImageConfirmNo}
+          imageStronger={strongerModel}
+          onImageStronger={handleRetryStronger}
           onSamplePrompt={handleSamplePrompt}
           onPasteSvg={handlePasteSvg}
           canPaste={canPaste}

@@ -13,6 +13,10 @@ interface ImageConfirmProps {
   /** The prompt as a text box, for a picture asked for in a link (AiChat's picture request):
    *  the user words it, as on the MCP widget's card. Otherwise it is the chat model's summary. */
   onPromptChange?: (prompt: string) => void;
+  /** A stronger chat model to hand a picture change to instead: it may make the change in the
+   *  shapes, at no image credits. Unavailable (a Pro model, a free account), it is only named. */
+  stronger?: { label: string; credits: number; available: boolean } | null;
+  onStronger?: () => void;
 }
 
 /**
@@ -31,13 +35,13 @@ interface ImageConfirmProps {
  * Every sentence is whole — generate and modify each have their own, never a shared opening
  * with a varying ending — so each can be translated as written.
  */
-export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline, imageStyle, onImageStyleChange, onPromptChange }: ImageConfirmProps) {
+export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline, imageStyle, onImageStyleChange, onPromptChange, stronger, onStronger }: ImageConfirmProps) {
   const kind = summary.startsWith('modify:') ? 'modify' : summary.startsWith('picture:') ? 'picture' : 'generate';
   const displaySummary = kind === 'generate' ? summary : summary.slice(kind.length + 1);
   return (
     <div className="aui-image-confirm">
       <div className="aui-image-confirm-text">
-        {kind === 'modify' ? 'Change the generated picture?' : kind === 'picture' ? 'Redraw your picture with the image model?' : 'This looks like a picture. Generate it?'}
+        {kind === 'modify' ? 'Change the picture?' : kind === 'picture' ? 'Redraw your picture with the image model?' : 'This looks like a picture. Generate it?'}
       </div>
       {onPromptChange ? (
         <textarea
@@ -63,7 +67,17 @@ export function ImageConfirm({ summary, imageCredits, onConfirm, onDecline, imag
         <button className="aui-action-btn" onClick={onDecline}>
           {kind === 'modify' ? 'Edit the shapes instead (no extra credits)' : 'Draw it with shapes instead (no extra credits)'}
         </button>
+        {kind === 'modify' && stronger?.available && onStronger && (
+          <button className="aui-action-btn" onClick={onStronger}>
+            {`Ask ${stronger.label} to edit the shapes (${stronger.credits} credits)`}
+          </button>
+        )}
       </div>
+      {kind === 'modify' && stronger && !stronger.available && (
+        <div className="aui-image-confirm-hint">
+          {`A stronger chat model such as ${stronger.label} (Pro) can often make this change in the shapes directly, without the image model.`}
+        </div>
+      )}
     </div>
   );
 }

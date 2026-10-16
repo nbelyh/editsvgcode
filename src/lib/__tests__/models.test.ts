@@ -68,17 +68,23 @@ describe('visibleEditModels', () => {
       'qwen3.8-27b',
       'gpt-5.6-luna',
       'gpt-5.6-terra',
-      'claude-sonnet-5',
+      'claude-sonnet-5-5',
       'gpt-5.6-sol',
     ]);
   });
 
   it('shows one Claude by default, with the other two behind "Show all"', () => {
     const shown = visibleEditModels(DEFAULT_EDIT_MODEL).map(m => m.value);
-    expect(shown.filter(v => v.startsWith('claude'))).toEqual(['claude-sonnet-5']);
+    expect(shown.filter(v => v.startsWith('claude'))).toEqual(['claude-sonnet-5-5']);
     // Hidden, not dropped — both still resolve and both are still chargeable.
     expect(resolveEditModel('claude-haiku-4-5')).toBe('claude-haiku-4-5');
-    expect(resolveEditModel('claude-opus-5')).toBe('claude-opus-5');
+    expect(resolveEditModel('claude-opus-5-5')).toBe('claude-opus-5-5');
+  });
+
+  it('carries a stored choice of a replaced model over to its successor', () => {
+    expect(resolveEditModel('claude-sonnet-5')).toBe('claude-sonnet-5-5');
+    expect(resolveEditModel('claude-opus-5')).toBe('claude-opus-5-5');
+    expect(resolveEditModel('gpt-5')).toBe(DEFAULT_EDIT_MODEL);
   });
 
   it('every Claude model is Pro', () => {

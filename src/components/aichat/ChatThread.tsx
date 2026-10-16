@@ -66,6 +66,9 @@ interface ChatThreadProps {
   onImageStyleChange: (value: ImageStyle) => void;
   onImageConfirm: () => void;
   onImageDecline: () => void;
+  /** See ImageConfirm: a stronger chat model the card can hand a picture change to. */
+  imageStronger?: { label: string; credits: number; available: boolean } | null;
+  onImageStronger?: () => void;
   onSamplePrompt: (text: string) => void;
   /** Opens SVG code from the clipboard — the phone layout's way in, which has no code editor. */
   onPasteSvg: () => void;
@@ -282,7 +285,7 @@ export const ChatThread = memo(function ChatThread({
   onThumbsUp, onThumbsDown, onContinue, onRetry, hasPending,
   editingIndex, editingText, onEditStart, onEditChange, onEditSubmit, onEditCancel,
   iconPickIcons, iconPickSelected, onIconSelect, onIconMore, onIconNone,
-  imageConfirmSummary, onImagePromptChange, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline,
+  imageConfirmSummary, onImagePromptChange, imageCredits, imageStyle, onImageStyleChange, onImageConfirm, onImageDecline, imageStronger, onImageStronger,
   onSamplePrompt, onPasteSvg, canPaste, showGuestNote, isViewer,
   pictureChoice, pictureLikenessHint, onTrace, onIllustrate, onPictureChoiceClose,
 }: ChatThreadProps) {
@@ -577,7 +580,7 @@ export const ChatThread = memo(function ChatThread({
 
       {imageConfirmSummary && (
         <div className="aui-msg aui-msg-assistant">
-          <ImageConfirm summary={imageConfirmSummary} onPromptChange={onImagePromptChange} imageCredits={imageCredits} imageStyle={imageStyle} onImageStyleChange={onImageStyleChange} onConfirm={onImageConfirm} onDecline={onImageDecline} />
+          <ImageConfirm summary={imageConfirmSummary} onPromptChange={onImagePromptChange} imageCredits={imageCredits} imageStyle={imageStyle} onImageStyleChange={onImageStyleChange} onConfirm={onImageConfirm} onDecline={onImageDecline} stronger={imageStronger} onStronger={onImageStronger} />
         </div>
       )}
 

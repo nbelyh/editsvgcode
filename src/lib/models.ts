@@ -58,16 +58,17 @@ export const EDIT_MODELS: ModelOption[] = [
   // Served through OpenRouter rather than Azure — the one exception to the rule above.
   { label: 'qwen3.8-27b', value: 'qwen3.8-27b', credits: 3, pro: false, efforts: EFFORTS_LMH, defaultEffort: 'medium' },
   // --- Pro ---
-  // Sonnet 5 is the Claude the picker offers by default. Haiku and Opus are hidden
+  // Every Pro model defaults to medium effort (2026-10-17): cheaper per turn, and anyone who
+  // wants deeper reasoning can pick high. Sonnet 5.5 is the Claude the picker offers by default. Haiku and Opus are hidden
   // rather than dropped: one Claude in the list is enough to say Claude is here, and
   // anyone who wants the cheaper or the stronger one can still reach it.
   { label: 'claude-haiku-4-5', value: 'claude-haiku-4-5', credits: 5, pro: true, hidden: true },
-  { label: 'gpt-5.6-luna', value: 'gpt-5.6-luna', credits: 8, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
-  { label: 'gpt-5.4', value: 'gpt-5.4', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high', hidden: true },
-  { label: 'gpt-5.6-terra', value: 'gpt-5.6-terra', credits: 20, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
-  { label: 'claude-sonnet-5', value: 'claude-sonnet-5', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high' },
-  { label: 'claude-opus-5', value: 'claude-opus-5', credits: 30, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'high', hidden: true },
-  { label: 'gpt-5.6-sol', value: 'gpt-5.6-sol', credits: 40, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'high' },
+  { label: 'gpt-5.6-luna', value: 'gpt-5.6-luna', credits: 8, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'medium' },
+  { label: 'gpt-5.4', value: 'gpt-5.4', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'medium', hidden: true },
+  { label: 'gpt-5.6-terra', value: 'gpt-5.6-terra', credits: 20, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'medium' },
+  { label: 'claude-sonnet-5.5', value: 'claude-sonnet-5-5', credits: 20, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'medium' },
+  { label: 'claude-opus-5.5', value: 'claude-opus-5-5', credits: 30, pro: true, efforts: EFFORTS_LMHX, defaultEffort: 'medium', hidden: true },
+  { label: 'gpt-5.6-sol', value: 'gpt-5.6-sol', credits: 40, pro: true, efforts: EFFORTS_LMHXM, defaultEffort: 'medium' },
 ];
 
 /** Split a model list into the two groups the picker renders. Free first, since free
@@ -101,8 +102,15 @@ export const DEFAULT_IMAGE_MODEL = 'gpt-image-1-mini';
  *  Retired models (e.g. gpt-5) linger in localStorage long after removal; without
  *  this the picker renders blank and no reasoning effort is sent. */
 export function resolveEditModel(value: string | null): string {
-  return EDIT_MODELS.some(m => m.value === value) ? value! : DEFAULT_EDIT_MODEL;
+  const current = value !== null ? SUCCESSORS[value] ?? value : value;
+  return EDIT_MODELS.some(m => m.value === current) ? current! : DEFAULT_EDIT_MODEL;
 }
+
+/** Models replaced by a newer one: a stored choice carries over to it, not to the default. */
+const SUCCESSORS: Record<string, string> = {
+  'claude-sonnet-5': 'claude-sonnet-5-5',
+  'claude-opus-5': 'claude-opus-5-5',
+};
 
 export function resolveImageModel(value: string | null): string {
   return IMAGE_MODELS.some(m => m.value === value) ? value! : DEFAULT_IMAGE_MODEL;

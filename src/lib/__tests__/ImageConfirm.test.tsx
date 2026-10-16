@@ -35,7 +35,7 @@ describe('ImageConfirm', () => {
 
   it('asks about changing a picture in its own words', () => {
     show('modify:Add a red bow');
-    expect(screen.getByText('Change the generated picture?')).toBeInTheDocument();
+    expect(screen.getByText('Change the picture?')).toBeInTheDocument();
     expect(screen.getByText('Add a red bow')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edit the shapes instead (no extra credits)' })).toBeInTheDocument();
   });
@@ -54,5 +54,32 @@ describe('ImageConfirm', () => {
     expect(screen.getByRole('checkbox', { name: 'More detail' })).not.toBeChecked();
     fireEvent.click(screen.getByRole('checkbox', { name: 'More detail' }));
     expect(onImageStyleChange).toHaveBeenCalledWith({ outlines: true, detail: true });
+  });
+});
+
+describe('ImageConfirm offering a stronger chat model', () => {
+  // A small model reaching for the image model to change a traced picture often could not find
+  // the part in the shapes; a stronger one edits them directly.
+  const showWith = (summary: string, available: boolean) => {
+    const onStronger = vi.fn();
+    render(<MantineProvider><ImageConfirm summary={summary} imageCredits={10} imageStyle={{ outlines: true, detail: false }} onImageStyleChange={vi.fn()} onConfirm={vi.fn()} onDecline={vi.fn()} stronger={{ label: 'claude-sonnet-5', credits: 20, available }} onStronger={onStronger} /></MantineProvider>);
+    return onStronger;
+  };
+
+  it('hands a picture change to the stronger model when the account can use it', () => {
+    const onStronger = showWith('modify:Make the eyes blue', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Ask claude-sonnet-5 to edit the shapes (20 credits)' }));
+    expect(onStronger).toHaveBeenCalled();
+  });
+
+  it('only names it when the account cannot, and says nothing of it for a new picture', () => {
+    showWith('modify:Make the eyes blue', false);
+    expect(screen.queryByRole('button', { name: /Ask claude-sonnet-5/ })).toBeNull();
+    expect(screen.getByText(/claude-sonnet-5 \(Pro\) can often make this change in the shapes directly/)).toBeInTheDocument();
+  });
+
+  it('is not offered for a new picture, which no chat model draws as well', () => {
+    showWith('A cute kitten', true);
+    expect(screen.queryByText(/claude-sonnet-5/)).toBeNull();
   });
 });
