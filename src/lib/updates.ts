@@ -16,6 +16,7 @@
 
 import theAssistantLooks from './articles/the-assistant-looks.md?raw';
 import picturesInTheChat from './articles/pictures-in-the-chat.md?raw';
+import editsvgcodeInClaude from './articles/editsvgcode-in-claude.md?raw';
 
 export type ChangeKind = 'new' | 'improved' | 'fixed';
 
@@ -65,6 +66,30 @@ export interface Update {
 
 /** Newest first — the order the page renders them in. */
 export const UPDATES: Update[] = [
+  {
+    id: 'editsvgcode-in-claude',
+    date: '2026-10-16',
+    title: 'EditSvgCode in Claude',
+    article: editsvgcodeInClaude,
+    images: [
+      {
+        src: '/screenshots/35-mcp-edits.png',
+        thumb: '/screenshots/thumbs/35-mcp-edits.png',
+        alt: 'Four requests made through the connector: a generated picture of a fox barista, the fox made an arctic fox, the steam taken off the cup, and Morning Brew written on the apron. Each edit changed only what it names.',
+      },
+    ],
+    summary:
+      'Claude can now work on your drawings directly. Add EditSvgCode to Claude as a connector and Claude creates, opens and edits the SVG drawings in your account, changing only what you asked for and showing the result in the chat. It can bring in a file from your computer, and paint a picture that is traced into SVG, with the price on a card you confirm first. The AI work runs on your Claude plan, so it costs no EditSvgCode credits; only generating pictures does.',
+    changes: [
+      { kind: 'new', text: 'EditSvgCode is an MCP server at https://editsvgcode.com/mcp. Add it to Claude as a custom connector and sign in with your EditSvgCode account.' },
+      { kind: 'new', text: 'Claude edits a saved drawing element by element, like the assistant in the editor, so coordinates, formatting and everything it did not address stay as they were. Each change is saved to your account at once.' },
+      { kind: 'new', text: 'Claude shows the drawing in the chat, rendered, after each round of changes, with its editor link.' },
+      { kind: 'new', text: 'Asked for your files, Claude lists your saved drawings in the chat with a preview of each, and a box to drop an SVG file from your computer into.' },
+      { kind: 'new', text: 'Pictures and changes to pictures come with a card in the chat that shows the prompt and the price in credits. Nothing is made or charged until you press the button.' },
+      { kind: 'new', text: 'Claude\'s conversation and edits use your Claude plan, not your EditSvgCode credits. Only pictures are charged in credits.' },
+      { kind: 'new', text: 'The same address works in Claude Code, VS Code and other apps that connect to MCP servers over the web.' },
+    ],
+  },
   {
     id: 'pictures-in-the-chat',
     date: '2026-10-11',

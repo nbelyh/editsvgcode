@@ -81,6 +81,14 @@ const AI_FEATURES: Feature[] = [
     thumb: '/screenshots/thumbs/13-icon-picker.png',
     badge: 'Pro',
   },
+  {
+    title: 'Claude Connector (MCP)',
+    page: 'mcp',
+    description: 'Add EditSvgCode to Claude as a connector and Claude works on the drawings in your account: it creates and opens them, edits them element by element, and shows each result in the chat. It can bring in an SVG file from your computer and paint pictures traced into SVG. The AI work runs on your Claude plan, so only pictures use your EditSvgCode credits.',
+    image: '/screenshots/35-mcp-edits.png',
+    thumb: '/screenshots/thumbs/35-mcp-edits.png',
+    thumbSize: [700, 259],
+  },
 ];
 
 const CODE_EDITOR_FEATURES: Feature[] = [

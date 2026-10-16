@@ -45,6 +45,8 @@ export interface FeaturePage {
   lead: string;
   /** A button that opens the editor on a drawing chosen to show the feature. */
   tryIt?: { label: string; svg: string; hint: string };
+  /** A button that adds a connector in another app, with the address to copy for apps it does not reach. */
+  connect?: { label: string; href: string; address: string; hint: string };
   sections: FeatureSection[];
   /** "Good to know": what it will not do, and what surprises people. */
   limits: string[];
@@ -269,7 +271,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       {
         heading: 'Models and credits',
         paragraphs: [
-          'Every request costs credits, and how many depends on the model. A free account gets 30 credits a month and the free models: gpt-5.4-mini, the default, and qwen3.8-27b cost 3 credits a request, and gpt-5.4-nano and qwen3.8-flash cost 1. Pro adds larger models from OpenAI and Anthropic, such as claude-sonnet-5 at 20 credits, and 1,000 credits a month.',
+          'Every request costs credits, and how many depends on the model. A free account gets 30 credits a month and the free models: gpt-5.4-mini, the default, and qwen3.8-27b cost 3 credits a request, and gpt-5.4-nano and qwen3.8-flash cost 1. Pro adds larger models from OpenAI and Anthropic, such as claude-sonnet-5.5 at 20 credits, and 1,000 credits a month.',
           'A request is charged once, however many steps the assistant takes to finish it, and a request that fails costs nothing. Some models also let you choose their thinking effort: lower is quicker for a simple change, higher is more careful with a complicated one.',
         ],
         image: {
@@ -773,6 +775,83 @@ export const FEATURE_PAGES: FeaturePage[] = [
       },
     ],
     related: ['export', 'ai-chat', 'code-editor'],
+  },
+  {
+    slug: 'mcp',
+    title: 'Edit SVG from Claude and other AI apps',
+    lead: 'EditSvgCode is also an MCP server, so it can be added to Claude as a connector. Claude can then create, open and edit the drawings in your EditSvgCode account, show them to you in the chat, and generate pictures traced into SVG. Claude does the thinking; EditSvgCode keeps the drawing and changes only the part each edit addresses. The AI work runs on your Claude plan, so it uses none of your EditSvgCode credits: only generating pictures does.',
+    connect: {
+      label: 'Add to Claude',
+      href: 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=EditSvgCode&connectorUrl=https%3A%2F%2Feditsvgcode.com%2Fmcp',
+      address: 'https://editsvgcode.com/mcp',
+      hint: 'Opens Claude\'s Add custom connector dialog with the name and address filled in. Claude warns that the connector was suggested by an external link; check that the address is editsvgcode.com, then press Continue.',
+    },
+    sections: [
+      {
+        heading: 'Adding it to Claude',
+        paragraphs: [
+          'Connecting takes a minute and an EditSvgCode account, which is free.',
+        ],
+        steps: [
+          'Press Add to Claude above. Or, in Claude, open Customize, then Connectors, press Add, choose Add custom connector, and paste `https://editsvgcode.com/mcp`.',
+          'Check that the address is `https://editsvgcode.com/mcp` and press Continue.',
+          'In the window that opens, sign in to EditSvgCode with Google, GitHub or Microsoft, and press Allow.',
+          'Back in Claude, ask for a drawing, such as "draw a minimal fox logo as SVG", or ask to see your files.',
+        ],
+      },
+      {
+        heading: 'What Claude can do with it',
+        paragraphs: [
+          'Claude can start a new drawing, or open one of yours by its name or link. Asked for your files, it shows your saved drawings in the chat, with a box to drop an SVG file from your computer into. That box is how a file gets in: files attached to the chat do not reach EditSvgCode.',
+          'Each edit changes only what it addresses: a colour, a label, one shape, a rule in the style block. Coordinates, formatting and comments elsewhere stay as they were, and every change is saved to your account at once. Claude shows the drawing in the chat when it is made and after each round of changes, with its editor link, so you can carry on by hand in EditSvgCode at any point.',
+          'Claude can also look at the drawing itself. It renders it as a picture, outlines the shapes it is unsure of to find the part you mean, and measures where things are, so it checks a change rather than guessing. It can insert an icon from an open-source library of more than 200,000, copy a drawing before changing it so the original stays as it was, and give you a link to download the SVG file or a PNG of it.',
+        ],
+        image: {
+          src: '/screenshots/35-mcp-edits.png',
+          alt: 'Four requests made through the connector: Claude generates a picture of a fox barista, makes it an arctic fox by changing eleven colours, takes the steam off the cup, and writes Morning Brew on the apron. Each edit changed only what it names.',
+          width: 2160, height: 798,
+        },
+      },
+      {
+        heading: 'Pictures',
+        paragraphs: [
+          'Ask for an illustration, a character, an animal or a scene, and Claude puts a card in the chat with the prompt and its price. Nothing is made or charged until you press Generate. The image model paints the picture, your browser traces it into SVG, and it is saved as a new drawing. The same kind of card changes a picture, such as a pose, an expression, a detail or a part too intricate to edit as shapes, and keeps the original. It works on any picture-like drawing in your account, not only one made in the same chat.',
+          'Pictures are paid for with your EditSvgCode credits: 10 with gpt-image-1-mini, the default. gpt-image-1.5 (30 credits) and gpt-image-1 (50 credits) need Pro. A free account gets 30 credits a month.',
+        ],
+      },
+      {
+        heading: 'Other apps',
+        paragraphs: [
+          'The same address works in other apps that connect to MCP servers over the web and sign in to them. In Claude Code, run `claude mcp add --transport http editsvgcode https://editsvgcode.com/mcp`. In VS Code, add it as an HTTP server in the MCP settings. ChatGPT accepts it as a custom app only with developer mode turned on.',
+          'Apps that show no cards in the chat open the picture card in the EditSvgCode editor instead, charged to the same credits.',
+        ],
+      },
+    ],
+    limits: [
+      'Claude\'s free plan allows one custom connector. On Team and Enterprise plans, an owner adds the connector for the organization first.',
+      'Drawings Claude makes are private, saved to your account, and listed on the Files page. Sharing and publishing them is done in the editor.',
+      'A drawing someone else shared can be opened by its link but not changed; Claude makes a copy of your own to edit.',
+      'The conversation stays in Claude. The editor\'s own AI chat does not see it.',
+    ],
+    faq: [
+      {
+        q: 'Does it cost anything?',
+        a: 'Not in EditSvgCode credits, except for pictures. The conversation, and every edit Claude makes, runs on your Claude plan, where the assistant in the editor charges credits for each request. Only generating or changing a picture uses EditSvgCode credits, and its card shows the price before anything is charged.',
+      },
+      {
+        q: 'What can Claude see in my account?',
+        a: 'Your saved drawings and their titles, read when Claude asks for them. It cannot see your other account details or change your sharing settings. Removing the connector in Claude ends its access.',
+      },
+      {
+        q: 'Why does Claude show a warning when I add it?',
+        a: 'Claude warns about every connector that comes from a link instead of its own directory, so you can check where it leads. The address it shows should be editsvgcode.com.',
+      },
+      {
+        q: 'What is MCP?',
+        a: 'The Model Context Protocol, an open standard that lets AI apps use tools and data from other services. EditSvgCode\'s MCP server is at `https://editsvgcode.com/mcp`.',
+      },
+    ],
+    related: ['ai-images', 'save-and-share', 'ai-chat'],
   },
 ];
 

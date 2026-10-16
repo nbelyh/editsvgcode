@@ -76,3 +76,11 @@ pages show them at their own size (`density: 1.5`) and never stretch them.
 - `29-favicon-icons.png` — Favicon and app icons panel: the 16 / 32 / 48 px and iPhone previews and the
   `<head>` lines
 - `30-copy-as-code.png` — Copy as code panel showing the drawing as a React component
+
+## 12. MCP connector, October 2026
+
+- `35-mcp-edits.png` — Four requests made through the MCP connector: the fox barista `generate_image`
+  made (document 2us1z9hvyfdmvb76qw2), then on a copy (1x1g6f4ii9cbimvb7jvbf) an arctic fox
+  (`set_attribute`), the steam removed (`remove_element`) and Morning Brew on the apron
+  (`insert_element`). Not a screenshot of a chat: each stage is the saved document after that round,
+  rendered into one strip

@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { Container, Title, Text, Stack, Image, Badge, Group, Anchor, List, Button, Code, Divider } from '@mantine/core';
-import { IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
+import { Container, Title, Text, Stack, Image, Badge, Group, Anchor, List, Button, Code, Divider, CopyButton, ActionIcon } from '@mantine/core';
+import { IconArrowLeft, IconCheck, IconCopy, IconPlayerPlay, IconPlugConnected } from '@tabler/icons-react';
 import { PageMeta } from '../components/PageMeta';
 import { metaFor } from '../lib/route-meta';
 import { FEATURE_PAGES, featurePage, tryItHref, type FeatureImage } from '../lib/feature-pages';
@@ -76,6 +76,27 @@ export function FeatureDetailPage({ slug: fixedSlug }: { slug?: string }) {
               </Button>
               <Text size="sm" c="dimmed" style={{ flex: 1, minWidth: 240 }}><Rich text={page.tryIt.hint} /></Text>
             </Group>
+          )}
+
+          {page.connect && (
+            <Stack gap="xs">
+              <Group gap="md" align="center" wrap="wrap">
+                <Button component="a" href={page.connect.href} target="_blank" rel="noopener" leftSection={<IconPlugConnected size={16} />}>
+                  {page.connect.label}
+                </Button>
+                <Group gap={4} wrap="nowrap">
+                  <Code fz="sm">{page.connect.address}</Code>
+                  <CopyButton value={page.connect.address}>
+                    {({ copied, copy }) => (
+                      <ActionIcon variant="subtle" color={copied ? 'teal' : 'gray'} onClick={copy} aria-label="Copy the address">
+                        {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                      </ActionIcon>
+                    )}
+                  </CopyButton>
+                </Group>
+              </Group>
+              <Text size="sm" c="dimmed"><Rich text={page.connect.hint} /></Text>
+            </Stack>
           )}
 
           {page.sections.map((section) => (

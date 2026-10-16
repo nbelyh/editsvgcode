@@ -27,6 +27,10 @@
       "description": "Ask for a picture in the chat, or paste your own: it is traced into editable SVG paths in your browser, or redrawn as an illustration first.",
       "image": "/screenshots/11-image-generation.png"
     },
+    "/features/mcp": {
+      "title": "SVG MCP Server for Claude",
+      "description": "Add EditSvgCode to Claude as a connector: Claude creates and edits the SVG drawings in your account, shows them in the chat and generates pictures as SVG."
+    },
     "/features/icon-search": {
       "title": "Add Open-Source Icons to SVG",
       "description": "Ask the chat for an icon and pick from over 200,000 open-source icons that need no attribution. It goes into your drawing as plain SVG.",
