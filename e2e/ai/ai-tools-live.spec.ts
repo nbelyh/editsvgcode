@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { waitForEditor, setSvgContent } from '../support/helpers.js';
-import { shortModelName } from '../../src/lib/models';
+import { DEFAULT_IMAGE_MODEL, IMAGE_MODELS, shortModelName } from '../../src/lib/models';
 import { readChatStream } from '../../src/lib/chat-stream';
 import { signInTestUser, useEmulatorSuite } from '../support/emulator.js';
 import { readFileSync } from 'fs';
@@ -79,6 +79,9 @@ const LIVE = process.env.LIVE_AI === '1';
  */
 const MODEL = process.env.LIVE_AI_MODEL;
 const EFFORT = process.env.LIVE_AI_EFFORT;
+/** The image model a picture is made with (`--image-model`). Pictures are the only thing it changes. */
+const IMAGE_MODEL = process.env.LIVE_AI_IMAGE_MODEL;
+const IMAGE_CREDITS = IMAGE_MODELS.find((m) => m.value === (IMAGE_MODEL ?? DEFAULT_IMAGE_MODEL))?.credits;
 
 const DOC = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">',
@@ -150,8 +153,9 @@ async function boot(page: Page, svg = DOC) {
   await page.goto('/');
   await waitForEditor(page);
   await signInTestUser(page);
-  await page.evaluate(({ model, effort }) => {
+  await page.evaluate(({ model, effort, imageModel }) => {
     localStorage.setItem('esvg-sidebar-tab', 'ai');
+    if (imageModel) localStorage.setItem('esvg-image-model', imageModel);
     // Written before the reload, since both are read once into state on mount.
     // Effort is stored per model, so it has to be keyed by the model it applies
     // to — writing a bare value here would be read back as {} and silently
@@ -159,7 +163,7 @@ async function boot(page: Page, svg = DOC) {
     // make this whole knob lie.
     if (model) localStorage.setItem('esvg-model', model);
     if (model && effort) localStorage.setItem('esvg-effort-by-model', JSON.stringify({ [model]: effort }));
-  }, { model: MODEL, effort: EFFORT });
+  }, { model: MODEL, effort: EFFORT, imageModel: IMAGE_MODEL });
   await page.reload();
   await waitForEditor(page);
   if (MODEL) {
@@ -180,6 +184,12 @@ async function boot(page: Page, svg = DOC) {
       .toBeVisible({ timeout: 15000 });
     // Effort renders in the same label, and only for models that offer it.
     if (EFFORT) await expect(label).toContainText(`· ${EFFORT} ·`);
+  }
+  // A name resolveImageModel does not know falls back to the default just as silently.
+  if (IMAGE_MODEL) {
+    expect(IMAGE_CREDITS, `${IMAGE_MODEL} is not one of the app's image models`).toBeDefined();
+    await expect(page.getByText(new RegExp(`·\\s${shortModelName(IMAGE_MODEL).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)).first())
+      .toBeVisible({ timeout: 15000 });
   }
   await setSvgContent(page, svg);
 }
@@ -556,7 +566,7 @@ test.describe('AI edit tools, against the real model', () => {
     test.setTimeout(300000);
     await boot(page, STARTER_SVG);
     expect(await ask(page, 'Draw me a cute kitten')).toBe('image-confirm');
-    await page.locator('.aui-image-confirm').getByRole('button', { name: 'Generate picture (10 credits)' }).click();
+    await page.locator('.aui-image-confirm').getByRole('button', { name: `Generate picture (${IMAGE_CREDITS} credits)` }).click();
 
     await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, { timeout: 240000 });
     await acceptAll(page);

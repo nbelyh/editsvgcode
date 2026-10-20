@@ -12,6 +12,7 @@
  *   node scripts/e2e-live.mjs
  *   node scripts/e2e-live.mjs --model gpt-5.4 --effort low
  *   node scripts/e2e-live.mjs --model gpt-5.4 --effort high --list
+ *   node scripts/e2e-live.mjs --image-model gpt-image-2.5-flare --grep "picture offer generates"
  *
  * `npm run e2e:live -- --model gpt-5.4 --list` does NOT work: npm's own config
  * parser swallows `--flag value` pairs even after the `--`, so the script sees
@@ -35,7 +36,8 @@ function take(flag) {
   if (i === -1) return undefined;
   const value = passthrough[i + 1];
   if (value === undefined || value.startsWith('--')) {
-    console.error(`${flag} needs a value, e.g. ${flag} ${flag === '--model' ? 'gpt-5.4' : 'low'}`);
+    const example = { '--model': 'gpt-5.4', '--image-model': 'gpt-image-1.5' }[flag] ?? 'low';
+    console.error(`${flag} needs a value, e.g. ${flag} ${example}`);
     process.exit(2);
   }
   passthrough.splice(i, 2);
@@ -44,6 +46,7 @@ function take(flag) {
 
 const model = take('--model');
 const effort = take('--effort');
+const imageModel = take('--image-model');
 
 // npm ate the flags and left their values behind as bare words. Running anyway
 // would use the app's default model and say so only in passing, which is a
@@ -73,8 +76,9 @@ if (effort && !model) {
 const env = { ...process.env, LIVE_AI: '1' };
 if (model) env.LIVE_AI_MODEL = model;
 if (effort) env.LIVE_AI_EFFORT = effort;
+if (imageModel) env.LIVE_AI_IMAGE_MODEL = imageModel;
 
-console.log(`live e2e → model: ${model ?? '(app default)'}, effort: ${effort ?? '(app default)'}`);
+console.log(`live e2e → model: ${model ?? '(app default)'}, effort: ${effort ?? '(app default)'}, image model: ${imageModel ?? '(app default)'}`);
 
 const result = spawnSync(
   process.execPath,
