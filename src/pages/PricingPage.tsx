@@ -346,10 +346,10 @@ export function PricingPage() {
               </Table.Tr>
               <Table.Tr>
                 <Table.Td>Image generation</Table.Td>
-                <Table.Td>gpt-image-1-mini, gpt-image-2.5-flare, gpt-image-1</Table.Td>
-                <Table.Td>10 – 50</Table.Td>
+                <Table.Td>gpt-image-1-mini, gpt-image-2.5-flare, gpt-image-1.5</Table.Td>
+                <Table.Td>10 – 30</Table.Td>
                 <Table.Td>~3 images (gpt-image-1-mini)</Table.Td>
-                <Table.Td>~20–100 images</Table.Td>
+                <Table.Td>~33–100 images</Table.Td>
               </Table.Tr>
             </Table.Tbody>
           </Table>

@@ -55,6 +55,10 @@ describe('resolveImageModel', () => {
     expect(resolveImageModel(null)).toBe(DEFAULT_IMAGE_MODEL);
     expect(resolveImageModel('gpt-image-0')).toBe(DEFAULT_IMAGE_MODEL);
   });
+
+  it('carries a retired model over to its successor, not the default', () => {
+    expect(resolveImageModel('gpt-image-1')).toBe('gpt-image-2.5-flare');
+  });
 });
 
 describe('visibleEditModels', () => {

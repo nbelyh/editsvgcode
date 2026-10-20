@@ -17,7 +17,6 @@ export const IMAGE_MODELS: Record<string, { credits: number; pro: boolean }> = {
   "gpt-image-1-mini": { credits: 10, pro: false },
   "gpt-image-2.5-flare": { credits: 20, pro: true },
   "gpt-image-1.5": { credits: 30, pro: true },
-  "gpt-image-1": { credits: 50, pro: true },
 };
 export const DEFAULT_IMAGE_MODEL = "gpt-image-1-mini";
 

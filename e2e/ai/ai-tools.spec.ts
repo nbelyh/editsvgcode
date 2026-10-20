@@ -363,12 +363,12 @@ test.describe('Offering to generate a picture', () => {
 
   test('a Pro image model is offered at its own price', async ({ page }) => {
     // The price comes from the image model the user picked, not a number written into the copy.
-    await page.addInitScript(() => localStorage.setItem('esvg-image-model', 'gpt-image-1'));
+    await page.addInitScript(() => localStorage.setItem('esvg-image-model', 'gpt-image-1.5'));
     await boot(page, DOC, { pro: true });
     await stubOffer(page, []);
     await send(page, 'Draw me a cute kitten');
 
-    await expect(page.locator('.aui-image-confirm').getByRole('button', { name: 'Generate picture (50 credits)' }))
+    await expect(page.locator('.aui-image-confirm').getByRole('button', { name: 'Generate picture (30 credits)' }))
       .toBeVisible({ timeout: 15000 });
   });
 

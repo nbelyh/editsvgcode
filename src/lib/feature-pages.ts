@@ -816,7 +816,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
         heading: 'Pictures',
         paragraphs: [
           'Ask for an illustration, a character, an animal or a scene, and Claude puts a card in the chat with the prompt and its price. Nothing is made or charged until you press Generate. The image model paints the picture, your browser traces it into SVG, and it is saved as a new drawing. The same kind of card changes a picture, such as a pose, an expression, a detail or a part too intricate to edit as shapes, and keeps the original. It works on any picture-like drawing in your account, not only one made in the same chat.',
-          'Pictures are paid for with your EditSvgCode credits: 10 with gpt-image-1-mini, the default. gpt-image-2.5-flare (20 credits), gpt-image-1.5 (30 credits) and gpt-image-1 (50 credits) need Pro. A free account gets 30 credits a month.',
+          'Pictures are paid for with your EditSvgCode credits: 10 with gpt-image-1-mini, the default. gpt-image-2.5-flare (20 credits) and gpt-image-1.5 (30 credits) need Pro. A free account gets 30 credits a month.',
         ],
       },
       {

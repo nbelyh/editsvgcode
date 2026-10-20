@@ -111,10 +111,13 @@ export function resolveEditModel(value: string | null): string {
 const SUCCESSORS: Record<string, string> = {
   'claude-sonnet-5': 'claude-sonnet-5-5',
   'claude-opus-5': 'claude-opus-5-5',
+  // Kept for transparency until gpt-image-2.5-flare had it too, at under a third of the cost.
+  'gpt-image-1': 'gpt-image-2.5-flare',
 };
 
 export function resolveImageModel(value: string | null): string {
-  return IMAGE_MODELS.some(m => m.value === value) ? value! : DEFAULT_IMAGE_MODEL;
+  const current = value !== null ? SUCCESSORS[value] ?? value : value;
+  return IMAGE_MODELS.some(m => m.value === current) ? current! : DEFAULT_IMAGE_MODEL;
 }
 
 /** How generated and edited pictures are drawn; see image-style in the API. Two independent
@@ -141,9 +144,6 @@ export const IMAGE_MODELS: ModelOption[] = [
   { label: 'gpt-image-1-mini', value: 'gpt-image-1-mini', credits: 10, pro: false },
   { label: 'gpt-image-2.5-flare', value: 'gpt-image-2.5-flare', credits: 20, pro: true, fidelity: true },
   { label: 'gpt-image-1.5', value: 'gpt-image-1.5', credits: 30, pro: true, fidelity: true },
-  // Kept despite costing the most: until gpt-image-2.5 it was the only image model with
-  // working transparency.
-  { label: 'gpt-image-1', value: 'gpt-image-1', credits: 50, pro: true, fidelity: true },
 ];
 
 export function shortModelName(value: string): string {
