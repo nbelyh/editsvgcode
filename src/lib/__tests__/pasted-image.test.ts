@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pictureFileFrom, isSvgFile, traceSize, isPictureTool, isPictureActionTool, TRACE_IMAGE_TOOL, REDRAW_IMAGE_TOOL } from '../pasted-image';
+import { pictureFileFrom, isSvgFile, traceSize, iconScale, isPictureTool, isPictureActionTool, TRACE_IMAGE_TOOL, REDRAW_IMAGE_TOOL } from '../pasted-image';
 
 /**
  * A picture pasted, dropped or picked is attached to the chat message. These pick the picture
@@ -89,5 +89,22 @@ describe('isPictureActionTool', () => {
     expect(isPictureActionTool(TRACE_IMAGE_TOOL)).toBe(true);
     expect(isPictureActionTool(REDRAW_IMAGE_TOOL)).toBe(true);
     expect(isPictureActionTool('modify_image')).toBe(false);
+  });
+});
+
+describe('iconScale', () => {
+  it('enlarges a 16x16 icon 32 times, to 512, pixel by pixel', () => {
+    expect(iconScale(16, 16)).toBe(32);
+  });
+
+  it('uses a whole-number scale, so every pixel stays the same size', () => {
+    expect(iconScale(24, 24)).toBe(22);
+    expect(iconScale(32, 16)).toBe(16);
+  });
+
+  it('leaves anything larger than an icon to be smoothed as before', () => {
+    expect(iconScale(65, 65)).toBeNull();
+    expect(iconScale(800, 600)).toBeNull();
+    expect(iconScale(0, 0)).toBeNull();
   });
 });

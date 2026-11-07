@@ -76,6 +76,21 @@ export function traceSize(width: number, height: number): { width: number; heigh
 const MAX_SIDE = 1024;
 const MIN_SIDE = 512;
 
+/** The longest side of a picture enlarged pixel by pixel rather than smoothed: an icon. */
+const ICON_MAX_SIDE = 64;
+
+/**
+ * A small icon — a 16×16 toolbar or forum icon — enlarged pixel by pixel: the whole-number
+ * scale that brings its longest side to at least MIN_SIDE, or null for any larger picture.
+ * Smoothed up to 512, a 16-pixel icon became a blur, which the tracer drew as soft blobs and
+ * the image model redrew as a guess; enlarged as hard squares, both see the pixels it has.
+ */
+export function iconScale(width: number, height: number): number | null {
+  const longest = Math.max(width, height);
+  if (longest < 1 || longest > ICON_MAX_SIDE) return null;
+  return Math.ceil(MIN_SIDE / longest);
+}
+
 /**
  * The picture as a PNG data URL at the size it is traced at, which is also a fair size to show
  * the model. PNG whatever it came in as: the chat stores pictures as PNG, and transparency,
@@ -86,12 +101,16 @@ export async function rasterToPngDataUrl(file: Blob): Promise<string> {
   try {
     const img = await loadImage(url);
     if (!img.naturalWidth || !img.naturalHeight) throw new Error('Image has no size');
-    const { width, height } = traceSize(img.naturalWidth, img.naturalHeight);
+    const scale = iconScale(img.naturalWidth, img.naturalHeight);
+    const { width, height } = scale
+      ? { width: img.naturalWidth * scale, height: img.naturalHeight * scale }
+      : traceSize(img.naturalWidth, img.naturalHeight);
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
-    ctx.imageSmoothingQuality = 'high';
+    if (scale) ctx.imageSmoothingEnabled = false;
+    else ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, width, height);
     return canvas.toDataURL('image/png');
   } finally {

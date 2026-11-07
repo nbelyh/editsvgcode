@@ -15,8 +15,8 @@ export interface ModelOption {
   /** Takes text only; the API drops any picture sent to it. Must match `vision` in the API's
    *  MODEL_CONFIG. Set, an attached picture cannot be sent with this model. */
   vision?: false;
-  /** An image model that keeps a picture's likeness when editing it (input_fidelity "high").
-   *  Must match HIGH_FIDELITY_MODELS in the API's modify-image. */
+  /** An image model that keeps a picture's likeness when editing it: input_fidelity "high",
+   *  listed in HIGH_FIDELITY_MODELS in the API's modify-image, or gpt-image-2, which always does. */
   fidelity?: true;
 }
 
@@ -139,6 +139,9 @@ export function resolveImageStyle(stored: string | null | undefined): ImageStyle
 export const IMAGE_MODELS: ModelOption[] = [
   { label: 'gpt-image-1-mini', value: 'gpt-image-1-mini', credits: 10, pro: false },
   { label: 'gpt-image-1.5', value: 'gpt-image-1.5', credits: 30, pro: true, fidelity: true },
+  // Keeps likeness on its own, without the input_fidelity setting, hence fidelity here although
+  // it is not in the API's HIGH_FIDELITY_MODELS.
+  { label: 'gpt-image-2', value: 'gpt-image-2', credits: 30, pro: true, fidelity: true },
   // Kept despite costing the most: the only image model with working transparency.
   { label: 'gpt-image-1', value: 'gpt-image-1', credits: 50, pro: true, fidelity: true },
 ];
